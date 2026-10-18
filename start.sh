@@ -67,7 +67,7 @@ prefer_node_runtime() {
         Darwin)
             # macOS — Bun CPU bug confirmed on all Mac architectures
             if command -v node >/dev/null 2>&1; then
-                echo "[SillyBunny] macOS detected — using Node.js to avoid Bun CPU overhead (oven-sh/bun#26415)"
+                echo "[Homunculus] macOS detected — using Node.js to avoid Bun CPU overhead (oven-sh/bun#26415)"
                 return 0
             fi
             ;;
@@ -77,7 +77,7 @@ prefer_node_runtime() {
         aarch64|arm64|armv7l|armv8l)
             # ARM — Bun event loop issue causes 90%+ idle CPU
             if command -v node >/dev/null 2>&1; then
-                echo "[SillyBunny] ARM platform detected — using Node.js to avoid Bun CPU overhead (oven-sh/bun#26415)"
+                echo "[Homunculus] ARM platform detected — using Node.js to avoid Bun CPU overhead (oven-sh/bun#26415)"
                 return 0
             fi
             ;;
@@ -156,9 +156,9 @@ while (($#)); do
 done
 
 if (( ! self_update_only )) && is_termux_shared_storage_repo; then
-    echo "[SillyBunny] Termux installs must stay in your Termux home, not Android shared storage." >&2
-    echo "[SillyBunny] Android blocks the node_modules links Bun and npm need under paths like /storage/emulated/0." >&2
-    echo "[SillyBunny] Reclone into '$HOME/SillyBunny', then rerun this launcher. Use 'termux-setup-storage' only to grant file access." >&2
+    echo "[Homunculus] Termux installs must stay in your Termux home, not Android shared storage." >&2
+    echo "[Homunculus] Android blocks the node_modules links Bun and npm need under paths like /storage/emulated/0." >&2
+    echo "[Homunculus] Reclone into '$HOME/SillyBunny', then rerun this launcher. Use 'termux-setup-storage' only to grant file access." >&2
     exit 1
 fi
 
@@ -316,8 +316,8 @@ fi
 "$PACKAGE_MANAGER_CMD" run init
 
 if is_truthy "${SILLYBUNNY_BUN_SMOL:-}" && [[ "$runtime_kind" == node ]]; then
-    echo "[SillyBunny] SILLYBUNNY_BUN_SMOL is set, but this host resolved to Node.js — --smol is a Bun flag and will be ignored."
-    echo "[SillyBunny] For Bun with --smol, use ./start-bun.sh (Termux: bash start-termux-bun.sh)."
+    echo "[Homunculus] SILLYBUNNY_BUN_SMOL is set, but this host resolved to Node.js — --smol is a Bun flag and will be ignored."
+    echo "[Homunculus] For Bun with --smol, use ./start-bun.sh (Termux: bash start-termux-bun.sh)."
 fi
 
 echo "Entering SillyBunny..."

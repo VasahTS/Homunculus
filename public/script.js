@@ -536,7 +536,7 @@ export let isChatSaving = false;
 export let firstRun = false;
 export let settingsReady = false;
 let currentVersion = '0.0.0';
-const SILLYBUNNY_UI_VERSION = 'SillyBunny v1.8.0';
+const SILLYBUNNY_UI_VERSION = 'Homunculus v1.0.0'; // Homunculus: shown in the UI (based on SillyBunny v1.8.0)
 
 export let displayVersion = SILLYBUNNY_UI_VERSION;
 
@@ -554,8 +554,8 @@ export const default_avatar = 'img/ai4.png';
 const SILLYBUNNY_FRONTEND_ICON_STORAGE_KEY = 'sb-frontend-icon';
 const SILLYBUNNY_FRONTEND_ICON_DEFAULT = 'pixel';
 const SILLYBUNNY_FRONTEND_ICONS = Object.freeze({
-    pixel: 'img/sillybunny-pixel-logo-og.png',
-    badge: 'img/sillybunny-badge.png',
+    pixel: 'img/homunculus-logo.png', // Homunculus: app icon
+    badge: 'img/homunculus-logo.png',
 });
 let appliedSillyBunnyFrontendIconId = '';
 
@@ -1120,9 +1120,9 @@ async function firstLoadInit() {
 
     const splashLogo = document.createElement('img');
     splashLogo.src = getSillyBunnyFrontendIconSrc({ absolute: true });
-    splashLogo.alt = 'SillyBunny';
+    splashLogo.alt = 'Homunculus';
     splashLogo.className = 'splash-logo';
-    splashLogo.ariaLabel = t`SillyBunny Badge`;
+    splashLogo.ariaLabel = t`Homunculus`;
     splashLogo.dataset.sbFrontendIcon = 'true';
 
     const splashMessage = document.createElement('h2');

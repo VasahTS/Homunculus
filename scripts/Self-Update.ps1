@@ -136,7 +136,7 @@ if ($ahead -gt 0) {
 }
 
 if ($behind -eq 0) {
-    Write-Host 'SillyBunny is already up to date.'
+    Write-Host 'Homunculus is already up to date.'
     exit 0
 }
 
@@ -146,7 +146,7 @@ if ($beforeResult.ExitCode -ne 0) {
     Finish-Early 'could not read the current revision.'
 }
 
-Write-Host 'Updating SillyBunny...'
+Write-Host 'Updating Homunculus...'
 $pullResult = Invoke-Git pull --ff-only
 if ($pullResult.ExitCode -ne 0) {
     Finish-Early 'git pull --ff-only failed.'
@@ -158,4 +158,4 @@ if ($afterResult.ExitCode -ne 0) {
     Finish-Early 'the repository updated, but the new revision could not be read.'
 }
 
-Write-Host "Updated SillyBunny from $beforeRev to $afterRev."
+Write-Host "Updated Homunculus from $beforeRev to $afterRev."

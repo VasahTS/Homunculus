@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>SillyBunny</title>
+    <title>Homunculus</title>
     <base href="/">
     <meta charset="utf-8">
     <script>globalThis.SillyBunnyClassicUi = true; /* Classic UI fork */</script>
@@ -32,7 +32,7 @@
     <link href="css/jquery-ui.min.css" rel="stylesheet">
     <link href="css/toastr.min.css" rel="stylesheet">
     <link href="css/select2.min.css" rel="stylesheet">
-    <link rel="icon" type="image/png" sizes="256x256" href="img/sillybunny-pixel-logo-og.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="img/homunculus-logo.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/icon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="img/icon-32x32.png">
     <link rel="icon" type="image/png" sizes="48x48" href="img/icon-48x48.png">
@@ -5121,7 +5121,7 @@
                 <div id="user-settings-utility-actions" class="flex-container">
                     <div class="sb-settings-utility-note">
                         <small>Clear browser cache and temporary UI data without resetting your saved settings.</small>
-                        <label for="auto_clear_cache_on_update" class="checkbox_label widthFreeExpand" title="Automatically clear browser cache and temporary UI data after SillyBunny updates, then reload.">
+                        <label for="auto_clear_cache_on_update" class="checkbox_label widthFreeExpand" title="Automatically clear browser cache and temporary UI data after Homunculus updates, then reload.">
                             <input id="auto_clear_cache_on_update" type="checkbox" />
                             <span>Auto-clear cache after updates</span>
                         </label>
@@ -5182,7 +5182,7 @@
                                 </div>
                             </div>
                             <div class="sb-theme-presets">
-                                <small class="sb-theme-presets-label">SillyBunny palettes</small>
+                                <small class="sb-theme-presets-label">Built-in palettes</small>
                                 <div class="sb-theme-preset-buttons">
                                     <button type="button" class="menu_button menu_button_icon sb-theme-preset-reset" title="Reset colors to Dark V 1.0">
                                         <i class="fa-solid fa-rotate-left"></i>
@@ -6018,13 +6018,13 @@
                                 </div>
                             </div>
                             <div id="CustomCSS-block" class="inline-drawer wide100p flexFlowColumn sb-settings-subdrawer sb-settings-topdrawer-centered">
-                                <div class="inline-drawer-toggle inline-drawer-header userSettingsInnerExpandable" title="Apply a custom CSS style to the whole SillyBunny interface." data-i18n="[title]Apply a custom CSS style to the whole SillyBunny interface.">
+                                <div class="inline-drawer-toggle inline-drawer-header userSettingsInnerExpandable" title="Apply a custom CSS style to the whole Homunculus interface." data-i18n="[title]Apply a custom CSS style to the whole Homunculus interface.">
                                     <b><span data-i18n="Custom CSS">Custom CSS</span></b>
                                     <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                 </div>
                                 <div class="inline-drawer-content sb-settings-subdrawer-body" style="display:none">
                                     <div class="sb-settings-subdrawer-toolbar">
-                                        <small>Layer your own polish on top of the active SillyBunny palette.</small>
+                                        <small>Layer your own polish on top of the active palette.</small>
                                         <div class="flex-container flexnowrap alignitemscenter flexGap5">
                                             <!-- SillyBunny: AI shortcut for Custom CSS generation. -->
                                             <div id="custom_css_ai_wand" class="menu_button menu_button_icon margin0" role="button" tabindex="0" title="Generate CSS with AI" aria-label="Generate CSS with AI" data-i18n="[title]Generate CSS with AI">
@@ -6771,7 +6771,7 @@
                     <div id="sb_character_import_panel" class="sb-character-import-panel" hidden>
                         <div class="sb-character-import-intro">
                             <h3 data-i18n="Import a character card">Import a character card</h3>
-                            <p data-i18n="Upload a character card to SillyBunny using your method of choice.">Upload a character card to SillyBunny using your method of choice.</p>
+                            <p data-i18n="Upload a character card to Homunculus using your method of choice.">Upload a character card to Homunculus using your method of choice.</p>
                         </div>
                         <div class="sb-character-import-actions">
                             <button id="sb_character_import_file_action" class="sb-character-import-action" type="button">
@@ -8358,18 +8358,18 @@
 
         <div id="onboarding_template" class="template_element">
             <div class="onboarding">
-                <h3 data-i18n="Welcome to SillyBunny!">Welcome to SillyBunny!</h3>
+                <h3 data-i18n="Welcome to Homunculus!">Welcome to Homunculus!</h3>
                 <div id="onboarding-UI-language-block" class="flex-container alignItemsBaseline">
                     <span data-i18n="UI Language">Language:</span>
                     <select id="onboarding_ui_language_select" class="flex1 margin0">
                         <option value="en">English</option>
                     </select>
                 </div>
-                <b data-i18n="SillyBunny is flexible and setup-driven.">
-                    SillyBunny is flexible and works best once your API, character library, and persona setup are in place.
+                <b data-i18n="Homunculus is flexible and setup-driven.">
+                    Homunculus is flexible and works best once your API, character library, and persona setup are in place.
                 </b>
                 <div class="welcomeForkNotice">
-                    <strong>Important:</strong> SillyBunny is a fork of SillyTavern. Please direct SillyBunny issues and bug reports to <a href="https://github.com/SillyBunnyTeam/SillyBunny" target="_blank">our GitHub page</a>.
+                    <strong>Homunculus</strong> is a personal fork of <a href="https://github.com/SillyBunnyTeam/SillyBunny" target="_blank">SillyBunny</a> and <a href="https://github.com/SillyTavern/SillyTavern" target="_blank">SillyTavern</a>. Credits in CREDITS.md.
                 </div>
                 <ul class="justifyLeft marginTopBot5">
                     <li><span data-i18n="welcome_message_part_1">Read the</span> <a href="https://docs.sillytavern.app/" target="_blank" data-i18n="welcome_message_part_2">Official Documentation</a><span data-i18n="welcome_message_part_3">.</span></li>

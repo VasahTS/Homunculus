@@ -323,7 +323,7 @@ function logSillyTavernExtensionSyncReport(reportData) {
         return;
     }
 
-    console.groupCollapsed(`[SillyBunny] Third-party extension sync report (${reportData.results.length})`);
+    console.groupCollapsed(`[Homunculus] Third-party extension sync report (${reportData.results.length})`);
     console.table(reportData.results.map(result => ({
         name: result?.name || '',
         displayName: result?.displayName || '',
@@ -356,7 +356,7 @@ async function handleSillyTavernFolderImport() {
         return;
     }
 
-    const confirmed = window.confirm(`Import data from this folder into the current SillyBunny account?\n\n${sourcePath}\n\nFiles with the same name will be replaced, and the page will reload when the import finishes.`);
+    const confirmed = window.confirm(`Import data from this folder into the current Homunculus account?\n\n${sourcePath}\n\nFiles with the same name will be replaced, and the page will reload when the import finishes.`);
     if (!confirmed) {
         return;
     }
@@ -399,14 +399,14 @@ async function handleSillyTavernExtensionSync() {
         return;
     }
 
-    const confirmed = window.confirm(`Sync third-party extensions from this SillyTavern folder into the current SillyBunny account?\n\n${sourcePath}\n\nMatching extension folders will be replaced. SillyBunny will show a detailed report instead of reloading immediately.`);
+    const confirmed = window.confirm(`Sync third-party extensions from this SillyTavern folder into the current Homunculus account?\n\n${sourcePath}\n\nMatching extension folders will be replaced. Homunculus will show a detailed report instead of reloading immediately.`);
     if (!confirmed) {
         return;
     }
 
     setSillyTavernImportBusy(true);
     renderSillyTavernExtensionSyncReport(null);
-    setServerAdminMessage(refs.note, 'Syncing third-party extensions… SillyBunny will validate each one and show a report when it finishes.');
+    setServerAdminMessage(refs.note, 'Syncing third-party extensions… Homunculus will validate each one and show a report when it finishes.');
 
     try {
         const result = await requestUserPrivateAction('/api/users/import-sillytavern/extensions', {
@@ -448,7 +448,7 @@ async function handleSillyTavernZipImport(file) {
         return;
     }
 
-    const confirmed = window.confirm(`Import this SillyTavern backup ZIP into the current SillyBunny account?\n\n${file.name}\n\nFiles with the same name will be replaced, and the page will reload when the import finishes.`);
+    const confirmed = window.confirm(`Import this SillyTavern backup ZIP into the current Homunculus account?\n\n${file.name}\n\nFiles with the same name will be replaced, and the page will reload when the import finishes.`);
     if (!confirmed) {
         if (refs.zipFileInput instanceof HTMLInputElement) {
             refs.zipFileInput.value = '';
@@ -554,7 +554,7 @@ function injectSillyTavernImportCard() {
 
     const zipPane = createElement('div', { className: 'sb-import-pane' });
     const zipTitle = createElement('strong', { text: 'Import From Backup ZIP' });
-    const zipBody = createElement('p', { text: 'Use the backup ZIP that SillyTavern exports. Pick the file here and SillyBunny will import it into this account.' });
+    const zipBody = createElement('p', { text: 'Use the backup ZIP that SillyTavern exports. Pick the file here and Homunculus will import it into this account.' });
     const zipButton = createElement('button', {
         className: 'menu_button menu_button_icon sb-server-action menu_button_primary',
         attrs: { type: 'button' },

@@ -36,8 +36,8 @@ if "!_force_node!"=="0" if "!_force_bun!"=="0" if "!_is_arm64!"=="1" (
         where npm > nul 2>&1
         if !errorlevel! equ 0 (
             echo.
-            echo [SillyBunny] ARM64 detected. Bun may use excessive CPU on this platform.
-            echo [SillyBunny] Switching to Node.js automatically. Use Start-Bun.bat or Start.bat with SILLYBUNNY_USE_BUN=1 to override.
+            echo [Homunculus] ARM64 detected. Bun may use excessive CPU on this platform.
+            echo [Homunculus] Switching to Node.js automatically. Use Start-Bun.bat or Start.bat with SILLYBUNNY_USE_BUN=1 to override.
             echo.
             set "_server_runtime=node"
         )
@@ -98,8 +98,8 @@ if "%_need_git%"=="1" if "%_auto_update%"=="1" (
 )
 
 if "%_need_git%"=="0" if "%_auto_update%"=="1" (
-    echo [SillyBunny] Self-update skipped: this folder is not a Git checkout.
-    echo [SillyBunny] Download the latest release ZIP, or install with git clone to enable automatic updates.
+    echo [Homunculus] Self-update skipped: this folder is not a Git checkout.
+    echo [Homunculus] Download the latest release ZIP, or install with git clone to enable automatic updates.
     echo.
 )
 
@@ -195,8 +195,8 @@ if /I "!SILLYBUNNY_BUN_SMOL!"=="yes" set "_bun_smol=1"
 if /I "!SILLYBUNNY_BUN_SMOL!"=="on" set "_bun_smol=1"
 
 if "!_bun_smol!"=="1" if "!_server_runtime!"=="node" (
-    echo [SillyBunny] SILLYBUNNY_BUN_SMOL is set, but Node.js was selected. --smol is a Bun flag and will be ignored.
-    echo [SillyBunny] For Bun with --smol, use Start-Bun.bat.
+    echo [Homunculus] SILLYBUNNY_BUN_SMOL is set, but Node.js was selected. --smol is a Bun flag and will be ignored.
+    echo [Homunculus] For Bun with --smol, use Start-Bun.bat.
 )
 
 :server_loop
@@ -212,7 +212,7 @@ if "!_server_runtime!"=="node" (
 set "_server_exit=!errorlevel!"
 if "!_server_exit!"=="75" (
     echo.
-    echo [SillyBunny] Restarting server...
+    echo [Homunculus] Restarting server...
     set SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH=1
     goto server_loop
 )

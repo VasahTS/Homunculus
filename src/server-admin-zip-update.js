@@ -8,14 +8,14 @@ import yauzl from 'yauzl';
 
 import { isPathInside } from './path-containment.js';
 
-const GITHUB_OWNER = 'platberlitz';
-const GITHUB_REPO = 'SillyBunny';
+const GITHUB_OWNER = 'VasahTS'; // Homunculus: never pull SillyBunny release ZIPs over this install
+const GITHUB_REPO = 'Homunculus';
 const GITHUB_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const GITHUB_RELEASE_DOWNLOAD_PREFIX = `/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/`;
-const RELEASE_ZIP_PREFIX = 'SillyBunny-v';
+const RELEASE_ZIP_PREFIX = 'Homunculus-v';
 const RELEASE_ZIP_SUFFIX = '-github.zip';
 const REQUEST_TIMEOUT_MS = 15000;
-const USER_AGENT = 'SillyBunny ZIP updater';
+const USER_AGENT = 'Homunculus ZIP updater';
 
 function normalizeVersion(value) {
     return String(value ?? '').trim().replace(/^v/i, '');
