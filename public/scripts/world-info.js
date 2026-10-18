@@ -102,7 +102,7 @@ const saveSettingsDebounced = debounce(() => {
 }, debounce_timeout.relaxed);
 const sortFn = (a, b) => b.order - a.order;
 let updateEditor = (navigation, flashOnNav = true) => { console.debug('Triggered WI navigation', navigation, flashOnNav); };
-const WORLD_INFO_DESKTOP_SPLIT_QUERY = '(min-width: 961px)';
+const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: inline entry editing
 let desktopSelectedWorldInfoUid = null;
 let isWorldInfoEditorPopoutRequested = false;
 let isWorldInfoEditorPopoutShellSyncBound = false;

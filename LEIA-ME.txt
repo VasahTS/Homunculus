@@ -1,0 +1,35 @@
+SillyBunny com interface classica (SillyTavern)
+===============================================
+
+O que e isto
+------------
+E o SillyBunny completo (Agents, Companions, modo Conversation, extensoes)
+com a interface do SillyTavern no lugar da interface do SillyBunny.
+Os Agents ficam no icone de robo na barra do topo.
+
+Instalar (uma vez)
+------------------
+1. Extraia este zip numa pasta nova (ex.: Documentos\SillyBunny-Classic).
+2. De dois cliques em Instalar.bat.
+   - Ele baixa o SillyBunny oficial e aplica a interface classica.
+   - No final ele pergunta pela pasta do seu SillyBunny atual: arraste a
+     pasta para a janela e aperte Enter. Isso COPIA seus personagens, chats,
+     agentes e configuracoes. O SillyBunny antigo nao e alterado.
+3. Feche o SillyBunny antigo (os dois usam o mesmo endereco) e abra o
+   Start.bat desta pasta.
+
+Atualizar
+---------
+De dois cliques em Atualizar-Classic.bat. Ele baixa a versao nova do
+SillyBunny e reaplica a interface classica. Se algo nao encaixar, ele
+desfaz tudo e avisa; nesse caso e so pedir ajuda.
+O atualizador automatico do Start.bat fica desligado nesta pasta de
+proposito, para nao apagar a interface classica.
+
+Dicas
+-----
+- Tema: User Settings (icone de engrenagem com pessoa) > UI Theme.
+  "Dark Lite" e o tema padrao do SillyTavern.
+- O botao Roleplay / Conversation fica no topo do painel de personagens.
+- Os arquivos da interface classica estao em classic-ui\ e nos arquivos
+  public\*classic*. O resto e o SillyBunny original.

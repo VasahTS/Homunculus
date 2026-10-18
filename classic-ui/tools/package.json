@@ -1,0 +1,10 @@
+{
+  "name": "classic-ui-tools",
+  "private": true,
+  "type": "module",
+  "description": "Regenerates the classic (SillyTavern-styled) CSS for the Classic UI fork of SillyBunny.",
+  "dependencies": {
+    "postcss": "^8.4.0",
+    "postcss-selector-parser": "^6.1.0"
+  }
+}

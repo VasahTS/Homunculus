@@ -5,6 +5,7 @@
     <title>SillyBunny</title>
     <base href="/">
     <meta charset="utf-8">
+    <script>globalThis.SillyBunnyClassicUi = true; /* Classic UI fork */</script>
     <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-visual">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -17,18 +18,17 @@
             background-color: #1d2128;
         }
     </style>
-    <link rel="preload" as="style" href="style.css?v=20260803a">
+    <link rel="preload" as="style" href="style-classic.css?v=263b8023ad">
     <link rel="modulepreload" href="script.js">
-    <link rel="modulepreload" href="scripts/sillybunny-tabs.js">
     <link rel="modulepreload" href="scripts/sillybunny-conversation.js">
     <link rel="preload" as="font" type="font/woff2" href="webfonts/Figtree/Figtree-Regular.woff2?v=20260422b" crossorigin>
     <link rel="manifest" crossorigin="use-credentials" href="manifest.json">
     <link href="webfonts/Figtree/stylesheet.css?v=20260422b" rel="stylesheet">
-    <link href="webfonts/NotoSans/stylesheet.css" rel="preload" as="style" data-sb-deferred-style data-sb-media="all">
-    <link href="webfonts/NotoSansMono/stylesheet.css" rel="preload" as="style" data-sb-deferred-style data-sb-media="all">
+    <link href="webfonts/NotoSans/classic-stylesheet.css?v=50ef5d4da9" rel="stylesheet">
+    <link href="webfonts/NotoSansMono/classic-stylesheet.css?v=33349880a0" rel="stylesheet">
     <link href="css/fontawesome.min.css" rel="stylesheet">
     <link href="css/solid.min.css" rel="stylesheet">
-    <link href="css/brands.min.css" rel="preload" as="style" data-sb-deferred-style data-sb-media="all">
+    <link href="css/brands.min.css" rel="stylesheet">
     <link href="css/jquery-ui.min.css" rel="stylesheet">
     <link href="css/toastr.min.css" rel="stylesheet">
     <link href="css/select2.min.css" rel="stylesheet">
@@ -41,15 +41,16 @@
     <link rel="apple-touch-icon" sizes="114x114" href="img/apple-icon-114x114.png" />
     <link rel="apple-touch-icon" sizes="144x144" href="img/apple-icon-144x144.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="img/apple-icon-180x180.png" />
-    <link rel="stylesheet" type="text/css" href="style.css?v=20260803a">
-    <link rel="stylesheet" type="text/css" href="css/st-tailwind.css">
-    <link rel="stylesheet" type="text/css" href="css/toggle-dependent.css">
-    <link rel="stylesheet" type="text/css" href="css/select2-overrides.css?v=20260609a">
-    <link rel="stylesheet" type="text/css" href="css/mobile-styles.css?v=20260814a" media="(max-width: 768px)">
-    <link rel="stylesheet" type="text/css" href="css/sillybunny-theme.css?v=20260727c">
-    <link rel="stylesheet" type="text/css" href="css/sillybunny-paper-theme.css?v=20260622g" media="(max-width: 768px)">
-    <link rel="stylesheet" type="text/css" href="css/sillybunny-tabs.css?v=20260725g">
-    <link rel="stylesheet" type="text/css" href="css/sillybunny-mobile-shell.css?v=20261010a" media="(max-width: 768px)">
+    <link rel="stylesheet" type="text/css" href="style-classic.css?v=263b8023ad">
+    <link rel="stylesheet" type="text/css" href="css/classic--st-tailwind.css?v=feabf7b333">
+    <link rel="stylesheet" type="text/css" href="css/classic--toggle-dependent.css?v=b7bc1e582c">
+    <link rel="stylesheet" type="text/css" href="css/classic--select2-overrides.css?v=0075478782">
+    <link rel="stylesheet" type="text/css" href="css/classic--mobile-styles.css?v=eabd852d97" media="(max-width: 768px)">
+    <!-- Classic UI fork: SillyTavern loads these up front; SillyBunny deferred them through its shell. -->
+    <link rel="stylesheet" type="text/css" href="css/classic--world-info.css?v=8d80770ff3">
+    <link rel="stylesheet" type="text/css" href="css/classic--extensions-panel.css?v=12c12c0278">
+    <link rel="stylesheet" type="text/css" href="css/classic-sb-extras.css?v=f334999a9f">
+    <link rel="stylesheet" type="text/css" href="css/classic-ui.css?v=fbf5adbe22">
     <link rel="stylesheet" type="text/css" href="css/user.css">
     <!-- Scripts are loaded at the end of the body to improve page load speed -->
 </head>
@@ -6347,6 +6348,20 @@
                 </div>
             </div>
         </div>
+        <!-- Classic UI fork: In-Chat Agents get their own top-bar drawer (in SillyBunny they live in the Workspace shell). -->
+        <div id="agents-settings-button" class="drawer">
+            <div class="drawer-toggle">
+                <div class="drawer-icon fa-solid fa-robot fa-fw closedIcon" title="In-Chat Agents" data-i18n="[title]In-Chat Agents"></div>
+            </div>
+            <div id="rm_agents_block" class="drawer-content closedDrawer">
+                <div class="agents_drawer_block flex-container flexFlowColumn">
+                    <div class="alignitemscenter flex-container wide100p">
+                        <h3 class="margin0 flex1">In-Chat Agents</h3>
+                    </div>
+                    <div id="in_chat_agents_container" class="wide100p"></div>
+                </div>
+            </div>
+        </div>
         <div id="persona-management-button" class="drawer">
             <div class="drawer-toggle">
                 <div class="drawer-icon fa-solid fa-face-smile fa-fw closedIcon" title="Persona Management" data-i18n="[title]Persona Management"></div>
@@ -9070,7 +9085,8 @@
     <script type="module" src="scripts/i18n.js"></script>
     <script type="module" src="scripts/performance-loader.js"></script>
     <script type="module" src="script.js"></script>
-    <script type="module" src="scripts/sillybunny-tabs.js"></script>
+    <!-- Classic UI fork: replaces scripts/sillybunny-tabs.js (graphical shell) -->
+    <script type="module" src="scripts/classic-ui.js?v=eea4046d95"></script>
     <script type="module" src="scripts/sillybunny-conversation.js"></script>
     <script>
         window.addEventListener('load', (event) => {

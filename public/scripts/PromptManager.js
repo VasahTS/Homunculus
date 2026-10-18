@@ -39,7 +39,7 @@ function debouncePromise(func, delay) {
 
 const DEFAULT_DEPTH = 4;
 const DEFAULT_ORDER = 100;
-const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = '(min-width: 961px)';
+const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: list-only layout
 
 /**
  * @enum {number}

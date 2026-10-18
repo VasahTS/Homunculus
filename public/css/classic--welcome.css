@@ -1,0 +1,1827 @@
+#chat .mes[type="assistant_message"] .mes_button {
+    display: none;
+}
+
+.welcomePanel {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    width: 100%;
+}
+
+.welcomePanel:has(.showMoreChats) {
+    padding-bottom: 5px;
+}
+
+.welcomePanel.recentHidden .welcomeRecent,
+.welcomePanel.recentHidden .recentChatsTitle,
+.welcomePanel.recentHidden .hideRecentChats,
+.welcomePanel.recentHidden .recentChatsSettings,
+.welcomePanel:not(.recentHidden) .showRecentChats {
+    display: none;
+}
+
+body.bubblechat .welcomePanel {
+    border-radius: 10px;
+    background-color: var(--SmartThemeBotMesBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    margin-bottom: 5px;
+}
+
+body.hideChatAvatars .welcomePanel .recentChatList .recentChat .avatar {
+    display: none;
+}
+
+.welcomePanel .welcomeHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.welcomePanel .recentChatsTitle {
+    flex-grow: 1;
+    font-size: calc(var(--mainFontSize) * 1.15);
+    font-weight: 600;
+}
+
+.welcomePanel .welcomeHeaderTitle {
+    margin: 0;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.welcomePanel .welcomeHeaderVersionDisplay {
+    font-size: calc(var(--mainFontSize) * 1.3);
+    font-weight: 600;
+    flex-grow: 1;
+}
+
+.welcomePanel .welcomeHeaderLogo {
+    width: 30px;
+    height: 30px;
+}
+
+.welcomePanel .welcomeShortcuts {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.welcomePanel .welcomeShortcuts .welcomeShortcutsSeparator {
+    margin: 0 2px;
+    color: var(--SmartThemeBorderColor);
+    font-size: calc(var(--mainFontSize) * 1.1);
+}
+
+.welcomeRecent .recentChatList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 2px;
+}
+
+.welcomeRecent .welcomePanelLoader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+
+.welcomePanel .recentChatList .noRecentChat {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: baseline;
+    gap: 5px;
+    padding: 10px;
+}
+
+.welcomeRecent .recentChatList .recentChat {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    gap: 10px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    position: relative;
+}
+
+.welcomeRecent .recentChatList .recentChat .avatar {
+    flex: 0;
+    align-self: center;
+}
+
+.welcomeRecent .recentChatList .recentChat:hover {
+    background-color: var(--white30a);
+}
+
+.welcomeRecent .recentChatList .recentChat .recentChatInfo {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    flex-grow: 1;
+    overflow: hidden;
+    justify-content: center;
+    align-self: flex-start;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatNameContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: calc(var(--mainFontSize) * 1);
+    gap: 5px;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatNameContainer .chatName {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    flex: 1;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatActions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatActions button {
+    margin: 0;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatMessageContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    font-size: calc(var(--mainFontSize) * 0.85);
+}
+
+.welcomeRecent .recentChatList .recentChat .chatMessageContainer .chatMessage {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+body.big-avatars .welcomeRecent .recentChatList .recentChat .chatMessageContainer .chatMessage {
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatStats {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: baseline;
+    align-self: flex-start;
+    gap: 5px;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatStats .counterBlock {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.welcomeRecent .recentChatList .recentChat .chatStats .counterBlock::after {
+    content: "|";
+    color: var(--SmartThemeBorderColor);
+    font-size: calc(var(--mainFontSize) * 0.95);
+}
+
+.welcomeRecent .recentChatList .recentChat.hidden {
+    display: none;
+}
+
+.welcomeRecent .recentChatList .showMoreChats {
+    align-self: center;
+}
+
+.welcomeRecent .recentChatList .showMoreChats.rotated {
+    transform: rotate(180deg);
+}
+
+.welcomeRecent .recentChatList .recentChat .recentChatPinned {
+    top: 1px;
+    left: 1px;
+    position: absolute;
+    opacity: 0.8;
+    color: var(--SmartThemeQuoteColor);
+}
+
+@media screen and (max-width: 1000px) {
+    .welcomePanel .welcomeShortcuts a span {
+        display: none;
+    }
+}
+
+/* ===== Classic UI fork: SillyBunny-only rules from css/welcome.css (auto-extracted, see tools/css-merge.mjs) ===== */
+
+
+@keyframes welcomeDeckFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.welcomeGuidePanel,
+.welcomePromptPanel {
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    --welcome-strong-fg: var(--sb-landing-strong, color-mix(in srgb, var(--SmartThemeBodyColor) 92%, var(--SmartThemeBlurTintColor) 8%));
+    --welcome-muted-fg: var(--sb-landing-muted, color-mix(in srgb, var(--SmartThemeBodyColor) 74%, var(--SmartThemeBlurTintColor) 26%));
+    color: var(--welcome-strong-fg);
+}
+
+.welcomeActionCard,
+.welcomeRecentShell,
+.welcomePromptPanel,
+.welcomeGuidePanel,
+.welcomeGuideCard {
+    position: relative;
+    isolation: isolate;
+}
+
+:root[data-sb-surface-tone='light'] .welcomePanel,
+:root[data-sb-surface-tone='light'] .welcomeGuidePanel,
+:root[data-sb-surface-tone='light'] .welcomePromptPanel {
+    --welcome-strong-fg: color-mix(in srgb, var(--SmartThemeBodyColor) 88%, var(--SmartThemeBlurTintColor) 12%);
+    --welcome-muted-fg: color-mix(in srgb, var(--SmartThemeBodyColor) 66%, var(--SmartThemeBlurTintColor) 34%);
+}
+
+:root[data-sb-surface-tone='light'] .welcomePanel {
+    --sb-welcome-panel-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor) 92%, var(--SmartThemeChatTintColor) 8%);
+}
+
+:root[data-sb-surface-tone='light'] .welcomeActionCard,
+:root[data-sb-surface-tone='light'] .welcomeRecentShell,
+:root[data-sb-surface-tone='light'] .welcomeGuidePanel,
+:root[data-sb-surface-tone='light'] .welcomePromptPanel {
+    --sb-welcome-surface-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor) 92%, var(--SmartThemeChatTintColor) 8%);
+}
+
+.welcomePanel--compact {
+    gap: 12px;
+    padding: var(--spacing-lg, 16px);
+}
+
+.welcomePanel--compact .welcomeHero {
+    display: block;
+}
+
+.welcomePanel--compact .welcomeHeroBlurb,
+.welcomePanel--compact .welcomeForkNotice,
+.welcomePanel--compact .welcomeActionGrid,
+.welcomePanel--compact .welcomeDeck,
+.welcomePanel--listOnly .welcomeHero,
+.welcomePanel--listOnly .welcomeDeck {
+    display: none;
+}
+
+.welcomePanel--compact .welcomeHeroCopy {
+    gap: 0;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.welcomePanel--compact .welcomeHeaderTitle {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.welcomePanel--compact .welcomeHeroTitleGroup {
+    text-align: left;
+}
+
+.welcomePanel--compact .welcomeHeaderLogo {
+    width: 48px;
+    height: 48px;
+    padding: 6px;
+    border-radius: 16px;
+}
+
+.welcomePanel--compact .welcomeHeaderVersionDisplay {
+    font-size: calc(var(--mainFontSize) * 1.16);
+}
+
+.welcomePanel--listOnly {
+    /* List Only shows nothing but the recent list, so the panel fills #chat and
+       the list takes the remaining height instead of the viewport cap used by the
+       other modes. The floor keeps the list usable on short windows, where #chat
+       scrolls as before. */
+    flex: 1 1 auto;
+    min-height: 400px;
+    gap: 0;
+    padding: var(--spacing-md, 12px);
+    border-radius: 20px;
+}
+
+.welcomePanel--listOnly .welcomeRecentShell,
+.welcomePanel--listOnly .welcomeRecent {
+    flex: 1 1 auto;
+}
+
+.welcomePanel--listOnly .welcomeRecent {
+    max-height: none;
+}
+
+
+.welcomePanelModeToggle.is-active {
+    color: var(--welcome-strong-fg);
+    border-color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 42%, var(--sb-shell-border, var(--SmartThemeBorderColor)));
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, var(--sb-accent)) 14%, transparent);
+}
+
+.welcomeHero {
+    position: relative;
+}
+
+.welcomeHeroCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    align-items: center;
+    text-align: center;
+}
+
+.welcomeHeroEyebrow {
+    margin: 0;
+    font-size: calc(var(--mainFontSize) * 0.78);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--welcome-muted-fg);
+}
+
+.welcomeHeroTitleGroup {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+}
+
+.welcomeHeroBlurb {
+    margin: 10px auto 0;
+    max-width: 56ch;
+    font-size: calc(var(--mainFontSize) * 0.96);
+    line-height: 1.55;
+    color: var(--welcome-muted-fg);
+    text-align: center;
+}
+
+.welcomeForkNotice {
+    margin-top: 14px;
+    margin-inline: auto;
+    max-width: min(100%, 600px);
+    padding: 10px 12px;
+    border-radius: 16px;
+    font-size: calc(var(--mainFontSize) * 0.82);
+    line-height: 1.5;
+    color: var(--welcome-strong-fg);
+    display: block;
+    align-self: center;
+    background: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary, var(--sb-accent)) 28%, var(--sb-shell-border, var(--SmartThemeBorderColor)));
+    box-shadow: none;
+    text-align: center;
+}
+
+.welcomeForkNoticeCopy {
+    min-width: 0;
+}
+
+.welcomeForkNotice strong {
+    font-weight: 800;
+}
+
+.welcomeForkNotice a {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.welcomePanelToggles {
+    display: none;
+    justify-content: center;
+    width: 100%;
+}
+
+.welcomePanel--compact .welcomePanelToggles,
+.welcomePanel--listOnly .welcomePanelToggles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+.welcomePanelModeControls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.welcomePanelModeControls--listOnly {
+    display: none;
+}
+
+.welcomePanel--compact .welcomeForkNotice .welcomePanelModeControls,
+.welcomePanel--listOnly .welcomeForkNotice .welcomePanelModeControls {
+    display: none;
+}
+
+.welcomePanel--compact .welcomePanelModeControls--listOnly,
+.welcomePanel--listOnly .welcomePanelModeControls--listOnly {
+    display: flex;
+}
+
+.welcomeActionGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 14px;
+    width: 100%;
+}
+
+.welcomeActionCard {
+    --sb-welcome-surface-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor) 92%, var(--SmartThemeChatTintColor) 8%);
+    min-width: 0;
+    min-height: 88px;
+    width: 100%;
+    height: 100%;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    border-radius: 16px;
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 86%, transparent);
+    box-shadow: none;
+}
+
+.welcomeActionCard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-control-opacity, 1);
+}
+
+.welcomeActionCard i {
+    flex: 0 0 20px;
+    width: 20px;
+    font-size: calc(var(--mainFontSize) * 1.04);
+    text-align: center;
+    color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 64%, var(--SmartThemeBodyColor));
+}
+
+.welcomeActionMeta {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+    min-width: 0;
+    min-height: 100%;
+    flex: 0 1 178px;
+    white-space: normal;
+}
+
+.welcomeActionMeta strong {
+    font-size: calc(var(--mainFontSize) * 0.92);
+}
+
+.welcomeActionMeta span {
+    font-size: calc(var(--mainFontSize) * 0.74);
+    line-height: 1.45;
+    color: var(--welcome-muted-fg);
+}
+
+.welcomeShortcut {
+    display: flex;
+    flex: 1 1 158px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 16px;
+    min-width: 0;
+    max-width: 220px;
+    width: auto;
+    text-decoration: none;
+}
+
+.welcomeShortcut--compact {
+    max-width: none;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+}
+
+.welcomePanel--listOnly .welcomeShortcut span {
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 768px) {
+    .welcomePanel--listOnly .welcomeListShortcuts {
+        gap: 8px;
+    }
+}
+
+.welcomeShortcut i {
+    font-size: calc(var(--mainFontSize) * 0.92);
+}
+
+.welcomeRecentShell {
+    --sb-welcome-surface-bg: var(--sb-surface-elevated);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    padding: 18px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 82%, transparent);
+}
+
+.welcomeRecentShell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-card-opacity, 1);
+}
+
+.welcomeHeaderText {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.welcomeHeaderText p {
+    margin: 0;
+    color: var(--welcome-muted-fg);
+    font-size: calc(var(--mainFontSize) * 0.82);
+    line-height: 1.45;
+}
+
+.welcomeRecentTabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 72%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 38%, transparent);
+}
+
+.welcomeRecentTab {
+    border: 0;
+    border-radius: 10px;
+    min-height: 36px;
+    padding: 6px 10px;
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+    cursor: pointer;
+    font-size: calc(var(--mainFontSize) * 0.78);
+    white-space: nowrap;
+}
+
+.welcomeRecentTab.active {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 25%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--SmartThemeQuoteColor) 45%, transparent) inset;
+}
+
+@container welcome-home (max-width: 1320px) {
+    .welcomeHeroCopy {
+        width: 100%;
+    }
+
+}
+
+@container welcome-home (max-width: 900px) {
+    .welcomeActionGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@container welcome-home (max-width: 760px) {
+    .welcomeActionGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.welcomeRecent .recentChatList .recentChatOpen {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+}
+
+.welcomeRecent .recentChatList .recentChatOpen:focus-visible {
+    outline: none;
+}
+
+.welcomeRecent .recentChatList .recentChat:has(.recentChatOpen:focus-visible) {
+    border-color: color-mix(in srgb, var(--sb-focus-ring) 88%, var(--SmartThemeBorderColor));
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--sb-focus-ring) 60%, transparent);
+}
+
+.welcomeRecent .recentChatList .recentChat:not(.hidden):not(.recentChatFiltered) {
+    display: flex;
+}
+
+.welcomeRecent .recentChatList .recentChat.recentChatFiltered {
+    display: none;
+}
+
+.welcomePromptPanel {
+    --sb-welcome-surface-bg: var(--sb-surface-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 82%, transparent);
+}
+
+.welcomePromptPanel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-card-opacity, 1);
+}
+
+.welcomePromptCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 46ch;
+}
+
+.welcomePromptCopy span {
+    font-size: calc(var(--mainFontSize) * 0.8);
+    line-height: 1.5;
+    color: var(--welcome-muted-fg);
+}
+
+.welcomePromptActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.welcomeGuidePanel {
+    --sb-welcome-surface-bg: var(--sb-surface-elevated);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 82%, transparent);
+}
+
+.welcomeGuidePanel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-card-opacity, 1);
+}
+
+.welcomeGuidePanel h3 {
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+
+.welcomeGuideHeader p {
+    margin: 10px 0 0;
+    color: var(--welcome-muted-fg);
+    line-height: 1.55;
+}
+
+.welcomeGuideGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.welcomeGuideCard {
+    --sb-welcome-surface-bg: var(--sb-surface-elevated-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 16px;
+    border-radius: 16px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 78%, transparent);
+}
+
+.welcomeGuideCard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-control-opacity, 1);
+}
+
+.welcomeGuideCard p {
+    margin: 0;
+    font-size: calc(var(--mainFontSize) * 0.82);
+    line-height: 1.5;
+    color: var(--welcome-muted-fg);
+    overflow-wrap: anywhere;
+}
+
+.welcomeGuideLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    font-size: calc(var(--mainFontSize) * 0.82);
+}
+
+.welcomeGuideLinks a,
+.welcomeGuideLinks span {
+    color: var(--welcome-muted-fg);
+}
+
+.welcomeDeck {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.welcomeDeckIntro {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.welcomeDeckIntroHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.welcomeDeckTabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 12px;
+}
+
+.welcomeDeckTab {
+    min-height: 82px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    text-align: left;
+    border-radius: 14px;
+}
+
+.welcomeDeckTabs > .welcomeDeckTab {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 82px;
+    margin: 0;
+    box-sizing: border-box;
+    justify-self: stretch;
+    align-self: stretch;
+}
+
+.welcomeDeckTab i {
+    width: 18px;
+    margin-top: 2px;
+    font-size: calc(var(--mainFontSize) * 1);
+    text-align: center;
+    color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 64%, var(--SmartThemeBodyColor));
+}
+
+.welcomeDeckTab.is-active {
+    border-color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 40%, transparent);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, var(--sb-accent)) 14%, transparent);
+}
+
+.welcomeDeckTabMeta {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    white-space: normal;
+}
+
+.welcomeDeckTabMeta strong {
+    font-size: calc(var(--mainFontSize) * 0.88);
+}
+
+.welcomeDeckTabMeta span {
+    color: var(--welcome-muted-fg);
+    font-size: calc(var(--mainFontSize) * 0.72);
+    line-height: 1.45;
+}
+
+.welcomeDeckFrame {
+    min-width: 0;
+}
+
+.welcomeDeckPanel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.welcomeDeckPanel.is-active {
+    display: flex;
+    animation: welcomeDeckFadeIn 180ms var(--sb-ease-out);
+}
+
+.welcomeAssistantButton {
+    background: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 10%, transparent);
+}
+
+.welcomeGuideHeader,
+.welcomeGuideTitleBlock,
+.welcomeAssistantGuideCopy,
+.welcomeTourStep {
+    display: flex;
+    flex-direction: column;
+}
+
+.welcomeGuideHeader,
+.welcomeStarterPackHeader,
+.welcomeTourStepHeader,
+.welcomeGuideCardHeader,
+.welcomeTourNav,
+.welcomeAssistantGuidePanel {
+    gap: 12px;
+}
+
+.welcomeGuideHeader {
+    align-items: flex-start;
+}
+
+.welcomeGuideTitleBlock {
+    gap: 6px;
+    min-width: 0;
+}
+
+.welcomeGuideTitleBlock h3,
+.welcomeGuideTitleBlock h4,
+.welcomeTourStepHeader strong,
+.welcomeGuideCardHeader strong {
+    margin: 0;
+}
+
+.welcomeStarterPackCategoryHeader {
+    margin-top: 16px;
+}
+
+.welcomeGuideTitleBlock p,
+.welcomeTourHint,
+.welcomeStarterPackCard p {
+    margin: 0;
+}
+
+.welcomeStarterPackCard > p {
+    flex: 1;
+}
+
+.welcomeTourHeader {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 18px;
+}
+
+.welcomeTourHeader > .welcomeGuideTitleBlock {
+    flex: 999 1 560px;
+}
+
+.welcomeTourHeader > .welcomeGuideMascot {
+    flex: 1 1 280px;
+}
+
+.welcomeGuideMascot {
+    --sb-welcome-surface-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor) 88%, var(--SmartThemeChatTintColor) 12%);
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    flex: 0 1 min(280px, 38%);
+    align-items: center;
+    gap: 12px;
+    width: min(100%, 320px);
+    max-width: 100%;
+    min-width: 0;
+    min-height: 116px;
+    padding: 14px;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 82%, transparent);
+}
+
+.welcomeGuideMascot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--sb-welcome-surface-bg);
+    opacity: var(--sb-page-control-opacity, 1);
+}
+
+.welcomeGuideMascotImage,
+.welcomeAssistantGuideImage {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.welcomeGuideMascotImage {
+    width: 88px;
+    height: 88px;
+}
+
+.welcomeGuideBubble {
+    position: relative;
+    min-width: 0;
+    max-width: min(100%, 28ch);
+    overflow-wrap: anywhere;
+    padding: 11px 12px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 96%, var(--SmartThemeBodyColor) 4%);
+    color: var(--welcome-strong-fg);
+    font-size: calc(var(--mainFontSize) * 0.8);
+    line-height: 1.45;
+    text-wrap: balance;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 70%, transparent);
+}
+
+.welcomeGuideBubble::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 26px;
+    width: 16px;
+    height: 16px;
+    background: inherit;
+    transform: rotate(45deg);
+    border-left: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 70%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 70%, transparent);
+}
+
+.welcomeTourPanel.tutorialCollapsed .welcomeTourProgress,
+.welcomeTourPanel.tutorialCollapsed .welcomeTourSteps,
+.welcomeTourPanel.tutorialCollapsed .welcomeTourNav {
+    display: none;
+}
+
+.welcomeTourProgress {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.welcomeTourProgressButton {
+    width: 100%;
+    min-width: 0;
+    min-height: 62px;
+    margin: 0;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    border-radius: 14px;
+}
+
+.welcomeTourProgressButton.is-active {
+    border-color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 46%, transparent);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, var(--sb-accent)) 18%, transparent);
+}
+
+.welcomeTourProgressNumber {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: calc(var(--mainFontSize) * 0.76);
+    font-weight: 800;
+    color: var(--welcome-strong-fg);
+    background: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 26%, transparent);
+}
+
+.welcomeTourProgressLabel {
+    font-size: calc(var(--mainFontSize) * 0.78);
+    line-height: 1.35;
+    white-space: normal;
+}
+
+.welcomeTourSteps {
+    display: grid;
+}
+
+.welcomeTourStep {
+    display: none;
+    gap: 12px;
+}
+
+.welcomeTourStep.is-active {
+    display: flex;
+}
+
+.welcomeTourStepHeader {
+    align-items: flex-start;
+}
+
+.welcomeTourStepCount {
+    font-size: calc(var(--mainFontSize) * 0.94);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--welcome-muted-fg);
+}
+
+.welcomeTourStepHeader strong {
+    font-size: calc(var(--mainFontSize) * 0.84);
+}
+
+.welcomeTourHint {
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 82%, transparent);
+    color: var(--welcome-muted-fg);
+    font-size: calc(var(--mainFontSize) * 0.76);
+    line-height: 1.45;
+}
+
+.welcomeTourNav {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.welcomeTourActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.welcomeGuideActions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.welcomeTourActions > .menu_button,
+.welcomeGuideActions > .menu_button {
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.welcomeGuideActions > .menu_button {
+    width: 100%;
+}
+
+.welcomeTourNav .menu_button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.welcomeGuideCardHeader {
+    display: inline-flex;
+    align-items: center;
+}
+
+.welcomeGuideCardHeader i,
+.welcomeStarterPackHeader .welcomeGuideCardHeader i {
+    color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 64%, var(--SmartThemeBodyColor));
+}
+
+.welcomeChipRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.welcomeGuideCard .welcomeActionButton,
+.welcomeTourStep .welcomeActionButton,
+.welcomeStarterPackCard .welcomeActionButton {
+    align-self: flex-start;
+}
+
+.welcomeAssistantGuidePanel {
+    align-items: stretch;
+}
+
+.welcomeBundledAssistantGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.welcomeBundledAssistantCard {
+    gap: 12px;
+    width: 100%;
+    min-height: 100%;
+}
+
+.welcomeBundledAssistantHeader {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.welcomeBundledAssistantCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.welcomeBundledAssistantCredit {
+    font-size: calc(var(--mainFontSize) * 0.74);
+    font-weight: 600;
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--color-primary, var(--sb-accent)) 62%, var(--welcome-muted-fg));
+    overflow-wrap: anywhere;
+}
+
+.welcomeBundledAssistantQuestions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin-top: 2px;
+}
+
+.welcomeBundledAssistantQuestions > .menu_button {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.welcomeBundledAssistantCard .welcomePromptActions {
+    justify-content: flex-start;
+}
+
+.welcomeBundledAssistantCard .welcomePromptActions > .menu_button {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.welcomeAssistantGuideMedia {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.welcomeAssistantGuideImage {
+    width: 138px;
+    height: 138px;
+    max-width: 100%;
+}
+
+.welcomeAssistantGuideCopy {
+    gap: 10px;
+    min-width: 0;
+}
+
+.welcomeQuestionChip {
+    min-height: 44px;
+    gap: 8px;
+    padding: 0 12px;
+    border-radius: 14px;
+    font-size: calc(var(--mainFontSize) * 0.76);
+}
+
+.welcomeQuestionChip span {
+    color: inherit;
+}
+
+.welcomeStarterPackGrid {
+    align-items: stretch;
+}
+
+.welcomeStarterPackCard,
+.welcomeStarterPackHeader {
+    display: flex;
+    flex-direction: column;
+}
+
+.welcomeStarterPackCard {
+    gap: 12px;
+}
+
+.welcomeStarterPackActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: auto;
+}
+
+.welcomeStarterPackActions .welcomeActionButton {
+    flex: 1 1 9em;
+    align-self: auto;
+    width: auto;
+    min-width: min(100%, 9em);
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.welcomeActionButton.is-pending {
+    opacity: 0.65;
+    cursor: progress;
+}
+
+.welcomeStarterPackHeader {
+    gap: 10px;
+}
+
+.welcomeStatusBadge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: calc(var(--mainFontSize) * 0.74);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+}
+
+.welcomeStatusBadge--good {
+    color: color-mix(in srgb, var(--color-success, var(--sb-accent)) 72%, var(--SmartThemeBodyColor));
+    background: color-mix(in srgb, var(--color-success, var(--sb-accent)) 24%, var(--SmartThemeBlurTintColor));
+    border-color: color-mix(in srgb, var(--color-success, var(--sb-accent)) 42%, var(--SmartThemeBorderColor));
+}
+
+.welcomeStatusBadge--warm {
+    color: color-mix(in srgb, var(--color-warning, var(--SmartThemeQuoteColor)) 72%, var(--SmartThemeBodyColor));
+    background: color-mix(in srgb, var(--color-warning, var(--SmartThemeQuoteColor)) 24%, var(--SmartThemeBlurTintColor));
+    border-color: color-mix(in srgb, var(--color-warning, var(--SmartThemeQuoteColor)) 42%, var(--SmartThemeBorderColor));
+}
+
+.welcomeStatusBadge--neutral {
+    color: var(--welcome-muted-fg);
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 88%, transparent);
+    border-color: color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 74%, transparent);
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+    .welcomeDeckIntroHeader {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeDeckTabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeGuideGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeTourHeader,
+    .welcomeAssistantGuidePanel {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeBundledAssistantGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeTourHeader > .welcomeGuideTitleBlock,
+    .welcomeTourHeader > .welcomeGuideMascot {
+        flex: 0 1 auto;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeGuideMascot {
+        grid-template-columns: 1fr;
+        width: min(100%, 280px);
+        flex-basis: auto;
+        min-height: 0;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeGuideBubble {
+        max-width: none;
+    }
+}
+
+@media screen and (max-width: 1100px), screen and (max-height: 780px) {
+
+    .welcomeGuideBubble::before {
+        top: -8px;
+        left: 24px;
+        border-left: 0;
+        border-bottom: 0;
+        border-top: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 70%, transparent);
+        border-right: 1px solid color-mix(in srgb, var(--sb-shell-border, var(--SmartThemeBorderColor)) 70%, transparent);
+    }
+}
+
+@media screen and (max-width: 1040px), screen and (max-height: 780px) {
+    .welcomeHeroCopy {
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .welcomeDeckTabs {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeGuidePanel,
+    .welcomePromptPanel {
+        gap: 14px;
+        padding: 12px;
+        border-radius: 20px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeHeroBlurb {
+        margin-top: 6px;
+        font-size: calc(var(--mainFontSize) * 0.84);
+        line-height: 1.45;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePanelToggles {
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePanelToggles .mes_button {
+        width: var(--sb-mobile-touch-target, 44px);
+        height: var(--sb-mobile-touch-target, 44px);
+        min-width: var(--sb-mobile-touch-target, 44px);
+        min-height: var(--sb-mobile-touch-target, 44px);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeHero {
+        display: block;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeActionGrid,
+    .welcomeGuideGrid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeTourProgress {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeActionCard {
+        height: auto !important;
+        min-height: 72px !important;
+        width: 100% !important;
+        max-width: none;
+        padding: 10px 12px;
+        gap: 10px;
+        border-radius: 16px;
+        white-space: normal !important;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeActionMeta {
+        flex: 1 1 auto;
+        gap: 4px;
+        max-width: 100%;
+        min-height: 0;
+        overflow: hidden;
+        white-space: normal;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeActionMeta strong {
+        font-size: calc(var(--mainFontSize) * 0.86);
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeActionMeta span {
+        font-size: calc(var(--mainFontSize) * 0.82);
+        line-height: 1.35;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeShortcut {
+        flex-basis: 100%;
+        max-width: none;
+        width: 100%;
+        min-height: var(--sb-mobile-touch-target, 44px);
+        padding: 0 14px;
+        border-radius: 16px;
+        font-size: calc(var(--mainFontSize) * 0.82);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePromptPanel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeRecentTabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeRecentTab {
+        min-width: 0;
+        min-height: var(--sb-mobile-touch-target, 44px);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeGuideMascot {
+        grid-template-columns: 1fr;
+        min-height: 0;
+        padding: 12px;
+        width: min(100%, 280px);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeGuideMascotImage {
+        width: 72px;
+        height: 72px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeAssistantGuideImage {
+        width: 112px;
+        height: 112px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeBundledAssistantCard {
+        gap: 10px;
+        padding: 12px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeBundledAssistantHeader {
+        display: grid;
+        grid-template-columns: minmax(78px, 88px) minmax(0, 1fr);
+        align-items: start;
+        gap: 10px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeAssistantGuideMedia {
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeAssistantGuideImage {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeBundledAssistantCopy {
+        gap: 8px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeGuideCardHeader {
+        gap: 8px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeBundledAssistantQuestions {
+        gap: 6px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeQuestionChip {
+        max-width: 100%;
+        min-width: 0;
+        padding: 0 10px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeQuestionChip span {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeTourNav {
+        justify-content: stretch;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeTourNav .menu_button {
+        flex: 1 1 0;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeRecentShell {
+        gap: 10px;
+        padding: 12px;
+        border-radius: 20px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePanel--compact .welcomeHeaderTitle {
+        flex-wrap: nowrap;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePanel--compact .welcomeHeaderLogo {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePanel--compact .welcomeHeaderVersionDisplay {
+        font-size: calc(var(--mainFontSize) * 1);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeHeaderText p {
+        font-size: calc(var(--mainFontSize) * 0.76);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomePromptActions {
+        justify-content: flex-start;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .welcomeDeckTab,
+    .welcomeTourActions > .menu_button,
+    .welcomeGuideActions > .menu_button,
+    .welcomeTourNav .menu_button,
+    .welcomePromptActions > .menu_button,
+    .welcomeStarterPackActions > .menu_button,
+    .welcomeBundledAssistantQuestions > .menu_button {
+        min-height: var(--sb-mobile-touch-target, 44px);
+    }
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomeActionCard {
+        min-height: 68px;
+        padding: 9px 11px;
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomeActionCard i {
+        width: 18px;
+        font-size: calc(var(--mainFontSize) * 0.96);
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomeShortcut {
+        min-height: var(--sb-mobile-touch-target, 44px);
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomeBundledAssistantHeader {
+        grid-template-columns: 72px minmax(0, 1fr);
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomePanel--compact,
+    .welcomePanel--listOnly {
+        padding: 10px;
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomePanel--compact .welcomeHeaderLogo {
+        display: none;
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomePanel--compact .welcomeHeaderTitle {
+        flex-wrap: wrap;
+    }
+
+}
+
+@media screen and (max-width: 520px), screen and (max-height: 760px) {
+
+    .welcomePanel--compact .welcomePanelToggles {
+        width: 100%;
+    }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .welcomeDeckPanel.is-active {
+        animation: none !important;
+        opacity: 1;
+    }
+}

@@ -712,7 +712,7 @@ function isWelcomePanelMode(mode) {
 }
 
 function getWelcomePanelMode() {
-    const storedMode = getWelcomeUiPreference(welcomePanelModeKey) || WELCOME_PANEL_MODES.full;
+    const storedMode = getWelcomeUiPreference(welcomePanelModeKey) || (globalThis.SillyBunnyClassicUi ? WELCOME_PANEL_MODES.compact : WELCOME_PANEL_MODES.full); // Classic UI fork
     return isWelcomePanelMode(storedMode) ? storedMode : WELCOME_PANEL_MODES.full;
 }
 

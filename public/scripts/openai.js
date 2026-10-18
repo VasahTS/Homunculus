@@ -11567,7 +11567,7 @@ export function initOpenAI() {
         clearSamplingProfileForCurrentModel();
     });
 
-    groupOpenAISettingsIntoDrawers();
+    if (!globalThis.SillyBunnyClassicUi) groupOpenAISettingsIntoDrawers(); // Classic UI fork: keep SillyTavern's flat layout
     injectServerChatCompletionConfigCard();
     cacheOpenAIStaticModelGroups();
     bindInlineSelectPickerControls();

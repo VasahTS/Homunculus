@@ -1,0 +1,715 @@
+/* Classic UI fork: styles for the elements the fork adds or keeps from SillyBunny inside the
+   SillyTavern layout. SillyBunny's own shell stylesheet (sillybunny-tabs.css) is not loaded. */
+
+/* ---------- In-Chat Agents drawer ---------- */
+
+#rm_agents_block {
+    overflow-y: auto;
+}
+
+#rm_agents_block .agents_drawer_block {
+    gap: 5px;
+}
+
+/* ---------- Character panel: drop SillyBunny shell chrome, keep SillyTavern's own controls ---------- */
+
+#right-nav-panel .sb-character-shell-nav-wrapper,
+#right-nav-panel .sb-character-shell-header > :not(#sb_character_mode_toggle),
+#right-nav-panel .sb-character-favorites-label,
+#sb_character_editor_fullscreen_toggle,
+#sb_character_editor_exit {
+    display: none !important;
+}
+
+#right-nav-panel .sb-character-shell-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 5px;
+}
+
+/* Roleplay / Conversation mode switch, compact like SillyTavern's toggles */
+#sb_character_mode_toggle {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 10px;
+    background-color: var(--black30a);
+}
+
+#sb_character_mode_toggle .sb-character-shell-mode-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor);
+    font-size: calc(var(--mainFontSize) * 0.85);
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+#sb_character_mode_toggle .sb-character-shell-mode-button:hover {
+    opacity: 1;
+}
+
+#sb_character_mode_toggle .sb-character-shell-mode-button.is-active {
+    background-color: var(--white20a);
+    opacity: 1;
+}
+
+/* Hosts the shell used to fill with relocated drawers; World Info and Personas have their own drawers here. */
+#sb_character_world_info_panel,
+#sb_character_persona_panel {
+    display: none !important;
+}
+
+/* Character editor sections (SillyBunny replaced the "Advanced Definitions" popup with these tabs) */
+/* Every section shown in one scroll, like SillyTavern's editor (no section tabs to click through). */
+#right-nav-panel .sb-character-editor-subtabs-wrapper {
+    display: none !important;
+}
+
+#form_create [data-sb-character-editor-panel] {
+    display: block !important;
+}
+
+/* Spoiler-free mode (SillyBunny setting) still hides the definition and greeting fields. */
+#form_create[data-sb-spoiler-free-fields-hidden="true"] [data-sb-character-editor-panel="definitions"],
+#form_create[data-sb-spoiler-free-fields-hidden="true"] [data-sb-character-editor-panel="greetings"] {
+    display: none !important;
+}
+
+#sb_character_editor_subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+#sb_character_editor_subtabs .sb-character-editor-subtab {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background-color: var(--black30a);
+    color: var(--SmartThemeBodyColor);
+    font-size: calc(var(--mainFontSize) * 0.9);
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+#sb_character_editor_subtabs .sb-character-editor-subtab:hover {
+    opacity: 1;
+}
+
+#sb_character_editor_subtabs .sb-character-editor-subtab.is-active {
+    background-color: var(--white20a);
+    opacity: 1;
+}
+
+#sb_character_editor_subtabs .sb-character-editor-subtab.is-spoiler-hidden {
+    opacity: 0.4;
+}
+
+#sb_character_editor_subtabs .sb-shell-tab-copy strong {
+    font-weight: normal;
+}
+
+
+#right-nav-panel .sb-character-editor-two-column {
+    gap: 5px;
+}
+
+#right-nav-panel .sb-character-editor-two-column > * {
+    flex: 1;
+    min-width: 0;
+}
+
+#right-nav-panel .sb-character-editor-field-box {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Import panel and "no character" placeholders are SillyBunny shell surfaces */
+#right-nav-panel .sb-character-import-panel[hidden],
+#right-nav-panel .sb-character-editor-empty[hidden] {
+    display: none !important;
+}
+
+/* SillyBunny's "Clear cookies & cache" button is wired by its shell; the regular "Clear all cache" stays. */
+#clear_cookies_cache_button {
+    display: none !important;
+}
+
+/* ---------- Character editor header: SillyTavern-style compact icon row ---------- */
+
+#right-nav-panel .sb-character-editor-controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+
+#right-nav-panel .sb-character-editor-controls-row #name_div {
+    flex: 1 1 150px;
+    min-width: 0;
+}
+
+#right-nav-panel .sb-character-editor-pinned-actions {
+    width: 100%;
+}
+
+#right-nav-panel .char-button-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 5px;
+}
+
+#right-nav-panel .char-button-group,
+#right-nav-panel .char-button-group-primary,
+#right-nav-panel .char-button-group-secondary,
+#right-nav-panel .char-button-group-manage {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    gap: 5px;
+    flex-wrap: wrap;
+    overflow: visible;
+}
+
+#right-nav-panel .char-button-group-primary .menu_button[data-label]::after {
+    content: none;
+}
+
+#right-nav-panel #world_button > span,
+#right-nav-panel #create_button_label > span {
+    display: none;
+}
+
+#right-nav-panel[data-menu-type="create"] #create_button_label > span {
+    display: inline;
+}
+
+/* Chat Archive (bundled SillyBunny extension): icon-only like the other character panel buttons */
+#rm_buttons_container .sbca-drawer-button-label {
+    display: none;
+}
+
+/* The extra Agents icon makes ten top-bar icons; shrink them slightly on phones so they still fit. */
+@media screen and (max-width: 768px) {
+    #top-settings-holder .drawer-icon {
+        font-size: min(var(--topBarIconSize), calc((100vw - 20px) / 10 * 0.62));
+    }
+}
+
+/* ---------- World Info: SillyTavern layout (SillyBunny wraps the same controls in cards and a side editor) ---------- */
+
+#WorldInfo .world_popup_action_group,
+#world_popup_entries_column {
+    display: contents;
+}
+
+#world_popup_workspace {
+    display: block;
+}
+
+#world_popup_editor_pane,
+.world_popup_editor_pane_popout {
+    display: none !important;
+}
+
+#world_popup_toolbar {
+    flex-wrap: wrap;
+}
+
+#world_info_results_summary {
+    font-size: calc(var(--mainFontSize) * 0.8);
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+#world_info_view_filters {
+    display: flex;
+    gap: 2px;
+}
+
+#world_info_view_filters .world_info_view_filter {
+    padding: 1px 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background-color: var(--black30a);
+    color: var(--SmartThemeBodyColor);
+    font-size: calc(var(--mainFontSize) * 0.8);
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+#world_info_view_filters .world_info_view_filter.is-active {
+    background-color: var(--white20a);
+    opacity: 1;
+}
+
+/* Entry on/off switch: icon only, like SillyTavern */
+#world_popup_entries_list .killSwitch.menu_button {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: none;
+    min-width: unset;
+    width: auto;
+    height: auto;
+    box-shadow: none;
+}
+
+#world_popup_entries_list .killSwitch .killSwitchLabel {
+    display: none;
+}
+
+#world_popup_entries_list .killSwitch[aria-pressed="true"] i {
+    color: var(--SmartThemeQuoteColor);
+}
+
+#world_popup_entries_list .WIEntryHeaderActions {
+    display: contents;
+}
+
+/* ---------- Prompt Manager: always-open list like SillyTavern (no collapsible card, no side editor) ---------- */
+
+.completion_prompt_manager_drawer > .inline-drawer-content {
+    display: block !important;
+}
+
+.completion_prompt_manager_drawer > .inline-drawer-header {
+    cursor: default;
+    pointer-events: none;
+}
+
+.completion_prompt_manager_drawer > .inline-drawer-header .prompt_manager_header_controls {
+    pointer-events: auto;
+}
+
+.completion_prompt_manager_drawer > .inline-drawer-header .inline-drawer-icon {
+    display: none;
+}
+
+.completion_prompt_manager_workspace {
+    display: block;
+}
+
+.completion_prompt_manager_editor_pane {
+    display: none !important;
+}
+
+/* ---------- Chat Completion settings: SillyTavern-style full-width sliders ---------- */
+
+#range_block_openai > .flex-container.gap10h5v > .flexBasis30p {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 70px;
+    align-items: center;
+    column-gap: 10px;
+}
+
+#range_block_openai > .flex-container.gap10h5v > .flexBasis30p > small {
+    grid-column: 1 / -1;
+    justify-self: center;
+}
+
+#range_block_openai > .flex-container.gap10h5v > .flexBasis30p > .neo-range-input {
+    width: 100%;
+}
+
+/* Quick context-size presets (SillyBunny feature): one compact row of chips */
+.quick_context_size_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    justify-content: center;
+}
+
+.quick_context_size_container .quick_context_size.menu_button {
+    flex: 1 0 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 1px 4px;
+    font-size: calc(var(--mainFontSize) * 0.75);
+    line-height: 1.4;
+}
+
+/* Prompt Manager header: just "Prompts" and the token total, like SillyTavern */
+.completion_prompt_manager_drawer .sb-group-meta > span:first-child {
+    display: none;
+}
+
+/* ---------- User Settings: SillyTavern's three columns with plain section titles ---------- */
+
+#user-settings-block .sb-settings-subdrawer {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+#user-settings-block .sb-settings-subdrawer > .inline-drawer-header {
+    padding: 2px 0 !important;
+    margin: 8px 0 3px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--SmartThemeBorderColor) !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    min-height: unset !important;
+    height: auto !important;
+    justify-content: space-between !important;
+    text-align: left !important;
+    gap: 5px !important;
+}
+
+#user-settings-block .sb-settings-subdrawer > .inline-drawer-header b {
+    font-size: var(--mainFontSize);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#user-settings-block .sb-settings-subdrawer > .inline-drawer-header .inline-drawer-icon {
+    position: static !important;
+    font-size: 1em;
+}
+
+#user-settings-block .sb-settings-subdrawer > .inline-drawer-content {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+#user-settings-block .sb-settings-subdrawer-toolbar {
+    display: none;
+}
+
+/* SillyBunny palette and accent pickers only apply to SillyBunny's own theme, which this fork does not load. */
+#user-settings-block .sb-theme-presets,
+#user-settings-block .sb-accent-color-controls,
+#sb-accent-profiles-panel {
+    display: none !important;
+}
+
+#user-settings-utility-actions {
+    align-items: center;
+    gap: 5px;
+}
+
+/* ---------- Persona Management: all sections visible, like SillyTavern ---------- */
+
+#PersonaManagement .persona-editor-tabs {
+    display: none !important;
+}
+
+#PersonaManagement .persona-editor-panel {
+    display: block !important;
+}
+
+/* ---------- In-Chat Agents panel: SillyTavern-sized (smaller radius, padding and spacing) ---------- */
+
+#rm_agents_block {
+    --sb-radius-lg: 8px;
+    --sb-radius-md: 6px;
+}
+
+#rm_agents_block .ica--toolbar,
+#rm_agents_block .ica--toolbar-actions {
+    gap: 4px;
+}
+
+#rm_agents_block .ica--toolbar .menu_button {
+    margin: 0;
+    padding: 3px 8px;
+}
+
+#rm_agents_block .ica--quick-section {
+    gap: 5px;
+    padding: 6px 10px;
+    background: var(--black30a);
+    box-shadow: none;
+}
+
+#rm_agents_block .ica--toolbar {
+    justify-content: flex-start;
+}
+
+#rm_agents_block .ica--category-items {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 5px;
+}
+
+#rm_agents_block .ica--agent-card {
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--black30a);
+}
+
+#rm_agents_block .ica--card-desc {
+    font-size: calc(var(--mainFontSize) * 0.85);
+    line-height: 1.3;
+}
+
+#rm_agents_block .ica--token-counter {
+    padding: 4px 10px;
+}
+
+/* Home page shortcuts: three per row on phones instead of one big button per line */
+@media screen and (max-width: 768px) {
+    .welcomePanel .welcomeShortcuts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+    }
+
+    .welcomePanel .welcomeShortcuts .welcomeShortcut {
+        margin: 0;
+        min-width: 0;
+        padding: 4px;
+        font-size: calc(var(--mainFontSize) * 0.85);
+    }
+}
+
+/* ---------- Character editor: SillyTavern arrangement (see arrangeCharacterEditor in classic-ui.js) ---------- */
+
+#avatar-and-name-block.classic_char_identity {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* What is left of SillyBunny's controls row after its pieces were moved */
+.classic_char_identity > .flex-container.expander {
+    display: none;
+}
+
+#classic_char_header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#classic_char_header > #avatar_div_div {
+    flex: none;
+}
+
+#classic_char_header .classic_char_header_side {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#classic_char_header .char-button-group-icons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    background: none;
+    overflow: visible;
+}
+
+#classic_char_header .char-button-group-icons .menu_button {
+    margin: 0;
+}
+
+#classic_char_header label[for="char-management-dropdown"] {
+    width: 100%;
+}
+
+/* Existing characters are renamed through More... > Rename, as in SillyTavern; the name field is for new ones. */
+#right-nav-panel[data-menu-type="character_edit"] #name_div {
+    display: none;
+}
+
+.classic_char_identity #tags_div .tag_controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* Creator's Notes as a compact box under the tags */
+#right-nav-panel #spoiler_free_desc {
+    margin: 5px 0;
+    padding: 3px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background-color: var(--black30a);
+}
+
+#right-nav-panel #spoiler_free_desc .sb-character-creator-notes-preview-body {
+    max-height: 6em;
+    overflow-y: auto;
+    font-size: calc(var(--mainFontSize) * 0.9);
+}
+
+/* Big text fields: comfortable default height, drag the corner to resize */
+#description_textarea,
+#firstmessage_textarea {
+    flex: none;
+    min-height: 15em;
+    resize: vertical;
+}
+
+#firstMessageWrapper .character-greetings-summary,
+#firstMessageWrapper .character-greeting-label-row {
+    display: none;
+}
+
+#firstMessageWrapper .character-greetings-primary {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+#firstMessageWrapper #first_message_div {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+/* "Character details are hidden." only matters in spoiler-free mode */
+#creators_note_desc_hidden {
+    display: none !important;
+}
+
+#form_create[data-sb-spoiler-free-fields-hidden="true"] #creators_note_desc_hidden {
+    display: block !important;
+}
+
+/* "Create Character" button keeps a short label in create mode */
+#right-nav-panel[data-menu-type="create"] #create_button_label {
+    width: auto;
+    text-transform: none;
+    font-size: calc(var(--mainFontSize) * 0.85);
+    gap: 5px;
+}
+
+#right-nav-panel[data-menu-type="character_edit"] #name_div {
+    display: none !important;
+}
+
+/* ---------- Import & Restore (SillyBunny importer, see scripts/classic-importer.js) ---------- */
+
+#sb-import-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 3px 0;
+}
+
+#sb-import-card .sb-admin-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#sb-import-card .sb-admin-card-copy p,
+#sb-import-card .sb-import-pane p,
+#sb-import-card .sb-import-note {
+    margin: 2px 0;
+    font-size: calc(var(--mainFontSize) * 0.85);
+    opacity: 0.8;
+}
+
+#sb-import-card .sb-server-pill,
+#sb-import-card .sb-import-hints {
+    display: none;
+}
+
+#sb-import-card .sb-import-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#sb-import-card .sb-import-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background-color: var(--black30a);
+}
+
+#sb-import-card .sb-import-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+#sb-import-card .sb-server-action {
+    margin: 0;
+}
+
+#sb-import-card .sb-import-path-input {
+    width: 100%;
+    margin: 0;
+}
+
+#sb-import-card .sb-import-file-input {
+    display: none;
+}
+
+#sb-import-card .sb-import-file-name {
+    font-size: calc(var(--mainFontSize) * 0.85);
+    opacity: 0.8;
+    word-break: break-all;
+}
+
+#sb-import-card .sb-import-report {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+}
+
+#sb-import-card .sb-import-report[hidden] {
+    display: none;
+}
+
+#sb-import-card .sb-import-report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#sb-import-card .sb-import-report-item {
+    padding: 4px 6px;
+    border-left: 3px solid var(--SmartThemeBorderColor);
+    font-size: calc(var(--mainFontSize) * 0.85);
+}
+
+#sb-import-card .sb-import-report-item.is-ready {
+    border-left-color: var(--okGreen70a, green);
+}
+
+#sb-import-card .sb-import-report-item.is-warning {
+    border-left-color: var(--SmartThemeQuoteColor);
+}
+
+#sb-import-card .sb-import-report-item.is-failed {
+    border-left-color: var(--fullred, red);
+}
