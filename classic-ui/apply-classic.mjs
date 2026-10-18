@@ -97,7 +97,7 @@ for (const sheet of ['classic-themes', 'classic-layout']) {
     }
 }
 let previousScript = 'classic-ui';
-for (const script of ['classic-themes', 'classic-home']) {
+for (const script of ['classic-themes', 'classic-home', 'classic-editor']) {
     if (!html.includes(`scripts/${script}.js`)) {
         replace(`${previousScript}.js anchor (${script})`, new RegExp(`([ \\t]*)(<script type="module" src="scripts/${previousScript}\\.js${V}"></script>)`),
             `$1$2\n$1<script type="module" src="scripts/${script}.js"></script>`);
@@ -211,7 +211,7 @@ const versionedStyleClassic = styleClassic.replace(/@import url\((css\/classic--
     (_, rel) => `@import url(${rel}?v=${fileHash(rel)});`);
 const versionedHtml = html.replace(/(href=")((?:style-classic|css\/classic[^"?]*|webfonts\/[A-Za-z]+\/classic-stylesheet)\.css)(?:\?v=[^"]*)?"/g,
     (_, prefix, rel) => `${prefix}${rel}?v=${rel === 'style-classic.css' ? crypto.createHash('sha1').update(versionedStyleClassic).digest('hex').slice(0, 10) : fileHash(rel)}"`)
-    .replace(/(src=")(scripts\/classic-(?:ui|themes|home)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
+    .replace(/(src=")(scripts\/classic-(?:ui|themes|home|editor)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
 const versionChanged = versionedHtml !== html || versionedStyleClassic !== styleClassic;
 html = versionedHtml;
 

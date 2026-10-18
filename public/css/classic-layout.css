@@ -8,18 +8,22 @@
 }
 
 /* ===================================== Lantern layout ===================================== */
+/* One page at a time. scripts/classic-home.js keeps body[data-ct-view] on the page being shown
+   ("chat", "home" or a drawer id) and puts .ct-view-active on that drawer's panel. */
 
 @media (min-width: 1000px) {
     body.ct-layout-lanterna {
         --ct-rail-w: 90px;
         --topBarBlockSize: 0px;
-        --ct-side-w: max(280px, calc((100vw - var(--ct-rail-w) - var(--sheldWidth)) / 2));
+        --ct-page-w: calc(100vw - var(--ct-rail-w));
+        --ct-page-bg: var(--SmartThemeBlurTintColor);
     }
 
     body.ct-layout-lanterna #top-bar {
         display: none;
     }
 
+    /* ---- Sidebar ---- */
     body.ct-layout-lanterna #top-settings-holder {
         position: fixed;
         top: 0;
@@ -29,7 +33,7 @@
         height: 100vh;
         height: 100dvh;
         margin: 0;
-        padding: 14px 0 12px;
+        padding: 12px 0;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -42,34 +46,31 @@
         box-shadow: inset -1px 0 0 color-mix(in srgb, var(--SmartThemeBodyColor) 8%, transparent), 8px 0 30px rgba(0, 0, 0, .25);
         z-index: 3005;
     }
-
     body.ct-layout-lanterna #top-settings-holder > .drawer {
+        position: static;
         order: var(--ct-rail-order, 50);
         flex: none;
         width: 80px;
     }
-
-    /* Settings-type items sit at the bottom of the rail. */
     body.ct-layout-lanterna #ai-config-button {
         margin-top: auto;
     }
-
     body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle,
     body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle {
         position: relative;
+        z-index: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 4px;
         width: 80px;
-        height: 56px;
+        height: 54px;
         padding: 0;
         border-radius: 14px;
         cursor: pointer;
-        transition: background-color 180ms ease, box-shadow 220ms ease;
+        transition: background-color 160ms ease;
     }
-
     body.ct-layout-lanterna #top-settings-holder .drawer-icon {
         margin: 0;
         padding: 0;
@@ -77,9 +78,10 @@
         height: auto;
         font-size: 19px;
         line-height: 1;
-        transition: transform 260ms var(--ct-ease-spring, ease), color 180ms ease, filter 220ms ease;
+        opacity: 1;
+        color: var(--SmartThemeEmColor);
+        transition: transform 280ms var(--ct-ease-spring, ease), color 160ms ease, filter 220ms ease;
     }
-
     body.ct-layout-lanterna .ct-rail-label {
         display: block;
         max-width: 78px;
@@ -90,92 +92,248 @@
         font-weight: 500;
         line-height: 1.1;
         color: var(--SmartThemeEmColor);
-        transition: color 180ms ease;
+        transition: color 160ms ease;
     }
-
-    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) > .drawer-toggle,
-    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open > .ct-home-toggle {
-        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 0 0 1px rgba(255, 255, 255, .06);
-    }
-    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) .ct-rail-label,
-    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open .ct-rail-label {
-        color: var(--SmartThemeBodyColor);
-    }
-    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) .drawer-icon,
-    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open .drawer-icon {
+    body.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active .drawer-icon {
         color: var(--ct-accent, var(--SmartThemeQuoteColor));
     }
-
+    body.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active .ct-rail-label {
+        color: var(--SmartThemeBodyColor);
+    }
+    body.ct-layout-lanterna.ct-fx-glow #top-settings-holder > .drawer.ct-rail-active .drawer-icon {
+        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ct-accent, #E8C27A) 70%, transparent));
+    }
+    /* The highlight that glides to the active item. */
+    #ct-rail-indicator {
+        display: none;
+    }
+    body.ct-layout-lanterna #ct-rail-indicator {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 5px;
+        width: 80px;
+        height: 54px;
+        border-radius: 14px;
+        pointer-events: none;
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 0 0 1px rgba(255, 255, 255, .06);
+        transform: translateY(var(--ct-y, 0px));
+        opacity: var(--ct-o, 0);
+        transition: transform 380ms cubic-bezier(.34, 1.25, .64, 1), opacity 200ms ease;
+    }
+    body.ct-layout-lanterna.ct-fx-glow #ct-rail-indicator {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 0 0 1px color-mix(in srgb, var(--ct-accent, #E8C27A) 30%, transparent), 0 0 22px -6px color-mix(in srgb, var(--ct-accent, #E8C27A) 55%, transparent);
+    }
     @media (hover: hover) and (pointer: fine) {
-        body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle:hover,
-        body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle:hover {
-            background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 6%, transparent);
+        body.ct-layout-lanterna #top-settings-holder > .drawer > :is(.drawer-toggle, .ct-home-toggle):hover {
+            background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 5%, transparent);
         }
-        body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle:hover .drawer-icon,
-        body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle:hover .drawer-icon {
+        body.ct-layout-lanterna #top-settings-holder > .drawer > :is(.drawer-toggle, .ct-home-toggle):hover .drawer-icon {
             transform: translateY(-2px);
+            color: var(--SmartThemeBodyColor);
         }
         body.ct-layout-lanterna #top-settings-holder > .drawer > :is(.drawer-toggle, .ct-home-toggle):hover .ct-rail-label {
             color: var(--SmartThemeBodyColor);
         }
     }
 
-    /* Chat column: centered in the space to the right of the rail. */
+    /* ---- Chat page ---- */
     body.ct-layout-lanterna #sheld {
         top: 12px;
         height: calc(100vh - 12px);
         height: calc(100dvh - 12px);
         max-height: calc(100dvh - 12px);
-        left: calc(var(--ct-rail-w) + (100vw - var(--ct-rail-w) - var(--sheldWidth)) / 2) !important;
+        left: calc(var(--ct-rail-w) + (var(--ct-page-w) - var(--sheldWidth)) / 2) !important;
         right: auto !important;
         margin: 0 !important;
+    }
+    body.ct-layout-lanterna[data-ct-view="chat"] #sheld {
+        animation: ct-page-in 300ms var(--ct-ease-out, ease-out) both;
+    }
+    body.ct-layout-lanterna:not([data-ct-view="chat"]) #sheld {
+        visibility: hidden;
     }
 
-    /* Drawers slide in next to the rail instead of dropping from the top. */
-    body.ct-layout-lanterna #top-settings-holder .drawer-content:not(.fillLeft):not(.fillRight) {
+    /* ---- Every other page: the drawer's own panel, full size beside the sidebar ---- */
+    body.ct-layout-lanterna #top-settings-holder .drawer-content {
+        transition: none !important;
+    }
+    body.ct-layout-lanterna #top-settings-holder .drawer-content.openDrawer:not(.ct-view-active) {
+        display: none !important;
+    }
+    body.ct-layout-lanterna #top-settings-holder .drawer-content.ct-view-active {
         position: fixed !important;
-        top: 12px !important;
-        left: calc(var(--ct-rail-w) + 12px) !important;
-        right: auto !important;
-        bottom: auto !important;
+        top: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: var(--ct-rail-w) !important;
+        width: auto !important;
+        min-width: 0 !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: none !important;
+        min-height: 0 !important;
         margin: 0 !important;
-        width: min(760px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
-        max-height: calc(100dvh - 24px) !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background-color: var(--ct-page-bg);
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        padding: 32px max(32px, calc((var(--ct-page-w) - 900px) / 2)) 64px !important;
+        animation: ct-page-in 300ms var(--ct-ease-out, ease-out) both;
+        z-index: 10;
     }
-    body.ct-layout-lanterna #top-settings-holder #user-settings-button > #user-settings-block,
-    body.ct-layout-lanterna #top-settings-holder #extensions-settings-button > #rm_extensions_block,
-    body.ct-layout-lanterna #top-settings-holder #advanced-formatting-button > #AdvancedFormatting,
-    body.ct-layout-lanterna #top-settings-holder #WI-SP-button > #WorldInfo,
-    body.ct-layout-lanterna #top-settings-holder #backgrounds-button > #Backgrounds,
-    body.ct-layout-lanterna #top-settings-holder #ct-personalize-button > #ct_personalize_block {
-        width: min(1180px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
+    /* Pages with a lot to show get more room. */
+    body.ct-layout-lanterna #top-settings-holder :is(#user-settings-block, #rm_extensions_block, #AdvancedFormatting, #WorldInfo, #Backgrounds, #ct_personalize_block, #rm_agents_block, #PersonaManagement).ct-view-active {
+        padding-inline: max(32px, calc((var(--ct-page-w) - 1240px) / 2)) !important;
     }
-    /* People and Agents open on the right, like the character list. */
-    body.ct-layout-lanterna #top-settings-holder #agents-settings-button > #rm_agents_block,
-    body.ct-layout-lanterna #top-settings-holder #persona-management-button > #PersonaManagement {
-        left: auto !important;
-        right: 12px !important;
-        width: min(560px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
+    body.ct-layout-lanterna #top-settings-holder #right-nav-panel.ct-view-active {
+        display: flex !important;
+        flex-direction: column;
+        padding: 28px max(32px, calc((var(--ct-page-w) - 1320px) / 2)) 0 !important;
+        overflow: hidden !important;
     }
-    body.ct-layout-lanterna #left-nav-panel {
+    body.ct-layout-lanterna #top-settings-holder #left-nav-panel.ct-view-active {
+        display: flex !important;
+        padding: 0 max(32px, calc((var(--ct-page-w) - 900px) / 2)) !important;
+        overflow: hidden !important;
+    }
+    body.ct-layout-lanterna #left-nav-panel .scrollableInner {
+        padding-top: 62px;
+        padding-bottom: 48px;
+    }
+    /* ---- Presets docked beside the chat ----
+       Locking the Presets page (the lock at its top right) keeps it open as a column on the left of the
+       chat, like the pinned panel in SillyTavern. classic-home.js sets body.ct-dock-left while it is
+       locked and open. Other pages still take the whole screen; going back to Chat shows it again. */
+    body.ct-layout-lanterna #top-settings-holder #lm_button_panel_pin_div {
+        position: absolute;
+        top: 14px;
+        right: 30px;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--SmartThemeBodyColor) 14%, transparent);
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 6%, var(--ct-page-bg));
+        opacity: .8;
+        cursor: pointer;
+        transition: opacity 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    }
+    body.ct-layout-lanterna #top-settings-holder #lm_button_panel_pin_div:hover {
+        opacity: 1;
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 11%, var(--ct-page-bg));
+    }
+    body.ct-layout-lanterna #lm_button_panel_pin_div label {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+    body.ct-layout-lanterna #lm_button_panel_pin_div .right_menu_button {
+        font-size: 14px;
+        padding: 0;
+    }
+    body.ct-layout-lanterna #lm_button_panel_pin_div label::after {
+        content: "Keep beside chat";
+        color: var(--SmartThemeBodyColor);
+    }
+    body.ct-layout-lanterna #lm_button_panel_pin:checked + label::after {
+        content: "Locked";
+    }
+    body.ct-layout-lanterna #lm_button_panel_pin:checked + label .right_menu_button {
+        color: var(--ct-accent, var(--SmartThemeQuoteColor));
+    }
+    body.ct-layout-lanterna #left-nav-panel.ct-view-active #lm_button_panel_pin_div {
+        right: calc(12px + max(32px, calc((var(--ct-page-w) - 900px) / 2)));
+    }
+
+    body.ct-layout-lanterna.ct-dock-left {
+        --ct-dock-w: clamp(340px, 27vw, 440px);
+    }
+    body.ct-layout-lanterna.ct-dock-left[data-ct-view="chat"] {
+        --ct-page-w: calc(100vw - var(--ct-rail-w) - var(--ct-dock-w));
+    }
+    body.ct-layout-lanterna.ct-dock-left[data-ct-view="chat"] #sheld {
+        width: min(var(--sheldWidth), calc(var(--ct-page-w) - 40px)) !important;
+        left: calc(var(--ct-rail-w) + var(--ct-dock-w) + max(20px, (var(--ct-page-w) - var(--sheldWidth)) / 2)) !important;
+    }
+    body.ct-layout-lanterna.ct-dock-left[data-ct-view="chat"] #top-settings-holder #left-nav-panel.openDrawer {
+        display: flex !important;
+        flex-direction: column;
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important;
         left: var(--ct-rail-w) !important;
         right: auto !important;
-        top: 0 !important;
-        width: var(--ct-side-w) !important;
-        max-height: 100dvh !important;
+        width: var(--ct-dock-w) !important;
+        min-width: 0 !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 18px !important;
+        border: 0 !important;
+        border-right: 1px solid color-mix(in srgb, var(--SmartThemeBodyColor) 10%, transparent) !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background-color: var(--ct-page-bg);
+        overflow: hidden !important;
+        animation: ct-dock-in 260ms var(--ct-ease-out, ease-out) both;
+        z-index: 10;
     }
-    body.ct-layout-lanterna #right-nav-panel {
-        right: 0 !important;
-        left: auto !important;
-        top: 0 !important;
-        width: var(--ct-side-w) !important;
-        max-height: 100dvh !important;
+    /* A small mark on the sidebar item while Presets is locked beside the chat. */
+    body.ct-layout-lanterna.ct-dock-left #ai-config-button > .drawer-toggle {
+        position: relative;
+    }
+    body.ct-layout-lanterna.ct-dock-left #ai-config-button > .drawer-toggle::after {
+        content: "";
+        position: absolute;
+        top: 9px;
+        right: 22px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--ct-accent, var(--SmartThemeQuoteColor));
+        box-shadow: 0 0 8px var(--ct-accent, var(--SmartThemeQuoteColor));
+    }
+
+    /* Drag handles mean nothing when every panel is its own page. */
+    body.ct-layout-lanterna :is(#rm_button_panel_pin_div, #WI_panel_pin_div),
+    body.ct-layout-lanterna #top-settings-holder .drag-grabber,
+    body.ct-layout-lanterna #top-settings-holder .inline-drawer-maximize {
+        display: none !important;
     }
 
     body.ct-layout-lanterna #ct-home {
         top: 0;
         left: var(--ct-rail-w);
+    }
+}
+
+@keyframes ct-page-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes ct-dock-in {
+    from { opacity: 0; transform: translateX(-14px); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body.ct-layout-lanterna.ct-dock-left[data-ct-view="chat"] #top-settings-holder #left-nav-panel.openDrawer,
+    body.ct-layout-lanterna #top-settings-holder .drawer-content.ct-view-active,
+    body.ct-layout-lanterna[data-ct-view="chat"] #sheld {
+        animation-duration: 1ms;
+    }
+    #ct-rail-indicator {
+        transition-duration: 1ms;
     }
 }
 
@@ -707,4 +865,523 @@ body.ct-fx-glow .ct-home-btn:not(.is-ghost) {
 @keyframes ct-flash {
     0%, 30% { box-shadow: 0 0 0 2px var(--ct-accent, var(--SmartThemeQuoteColor)), 0 0 24px color-mix(in srgb, var(--ct-accent, #E8C27A) 50%, transparent); }
     100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ===================================== Characters page ===================================== */
+/* scripts/classic-editor.js adds body.ct-char-list / body.ct-char-edit and the editor frame. */
+
+#ct-editor-side,
+#ct-editor-preview,
+#form_create .ct-sec-head {
+    display: none;
+}
+
+@media (min-width: 1000px) {
+    /* ---- List: a gallery of portraits ---- */
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_characters_block {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_characters_block::before {
+        content: "Characters";
+        display: block;
+        margin: 4px 0 14px;
+        font-family: var(--ct-display-font, var(--mainFontFamily));
+        font-size: 48px;
+        line-height: 1;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+        align-content: start;
+        gap: 18px;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 14px 6px 64px;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: auto;
+        margin: 0;
+        padding: 0;
+        border-radius: 18px;
+        overflow: hidden;
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 5%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 10%, transparent);
+        transition: transform 420ms cubic-bezier(.34, 1.3, .64, 1), box-shadow 300ms ease, background-color 200ms ease;
+        animation: ct-card-in 460ms var(--ct-ease-out, ease-out) backwards;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 3 / 4;
+        flex: none;
+        margin: 0;
+        border-radius: 0;
+        overflow: hidden;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar img {
+        width: 100% !important;
+        height: 100% !important;
+        border: 0;
+        border-radius: 0 !important;
+        box-shadow: none;
+        object-fit: cover;
+        object-position: center top;
+        transition: transform 700ms var(--ct-ease-out, ease-out);
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block .character_select_container,
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block .group_select_container {
+        width: 100% !important;
+        padding: 10px 12px 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block .ch_name {
+        font-family: var(--ct-display-font, var(--mainFontFamily));
+        font-size: 1.2em;
+        font-weight: 600;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block .ch_description {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: .85em;
+        white-space: normal;
+        opacity: .8;
+    }
+    body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block .ch_fav_icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select):hover {
+            transform: translateY(-4px) scale(1.035);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 14%, transparent), 0 18px 40px -18px rgba(0, 0, 0, .7);
+        }
+        body.ct-layout-lanterna #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select):hover .avatar img {
+            transform: scale(1.06);
+        }
+        body.ct-layout-lanterna.ct-fx-glow #right-nav-panel.ct-view-active #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select):hover {
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-accent, #E8C27A) 45%, transparent), 0 20px 50px -18px color-mix(in srgb, var(--ct-accent, #E8C27A) 55%, transparent);
+        }
+    }
+
+    /* ---- Editor: overview | form | preview ---- */
+    body.ct-layout-lanterna.ct-char-edit #right-nav-panel.ct-view-active :is(#CharListButtonAndHotSwaps, #result_info, .sb-character-editor-subtabs-wrapper) {
+        display: none !important;
+    }
+    body.ct-layout-lanterna.ct-char-edit #right-nav-panel.ct-view-active #rm_ch_create_block {
+        display: grid !important;
+        grid-template-columns: 250px minmax(0, 1fr) 320px;
+        gap: 28px;
+        flex: 1;
+        min-height: 0;
+        padding-top: 4px;
+        animation: ct-page-in 320ms var(--ct-ease-out, ease-out) both;
+    }
+    body.ct-layout-lanterna.ct-char-edit #right-nav-panel.ct-view-active #form_create {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 6px 120px;
+    }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec,
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec[hidden] {
+        display: block !important;
+        margin: 0 0 20px;
+        padding: 22px 24px 24px;
+        border-radius: 20px;
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 4%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+        animation: ct-card-in 460ms var(--ct-ease-out, ease-out) backwards;
+    }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec[data-ct-section="2"] { animation-delay: 60ms; }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec[data-ct-section="3"] { animation-delay: 120ms; }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec[data-ct-section="4"] { animation-delay: 180ms; }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec:focus-within {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-accent, var(--SmartThemeQuoteColor)) 40%, transparent);
+    }
+    body.ct-layout-lanterna.ct-fx-glow.ct-char-edit #form_create .ct-sec:focus-within {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-accent, #E8C27A) 40%, transparent), 0 24px 60px -34px color-mix(in srgb, var(--ct-accent, #E8C27A) 60%, transparent);
+    }
+    body.ct-layout-lanterna.ct-char-edit #form_create .ct-sec-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+    body.ct-layout-lanterna #form_create .ct-sec-num {
+        flex: none;
+        width: 30px;
+        height: 30px;
+        margin-top: 2px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1E1606;
+        background: var(--ct-accent, var(--SmartThemeQuoteColor));
+    }
+    body.ct-layout-lanterna #form_create .ct-sec-head h3 {
+        margin: 0;
+        font-family: var(--ct-display-font, var(--mainFontFamily));
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 600;
+    }
+    body.ct-layout-lanterna #form_create .ct-sec-head p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--SmartThemeEmColor);
+    }
+    /* The overview column already shows the picture. */
+    body.ct-layout-lanterna.ct-char-edit #classic_char_header > #avatar_div_div {
+        display: none;
+    }
+
+    /* Left column */
+    body.ct-layout-lanterna.ct-char-edit #ct-editor-side {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 4px 32px;
+        scrollbar-width: none;
+    }
+    .ct-ed-back {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+        color: var(--SmartThemeEmColor);
+        transition: color 160ms ease, transform 200ms var(--ct-ease-out, ease-out);
+    }
+    .ct-ed-back:hover {
+        color: var(--SmartThemeBodyColor);
+        transform: translateX(-2px);
+    }
+    .ct-ed-orb {
+        position: relative;
+        width: 168px;
+        height: 168px;
+        margin: 6px auto 0;
+    }
+    .ct-ed-orb-ring {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, var(--ct-accent, #E8C27A), transparent 28%, var(--ct-glow-2, #B7A6FF) 52%, transparent 76%, var(--ct-accent, #E8C27A));
+        opacity: .35;
+    }
+    body.ct-fx-halo .ct-ed-orb-ring {
+        opacity: 1;
+        animation: ct-spin 9s linear infinite;
+    }
+    .ct-ed-orb-img {
+        position: absolute;
+        inset: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+        background: #0E1015;
+    }
+    .ct-ed-orb-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        transition: transform 600ms var(--ct-ease-out, ease-out);
+    }
+    .ct-ed-orb-edit {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(6, 7, 10, .55);
+        opacity: 0;
+        transition: opacity 200ms ease;
+    }
+    .ct-ed-orb-img:hover .ct-ed-orb-edit,
+    .ct-ed-orb-img:focus-visible .ct-ed-orb-edit {
+        opacity: 1;
+    }
+    .ct-ed-orb-img:hover img {
+        transform: scale(1.06);
+    }
+    .ct-ed-name {
+        text-align: center;
+        font-family: var(--ct-display-font, var(--mainFontFamily));
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+    .ct-ed-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+    .ct-ed-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--SmartThemeBodyColor);
+        background: transparent;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 22%, transparent);
+        transition: transform 140ms var(--ct-ease-out, ease-out), box-shadow 220ms ease, filter 160ms ease;
+    }
+    .ct-ed-btn:active {
+        transform: scale(.96);
+    }
+    .ct-ed-btn.is-accent {
+        color: #1E1606;
+        background: var(--ct-accent, var(--SmartThemeQuoteColor));
+        box-shadow: none;
+    }
+    .ct-ed-btn:hover {
+        filter: brightness(1.08);
+    }
+    .ct-ed-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: 4px;
+    }
+    .ct-ed-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 42px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 12px;
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+        font-size: 14px;
+        color: var(--SmartThemeEmColor);
+        background: transparent;
+        transition: background-color 160ms ease, color 160ms ease;
+    }
+    .ct-ed-nav-item:hover {
+        color: var(--SmartThemeBodyColor);
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 5%, transparent);
+    }
+    .ct-ed-nav-item.is-current {
+        color: var(--SmartThemeBodyColor);
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 8%, transparent);
+    }
+    .ct-ed-nav-num {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 10%, transparent);
+        transition: background-color 200ms ease, color 200ms ease;
+    }
+    .ct-ed-nav-item.is-current .ct-ed-nav-num {
+        color: #1E1606;
+        background: var(--ct-accent, var(--SmartThemeQuoteColor));
+    }
+    .ct-ed-nav-label {
+        flex: 1;
+    }
+    .ct-ed-nav-item[data-state="ok"] .ct-ed-nav-state {
+        color: #67D4AE;
+        font-size: 12px;
+    }
+    .ct-ed-nav-item[data-state="warn"] .ct-ed-nav-state {
+        color: #F2C46B;
+        font-size: 7px;
+    }
+    .ct-ed-tokens {
+        padding: 14px;
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 4%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+    }
+    .ct-ed-tokens-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+    }
+    .ct-ed-tokens-num {
+        color: var(--SmartThemeEmColor);
+        font-variant-numeric: tabular-nums;
+    }
+    .ct-ed-bar {
+        height: 8px;
+        margin: 10px 0 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 10%, transparent);
+    }
+    .ct-ed-bar span {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background: #67D4AE;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 600ms var(--ct-ease-out, ease-out), background-color 300ms ease;
+    }
+    .ct-ed-bar span[data-level="mid"] { background: #F2C46B; }
+    .ct-ed-bar span[data-level="high"] { background: #F0907F; }
+    .ct-ed-tokens-help {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--SmartThemeEmColor);
+    }
+
+    /* Right column */
+    body.ct-layout-lanterna.ct-char-edit #ct-editor-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 30px 4px 32px;
+        scrollbar-width: none;
+    }
+    .ct-ed-h {
+        margin: 6px 0 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--SmartThemeEmColor);
+    }
+    .ct-ed-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--SmartThemeBodyColor) 4%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+    }
+    .ct-ed-chat-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .ct-ed-chat-head img {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center top;
+    }
+    .ct-ed-chat-head b {
+        font-family: var(--ct-display-font, var(--mainFontFamily));
+        font-size: 18px;
+    }
+    .ct-ed-chat-text {
+        max-height: 420px;
+        overflow-y: auto;
+        font-size: .95em;
+        animation: ct-page-in 260ms var(--ct-ease-out, ease-out) both;
+    }
+    .ct-ed-empty {
+        margin: 0;
+        color: var(--SmartThemeEmColor);
+        font-style: italic;
+    }
+    .ct-ed-tip {
+        display: flex;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--SmartThemeEmColor);
+    }
+    .ct-ed-tip i {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin-top: 1px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+    .ct-ed-tip.is-ok i { color: #67D4AE; background: rgba(103, 212, 174, .14); }
+    .ct-ed-tip.is-warn i { color: #F2C46B; background: rgba(242, 196, 107, .14); }
+
+    @media (max-width: 1360px) {
+        body.ct-layout-lanterna.ct-char-edit #right-nav-panel.ct-view-active #rm_ch_create_block {
+            grid-template-columns: 230px minmax(0, 1fr);
+        }
+        body.ct-layout-lanterna.ct-char-edit #ct-editor-preview {
+            display: none;
+        }
+    }
+}
+
+@keyframes ct-card-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #rm_print_characters_block > *,
+    #form_create .ct-sec,
+    #rm_ch_create_block {
+        animation: none !important;
+    }
+}
+
+@media (min-width: 1000px) {
+    body.ct-layout-lanterna.ct-char-edit #right-nav-panel.ct-view-active #rm_button_selected_ch {
+        display: none !important;
+    }
+}
+#ct-editor-preview .ct-ed-chat-text q {
+    color: var(--SmartThemeQuoteColor);
+}
+#ct-editor-preview .ct-ed-chat-text q::before,
+#ct-editor-preview .ct-ed-chat-text q::after {
+    content: none;
+}
+#ct-editor-preview .ct-ed-chat-text em,
+#ct-editor-preview .ct-ed-chat-text i {
+    color: var(--SmartThemeEmColor);
 }

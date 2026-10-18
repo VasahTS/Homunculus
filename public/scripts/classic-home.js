@@ -1,4 +1,5 @@
-// Classic UI fork: the Home page (house icon) and the sidebar labels used by the Lantern layout.
+// Classic UI fork: the Home page (house icon), the Chat button and the page switching of the
+// Lantern layout (one page at a time: body[data-ct-view] + .ct-view-active on the shown panel).
 //
 // Home gathers everything in one place: recent chats, characters, lorebooks, personas, groups and
 // shortcuts to every settings drawer. Each item opens the place where it is edited:
@@ -12,11 +13,12 @@
 /** Rail entries: drawer id, label, order in the Lantern sidebar. Items with order >= 10 sit at the bottom. */
 const RAIL_ITEMS = Object.freeze([
     ['ct-home-button', 'Home', 0],
-    ['rightNavHolder', 'Characters', 1],
-    ['WI-SP-button', 'Lorebooks', 2],
-    ['persona-management-button', 'Persona', 3],
-    ['agents-settings-button', 'Agents', 4],
-    ['extensions-settings-button', 'Extensions', 5],
+    ['ct-chat-button', 'Chat', 1],
+    ['rightNavHolder', 'Characters', 2],
+    ['WI-SP-button', 'Lorebooks', 3],
+    ['persona-management-button', 'Persona', 4],
+    ['agents-settings-button', 'Agents', 5],
+    ['extensions-settings-button', 'Extensions', 6],
     ['ai-config-button', 'Presets', 10],
     ['sys-settings-button', 'API', 11],
     ['advanced-formatting-button', 'Formatting', 12],
@@ -103,22 +105,182 @@ function openDrawer(drawerId) {
 /* Sidebar labels + Home button                                                                  */
 /* ------------------------------------------------------------------------------------------- */
 
-function ensureHomeButton() {
+function makeRailButton(id, icon, label, onActivate) {
     const holder = document.getElementById('top-settings-holder');
-    if (!holder || document.getElementById('ct-home-button')) return;
+    if (!holder || document.getElementById(id)) return;
     const wrap = document.createElement('div');
-    wrap.id = 'ct-home-button';
+    wrap.id = id;
     wrap.className = 'drawer';
-    wrap.innerHTML = '<div class="ct-home-toggle" role="button" tabindex="0" title="Home" aria-label="Home" aria-pressed="false"><div class="drawer-icon fa-solid fa-house fa-fw closedIcon"></div></div>';
+    wrap.innerHTML = `<div class="ct-home-toggle" role="button" tabindex="0" title="${label}" aria-label="${label}"><div class="drawer-icon fa-solid ${icon} fa-fw closedIcon"></div></div>`;
     holder.prepend(wrap);
     const toggle = wrap.querySelector('.ct-home-toggle');
-    toggle.addEventListener('click', () => toggleHome());
+    toggle.addEventListener('click', () => onActivate());
     toggle.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            toggleHome();
+            onActivate();
         }
     });
+}
+
+function ensureHomeButton() {
+    makeRailButton('ct-chat-button', 'fa-comments', 'Chat', () => showChat());
+    makeRailButton('ct-home-button', 'fa-house', 'Home', () => toggleHome());
+    const holder = document.getElementById('top-settings-holder');
+    if (holder && !document.getElementById('ct-rail-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.id = 'ct-rail-indicator';
+        indicator.setAttribute('aria-hidden', 'true');
+        holder.prepend(indicator);
+    }
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Pages (Lantern layout): exactly one of chat / home / a drawer panel is shown                  */
+/* ------------------------------------------------------------------------------------------- */
+
+let currentView = 'chat';
+let viewsReady = false;
+const wasOpen = new WeakMap();
+
+function isOpenContent(content) {
+    return content.classList.contains('openDrawer');
+}
+
+function drawerContents() {
+    return [...document.querySelectorAll('#top-settings-holder > .drawer > .drawer-content')];
+}
+
+function placeIndicator() {
+    const indicator = document.getElementById('ct-rail-indicator');
+    if (!indicator) return;
+    const railId = currentView === 'chat' ? 'ct-chat-button' : currentView === 'home' ? 'ct-home-button' : currentView;
+    const toggle = document.querySelector(`#${CSS.escape(railId)} > .drawer-toggle, #${CSS.escape(railId)} > .ct-home-toggle`);
+    if (!toggle || !toggle.offsetParent) {
+        indicator.style.setProperty('--ct-o', '0');
+        return;
+    }
+    const first = indicator.style.getPropertyValue('--ct-o') !== '1';
+    if (first) indicator.style.transition = 'none';
+    indicator.style.setProperty('--ct-y', `${toggle.offsetTop}px`);
+    indicator.style.setProperty('--ct-o', '1');
+    if (first) requestAnimationFrame(() => { indicator.style.transition = ''; });
+}
+
+/* Presets locked beside the chat (Lantern layout). Locking the Presets page keeps it as a column
+   on the left of the chat, like SillyTavern's pinned panel. */
+const DOCK_DRAWER = 'ai-config-button';
+
+function isLanternActive() {
+    return document.body.classList.contains('ct-layout-lanterna') && window.matchMedia('(min-width: 1000px)').matches;
+}
+
+function dockPanel() {
+    return document.getElementById('left-nav-panel');
+}
+
+function isDocked() {
+    const panel = dockPanel();
+    return !!panel && panel.classList.contains('pinnedOpen') && isOpenContent(panel);
+}
+
+function syncDock() {
+    document.body.classList.toggle('ct-dock-left', isLanternActive() && isDocked());
+}
+
+function bindDock() {
+    const panel = dockPanel();
+    if (panel) {
+        new MutationObserver(syncDock).observe(panel, { attributes: true, attributeFilter: ['class'] });
+    }
+    // The lock: locking from the Presets page moves it beside the chat; unlocking there closes it.
+    document.addEventListener('click', (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (target?.id !== 'lm_button_panel_pin') return;
+        setTimeout(() => {
+            syncDock();
+            if (!isLanternActive()) return;
+            const pinned = /** @type {HTMLInputElement} */ (target).checked;
+            if (pinned && currentView === DOCK_DRAWER) {
+                setView('chat');
+            } else if (!pinned && currentView === 'chat' && panel && isOpenContent(panel)) {
+                closeDrawerContent(panel);
+            }
+        }, 0);
+    });
+    // While it is locked, its sidebar item just brings the chat (and the column) back.
+    document.addEventListener('click', (event) => {
+        const toggle = /** @type {HTMLElement} */ (event.target)?.closest?.(`#${DOCK_DRAWER} > .drawer-toggle`);
+        if (!toggle || !isLanternActive() || !isDocked() || currentView === 'chat') return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        showChat();
+    }, true);
+}
+
+export function setView(view) {
+    currentView = view || 'chat';
+    document.body.dataset.ctView = currentView;
+    syncDock();
+    for (const content of drawerContents()) {
+        const active = content.closest('.drawer')?.id === currentView && isOpenContent(content);
+        if (active && !content.classList.contains('ct-view-active')) {
+            content.classList.add('ct-view-active');
+            content.scrollTop = 0;
+        } else if (!active) {
+            content.classList.remove('ct-view-active');
+        }
+    }
+    for (const drawer of document.querySelectorAll('#top-settings-holder > .drawer')) {
+        const railId = currentView === 'chat' ? 'ct-chat-button' : currentView === 'home' ? 'ct-home-button' : currentView;
+        drawer.classList.toggle('ct-rail-active', drawer.id === railId);
+    }
+    placeIndicator();
+    document.dispatchEvent(new CustomEvent('ct:view-changed', { detail: { view: currentView } }));
+}
+
+export function getView() {
+    return currentView;
+}
+
+function closeDrawerContent(content) {
+    if (content && isOpenContent(content)) {
+        content.closest('.drawer')?.querySelector(':scope > .drawer-toggle')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+}
+
+export function showChat() {
+    closeHome();
+    if (currentView !== 'chat' && currentView !== 'home') {
+        closeDrawerContent(document.querySelector(`#${CSS.escape(currentView)} > .drawer-content`));
+    }
+    setView('chat');
+}
+
+function watchDrawers() {
+    for (const content of drawerContents()) {
+        wasOpen.set(content, isOpenContent(content));
+        new MutationObserver(() => {
+            const open = isOpenContent(content);
+            const id = content.closest('.drawer')?.id;
+            if (open && !wasOpen.get(content)) {
+                if (viewsReady) {
+                    if (id === DOCK_DRAWER && content.classList.contains('pinnedOpen') && isLanternActive()) {
+                        // Locked Presets opens as the column beside the chat, not as its own page.
+                        closeHome();
+                        setView('chat');
+                    } else {
+                        closeHome(true);
+                        setView(id);
+                    }
+                }
+            } else if (!open && wasOpen.get(content)) {
+                if (currentView === id) setView('chat');
+                else content.classList.remove('ct-view-active');
+            }
+            wasOpen.set(content, open);
+        }).observe(content, { attributes: true, attributeFilter: ['class'] });
+    }
 }
 
 function decorateRail() {
@@ -426,8 +588,10 @@ function ensureHomeRoot() {
     return root;
 }
 
-function setOpenState(open) {
+function setOpenState(open, { keepView = false } = {}) {
     state.open = open;
+    if (open) setView('home');
+    else if (!keepView && currentView === 'home') setView('chat');
     const button = document.getElementById('ct-home-button');
     button?.classList.toggle('is-open', open);
     button?.querySelector('.ct-home-toggle')?.setAttribute('aria-pressed', String(open));
@@ -451,8 +615,8 @@ export async function openHome() {
     if (state.open) render();
 }
 
-export function closeHome() {
-    if (state.open) setOpenState(false);
+export function closeHome(keepView = false) {
+    if (state.open) setOpenState(false, { keepView });
 }
 
 export function toggleHome() {
@@ -462,6 +626,24 @@ export function toggleHome() {
 function init() {
     ensureHomeButton();
     decorateRail();
+    watchDrawers();
+    bindDock();
+    setView('chat');
+    window.addEventListener('resize', () => { placeIndicator(); syncDock(); });
+    const markReady = () => {
+        if (viewsReady) return;
+        viewsReady = true;
+        // Panels SillyTavern reopens at start-up (pinned ones) stay hidden; the app starts on the chat.
+        setView('chat');
+    };
+    const waitForApp = window.setInterval(() => {
+        const context = ctx();
+        if (context?.eventSource && context?.event_types) {
+            window.clearInterval(waitForApp);
+            context.eventSource.on(context.event_types.APP_READY, () => setTimeout(markReady, 300));
+        }
+    }, 100);
+    setTimeout(markReady, 15000);
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && state.open && !document.querySelector('.popup[open], dialog[open]')) closeHome();
     });
@@ -469,7 +651,10 @@ function init() {
     document.getElementById('top-settings-holder')?.addEventListener('click', (event) => {
         if (/** @type {HTMLElement} */ (event.target).closest('.drawer-toggle')) closeHome();
     });
-    document.addEventListener('ct:appearance-changed', () => { if (state.open) render(); });
+    document.addEventListener('ct:appearance-changed', () => {
+        if (state.open) render();
+        requestAnimationFrame(() => setView(currentView));
+    });
 }
 
 if (document.readyState === 'loading') {
@@ -478,4 +663,4 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicHome = { openHome, closeHome, toggleHome };
+globalThis.SillyBunnyClassicHome = { openHome, closeHome, toggleHome, showChat, setView, getView };

@@ -41,7 +41,13 @@ Home, Customize e layouts
 - Icone de paleta (Customize): perfis visuais, layout e efeitos.
   - "Classic" e o visual de sempre (usa o UI Theme do User Settings).
   - "Arcane Lantern" troca cores e fontes, liga efeitos e usa o layout
-    "Lantern" (barra lateral com nomes, paineis ao lado do chat).
+    "Lantern": barra lateral com nomes, e cada item abre a sua propria
+    pagina (Chat, Characters, Lorebooks, Presets...), uma de cada vez.
+  - No Lantern, o Presets tem um cadeado no canto de cima ("Keep beside
+    chat"). Travado, ele fica numa coluna a esquerda do chat, como no
+    SillyTavern original. Clique de novo para destravar.
+  - Clicar num personagem abre o editor dele: secoes numeradas, previa da
+    primeira mensagem e dicas.
   - O layout pode ser trocado na hora, sem recarregar. Em janelas com
     menos de 1000px de largura, o layout Lantern volta para o Classic.
   - Cada efeito liga e desliga sozinho, com intensidade e a opcao de
