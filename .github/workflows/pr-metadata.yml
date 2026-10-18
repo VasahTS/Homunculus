@@ -1,0 +1,112 @@
+name: 🧾 PR Metadata
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-metadata-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate-pr-metadata:
+    name: ✅ Validate PR Metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate target branch
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          if [ "$BASE_REF" = "staging" ]; then
+            exit 0
+          fi
+
+          if [ "$BASE_REF" = "release" ] && [ "$HEAD_REPOSITORY" = "$REPOSITORY" ]; then
+            case "$HEAD_REF" in
+              release/v* | hotfix/* | rollback/v*)
+                exit 0
+                ;;
+            esac
+          fi
+
+          # Actions-only PRs: workflow_dispatch and schedule workflows only run from release (the default branch),
+          # so workflow changes reach it through actions/* branches limited to CI files, their scripts and tests.
+          if [ "$BASE_REF" = "release" ] && [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] && [[ "$HEAD_REF" == actions/* ]]; then
+            gh api --paginate --slurp "repos/$REPOSITORY/pulls/$PR_NUMBER/files" > "$RUNNER_TEMP/pr-files.json"
+            current_head=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
+            if [ "$current_head" != "$PR_HEAD_SHA" ]; then
+              echo "The PR changed while its files were being checked."
+              exit 1
+            fi
+
+            if jq -e --argjson expected_count "$PR_CHANGED_FILES" '
+              def allowed:
+                startswith(".github/")
+                or startswith("tests/")
+                or . == "scripts/bump-version.js"
+                or . == "scripts/update-changelog-merged-prs.js";
+              add
+              | length == $expected_count
+                and all(.[];
+                  (.filename | allowed)
+                  and ((.previous_filename // .filename) | allowed))
+            ' "$RUNNER_TEMP/pr-files.json" > /dev/null; then
+              exit 0
+            fi
+
+            echo "actions/* branches may only change .github/, tests/, scripts/bump-version.js and scripts/update-changelog-merged-prs.js."
+            exit 1
+          fi
+
+          if [ "$BASE_REF" = "release" ] && [ "$HEAD_REPOSITORY" = "$REPOSITORY" ]; then
+            gh api --paginate --slurp "repos/$REPOSITORY/pulls/$PR_NUMBER/files" > "$RUNNER_TEMP/pr-files.json"
+            current_head=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
+            if [ "$current_head" != "$PR_HEAD_SHA" ]; then
+              echo "The PR changed while its files were being checked."
+              exit 1
+            fi
+
+            if jq -e --argjson expected_count "$PR_CHANGED_FILES" '
+              add
+              | length == $expected_count
+                and any(.[]; .filename == ".github/CODEOWNERS")
+                and all(.[];
+                  (.filename == ".github/CODEOWNERS" or .filename == ".github/workflows/pr-metadata.yml")
+                  and (.status == "added" or .status == "modified")
+                  and (has("previous_filename") | not))
+            ' "$RUNNER_TEMP/pr-files.json" > /dev/null; then
+              exit 0
+            fi
+          fi
+
+          if [ "$BASE_REF" = "release" ]; then
+            echo "Only release/v*, hotfix/*, or rollback/v* branches from this repository may target release. Current source: $HEAD_REF"
+            echo "Actions-only changes may use an actions/* branch."
+            echo "Exception: CODEOWNERS additions or edits may also update pr-metadata.yml, with no other file changes."
+          else
+            echo "Pull requests must target staging. Current target: $BASE_REF"
+          fi
+
+          exit 1
+
+      - name: Validate PR title prefix
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ! grep -Eq '^(fix|chore|feat|sync|docs)(\([^)]+\))?!?:[[:space:]].+' <<< "$PR_TITLE"; then
+            echo "PR title must start with one of: fix:, chore:, feat:, sync:, docs:"
+            echo "Current title: $PR_TITLE"
+            exit 1
+          fi

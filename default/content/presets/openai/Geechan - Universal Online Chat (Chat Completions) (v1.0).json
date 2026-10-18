@@ -1,0 +1,342 @@
+{
+    "extensions": {},
+    "temperature": 1,
+    "frequency_penalty": 0,
+    "presence_penalty": 0,
+    "top_p": 0.99,
+    "top_k": 0,
+    "top_a": 0,
+    "min_p": 0,
+    "repetition_penalty": 1,
+    "max_context_unlocked": false,
+    "tool_reasoning_mode": "disabled",
+    "openai_max_context": 65536,
+    "openai_max_tokens": 10000,
+    "names_behavior": 0,
+    "send_if_empty": "",
+    "impersonation_prompt": "OOC: The player is requesting you to impersonate {{user}} by following their typing style as established in the chat context. You may disregard the instructions listed in Correct Perspective for now. Only write for {{user}}, and write a believable response that suits the current story direction:",
+    "new_chat_prompt": "[Start a new Chat]",
+    "new_group_chat_prompt": "[Start a new group chat. Group members: {{group}}]",
+    "new_example_chat_prompt": "[Example Chat]",
+    "continue_nudge_prompt": "[Continue your last message without repeating its original content, following the guidelines in the # Writing Guidelines.]",
+    "bias_preset_selected": "Default (none)",
+    "wi_format": "{0}",
+    "scenario_format": "{{scenario}}",
+    "personality_format": "{{personality}}",
+    "group_nudge_prompt": "[Write the next reply only as {{char}}.]",
+    "stream_openai": true,
+    "prompts": [
+        {
+            "name": "Chatroom Prompt",
+            "system_prompt": true,
+            "role": "system",
+            "content": "{{// The main system prompt, designed for an output reminiscent of an instant messaging interface.\n\nA derivative of this system prompt is currently in use with Discord Pals, made by my friend TheLonelyDevil. Check it out if you want to integrate AI characters with Discord! https://github.com/TheLonelyDevil9/discord-pals\n}}\n{{trim}}\n# Role Preamble\n\nThis is a conversational instant messaging chatroom with several users, including {{user}} and {{char}}. Solely embody {{char}} as they casually converse in the chatroom.\n\n**Review and strictly adhere to the following guidelines before responding. Look through the Chatroom Context for current character, history, and world information.**\n\n## Chatting Guidelines\n\n- Speak purely from a first person perspective, only using dialogue to communicate in plain text. Refrain from writing narration or roleplay actions.\n- This is a chatroom, so messages should feel natural and conversational, with varied emoji and emoticon usage. Converse through multiple, individual messages, as real people would, to simulate natural conversation.\n- Be flexible and varied with {{char}}'s responses. Short, lazy inquiries should get short answers in return, while more thoughtful inquiries should allow for longer responses.\n- Rely on defined assertion rather than describing absences. {{char}} has inherently distinct opinions, and speaks without hedging or moralizing.\n- Keep the conversation flowing so the other users can respond easily. Ask proactive follow up questions and employ subtle hooks where necessary.\n- Exclusively respond as {{char}} in-character, with no exceptions. The other users in chat, including {{user}} are their own autonomous selves unable to be portrayed. Any other extraneous, out of character information, meta-commentary or reply information is considered completely out of scope.\n\n## Character Guidelines\n\n- Reference {{char}}'s example dialogue for guidance on their portrayal and their speech patterns.\n- Embody {{char}} as a fully autonomous individual with their own wants, fears, values, goals and sense of agency, operated under bounded rationality, restricted by their subjective framing, biases, and history.\n- Portray {{char}} accurately by consistently and believably using their unique traits, quirks, emotions, inner thoughts, idiolects, vernacular, and non-verbal cues.\n- Ensure that their reactions, interactions, and decision-making align with their established personality and values. Prioritise their wants and fears over anyone else in chat - if they come across something disagreeable, they should show objection to it.\n- Reference chat history and call back to appropriate context where necessary. They can notice when someone gets talked over, or have their minds changed with enough persuasion.\n- {{char}} will only use emojis, slang, and emoticons that are completely fitting for their personality and typing style. They also like to vary it up, by frequently posting different emojis for different situations. Some characters will rarely use emojis; pay attention to their traits.\n{{#if .player-instructions}}\n## Custom Player Instructions\n\n**These are custom-made instructions designed by the individual player, and take precedence over all other instructions:**\n\n{{getvar::player-instructions}}\n{{/if}}\n\n## Chatroom Mechanics\n\n- Emojis: Use unicode emojis as found in the Unicode database.\n- Emoticons: Use chatroom emoticons as found in message boards.\n- Kaomoji: Use kaomoji as alternatives for regular emoticons.\n- Internet slang: Use internet slang and acronyms of all kinds.\n\nOnly use what is fitting for {{char}}.\n\n# Chatroom Context\n\nUse the information below as a reference point on how {{char}} should act in the chatroom:",
+            "identifier": "main",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": true,
+            "injection_trigger": []
+        },
+        {
+            "name": "-",
+            "system_prompt": true,
+            "role": "system",
+            "content": "",
+            "identifier": "nsfw",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "dialogueExamples",
+            "name": "Chat Examples",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "name": "Formatting Requirements",
+            "system_prompt": true,
+            "role": "system",
+            "content": "{{// Leave enabled for stricter formatting requirements. Disable if you don't want this.}}\n{{trim}}\n<output_format>\n**Text output should always follow this format, beginning with {{char}}'s name:**\n\n**{{char}}:** example sentence\n**{{char}}:** example sentence\n**{{char}}:** example sentence\n</output_format>",
+            "identifier": "jailbreak",
+            "injection_position": 1,
+            "injection_depth": 0,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": true
+        },
+        {
+            "identifier": "chatHistory",
+            "name": "Chat History",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "worldInfoAfter",
+            "name": "World Info (after)",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "worldInfoBefore",
+            "name": "World Info (before)",
+            "system_prompt": true,
+            "marker": true,
+            "role": "system",
+            "content": "",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "enhanceDefinitions",
+            "role": "system",
+            "name": "-",
+            "content": "",
+            "system_prompt": true,
+            "marker": false,
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "charDescription",
+            "name": "Char Description",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "charPersonality",
+            "name": "Char Personality",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "scenario",
+            "name": "Scenario",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "personaDescription",
+            "name": "Persona Description",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "59602978-fdc0-4a8a-af0a-26b2ec58793b",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "name": "🌳 README",
+            "role": "system",
+            "content": "{{// README \nGeechan's Universal Online Chat Preset\n\n*Version 1.0*\n\n**Chat Completions**\n\nThis is a universal, modular online chat preset. It is designed for a specific purpose: to emulate an instant messaging chatroom. I consider this a bit of an experiment, and am releasing it in a basic form due to some people asking for it. This should also work great for group chats! Note: due to the nature of this prompt, it performs best on a fresh new chat.\n\nI decided not to release this as a part of my main preset as I feel this is quite a different style of prompting, with its own sense of purpose from roleplay and storywriting. I plan on making more prompts in the future tailored towards specific chatroom experiences which will be included in this preset (perhaps a messaging board or forum style next). If you have suggestions, let me know!\n\nAs usual with my prompts: careful but concise instructions are included, and all instructions are written in markdown with minimal negative prompting, and a detached, de-personalised style. The prompt also does its best to make your character card the primary focus for the model by giving it the appropriate context.\n\nToken count is around 600.\n\nDon't worry: nothing enclosed in this README before the trim tag will appear in the model's context. There is *no* need to delete the README. It is completely hidden from the model.\n\n(While you're here: check out this fork of SillyTavern that I'm working on with purachina, SillyBunny! It has this preset pre-bundled, alongside many other changes that overhaul the UI and add new, modern features: https://github.com/SillyBunnyTeam/SillyBunny)\n\nV1.0\n\n— Initial release.\n\nYou can find the rest of my guides, presets and character cards on my Rentry:\nhttps://rentry.org/geechan\n\nSpecial Thanks:\n\n- Marinara, Trappu, and Konnect for inspiring some of the initial wording in the instructions with their own prompts. Without them, I would not have been inspired to work on my own presets.\n- Purachina for bouncing ideas off of their own preset, for their initial banned phrases listing, for working on SillyBunny with me, and for being a great preset partner (check out their Director preset! https://platberlitz.github.io/)\n- IIMEIPII for giving me a lot of new, interesting ideas for prompt wording, and for always being willing to brainstorm with me.\n- Evoc for brainstorming prompt engineering strategies in-depth with me, and helping me understand some concepts.\n- Febs for extra hard stress testing that has been very useful for refinement.\n- Lesser Lord Kusanali for being my beloved divine inspiration.\n- BeaverAI, alongside its wonderful users, for being the first community I shared my first preset with.\n- Anyone who uses my presets, and anyone who gives me helpful, constructive feedback. You're all awesome!}}\n{{trim}}",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "8b4cf33f-9fb5-45a0-94ce-9b95478875d7",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "name": "🌿 Sampling Advice",
+            "role": "system",
+            "content": "{{// Samplers (or parameters) can make or break some models, and it's an important topic to understand if you feel your response quality is broken or getting off track.\n\nFor the most part, the defaults of Temperature at 1.0 and all other samplers neutralised are fine for most modern models. However, if you notice a model getting off track and derailing itself, or making very weird mistakes, typos, or other logical faults, you can likely tone this down or fix it entirely with sampling. Generally, older models are more sensitive to this issue due to having wider token distribution curves.\n\nThe most universally applicable solution that's applicable for API models with chat completions models is to lower Top P in 0.01 increments (1.00 is off) until you stop noticing problems. Be aware that lowering Top P will result in less token variety in the pool, and thus will lean responses to be more deterministic. Only lower it as much as you need to. A safe starting value is 0.95 Top P, which should eliminate most issues from any model that has problems.\n\nMin P is an even better truncation sampler that is very effective if your backend has support for it. However, most API models do not serve this sampler, so it is likely it will have no effect unless you're certain the backend has explicit support for it. Still, I recommend it over Top P if supported. Similar logic applies; increase in 0.01 increments until you stop noticing issues.\n\nRepetition Penalty is also worth considering, and is also universally supported with most model backends. This will penalise repetition in the response, which can lead to more interesting and varied replies. However, it is a bit of a blunt hammer solution to repetition and can cause weird problems, so be careful with this sampler. Lower is better; 1.03 Repetition Penalty is a good default value.\n\nFor more information, including information on the other samplers out there, read my guide on sampling: https://rpwithai.com/understanding-sampler-settings-for-ai-roleplay/}}\n{{trim}}",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "d7c09d3d-a055-499b-b19f-264d2c7c3fdb",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "name": "🌱 ━+ Prompts",
+            "role": "system",
+            "content": "",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "e4f1a9af-4614-48e3-942d-5a762753cafd",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "name": "🍀 ━+ Optional Toggles",
+            "role": "system",
+            "content": "",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "0dc06d25-6eaa-4f98-8711-c4456f19e80e",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "name": "🍃 Custom Instructions",
+            "role": "system",
+            "content": "{{// If you have any additional instructions or requirements you'd like the model to follow, write them here in-between the player-instructions variable and the closing brackets, and they will be inserted in all prompts automatically, with priority over all other instructions. \n\nAlternatively, you can insert instructions in the player-posthistory variable if you want them to appear in the post-history instructions Prose Rules at the bottom of the context stack (greatly improving adherence at the cost of subtlety).\n\nKeep your instructions fairly simple, positive, and direct for best results. This is also a good place to place tags or genre instructions, which can bias a model to respond in a specific style.\n\nFor example, here's a good, starting template you can modify for your own requirements:\n\n### Scene Tags\n[slice of life, romance, slow-burn]\n\n### Instructions\n- Keep all responses within two paragraphs words.\n- Write in third person exclusively.\n- Write romance novella style with long, detailed paragraphs and expressive detail.\n}}\n{{trim}}\n\n{{.player-instructions =\n\n}}\n\n{{.player-posthistory =\n\n}}",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "injection_trigger": [],
+            "forbid_overrides": false
+        }
+    ],
+    "prompt_order": [
+        {
+            "character_id": 100000,
+            "order": [
+                {
+                    "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoBefore",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charPersonality",
+                    "enabled": true
+                },
+                {
+                    "identifier": "scenario",
+                    "enabled": true
+                },
+                {
+                    "identifier": "enhanceDefinitions",
+                    "enabled": false
+                },
+                {
+                    "identifier": "nsfw",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoAfter",
+                    "enabled": true
+                },
+                {
+                    "identifier": "dialogueExamples",
+                    "enabled": true
+                },
+                {
+                    "identifier": "chatHistory",
+                    "enabled": true
+                },
+                {
+                    "identifier": "jailbreak",
+                    "enabled": true
+                }
+            ]
+        },
+        {
+            "character_id": 100001,
+            "order": [
+                {
+                    "identifier": "59602978-fdc0-4a8a-af0a-26b2ec58793b",
+                    "enabled": false
+                },
+                {
+                    "identifier": "8b4cf33f-9fb5-45a0-94ce-9b95478875d7",
+                    "enabled": false
+                },
+                {
+                    "identifier": "0dc06d25-6eaa-4f98-8711-c4456f19e80e",
+                    "enabled": true
+                },
+                {
+                    "identifier": "d7c09d3d-a055-499b-b19f-264d2c7c3fdb",
+                    "enabled": true
+                },
+                {
+                    "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoBefore",
+                    "enabled": true
+                },
+                {
+                    "identifier": "personaDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charPersonality",
+                    "enabled": true
+                },
+                {
+                    "identifier": "scenario",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoAfter",
+                    "enabled": true
+                },
+                {
+                    "identifier": "dialogueExamples",
+                    "enabled": true
+                },
+                {
+                    "identifier": "chatHistory",
+                    "enabled": true
+                },
+                {
+                    "identifier": "jailbreak",
+                    "enabled": true
+                },
+                {
+                    "identifier": "nsfw",
+                    "enabled": false
+                },
+                {
+                    "identifier": "enhanceDefinitions",
+                    "enabled": false
+                }
+            ]
+        }
+    ],
+    "assistant_prefill": "",
+    "assistant_impersonation": "",
+    "use_sysprompt": true,
+    "squash_system_messages": false,
+    "media_inlining": false,
+    "inline_image_quality": "high",
+    "continue_prefill": false,
+    "continue_postfix": "\n\n",
+    "function_calling": true,
+    "show_thoughts": true,
+    "reasoning_effort": "max",
+    "verbosity": "auto",
+    "enable_web_search": false,
+    "seed": -1,
+    "n": 1,
+    "request_images": false,
+    "request_image_aspect_ratio": "",
+    "request_image_resolution": ""
+}

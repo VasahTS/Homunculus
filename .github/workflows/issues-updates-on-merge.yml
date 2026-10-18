@@ -1,0 +1,98 @@
+name: 🔄 Update Issues on Push
+
+on:
+  push:
+    branches:
+      - staging
+      - release
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  # Reads closing keywords from the pushed commit messages and, for merged PRs, from the PR body and its
+  # linked issues. Runs on `push` so fork PRs are covered without `pull_request_target`.
+  update-linked-issues:
+    name: 🔗 Mark Linked Issues Done on Push
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check GitHub App Configuration
+        id: app-config
+        env:
+          ST_BOT_CLIENT_ID: ${{ vars.ST_BOT_CLIENT_ID }}
+          ST_BOT_PRIVATE_KEY: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$ST_BOT_CLIENT_ID" ] && [ -n "$ST_BOT_PRIVATE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mint App Token
+        if: steps.app-config.outputs.enabled == 'true'
+        id: app
+        # Create a GitHub App token
+        # https://github.com/marketplace/actions/create-github-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.ST_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Collect Linked Issues
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          KEYWORDS='(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #[0-9]+'
+          ISSUES_FILE="$RUNNER_TEMP/issues.txt"
+          : > "$ISSUES_FILE"
+
+          jq -r '.commits[]?.message' "$GITHUB_EVENT_PATH" \
+            | grep -oiE "$KEYWORDS" | grep -oE '[0-9]+$' >> "$ISSUES_FILE" || true
+
+          PR_NUMBERS=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[] | select(.merged_at != null) | .number' || true)
+          for PR_NUMBER in $PR_NUMBERS; do
+            echo "Commit $HEAD_SHA belongs to merged PR #$PR_NUMBER."
+            gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.body // ""' \
+              | grep -oiE "$KEYWORDS" | grep -oE '[0-9]+$' >> "$ISSUES_FILE" || true
+            gh api graphql \
+              -f owner="${REPOSITORY%%/*}" -f name="${REPOSITORY#*/}" -F number="$PR_NUMBER" \
+              -f query='query($owner: String!, $name: String!, $number: Int!) {
+                repository(owner: $owner, name: $name) {
+                  pullRequest(number: $number) { closingIssuesReferences(first: 50) { nodes { number } } }
+                }
+              }' \
+              --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[].number' >> "$ISSUES_FILE" || true
+          done
+
+          sort -nu "$ISSUES_FILE" -o "$ISSUES_FILE"
+          echo "Linked issues: $(tr '\n' ' ' < "$ISSUES_FILE")"
+
+      - name: Label Linked Issues
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" = "refs/heads/staging" ]; then
+            LABEL="✅ Done (staging)"
+          else
+            LABEL="✅ Done"
+          fi
+
+          while read -r ISSUE; do
+            [ -n "$ISSUE" ] || continue
+            if gh issue edit "$ISSUE" -R "$REPOSITORY" --add-label "$LABEL" --remove-label "🧑‍💻 In Progress"; then
+              echo "Added label '$LABEL' (and removed '🧑‍💻 In Progress' if present) in issue #$ISSUE"
+            else
+              echo "::warning::Could not label #$ISSUE with '$LABEL'."
+            fi
+          done < "$RUNNER_TEMP/issues.txt"

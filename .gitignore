@@ -1,0 +1,85 @@
+node_modules/
+public/chats/
+public/characters/
+public/User Avatars/
+public/backgrounds/
+public/groups/
+public/group chats/
+public/worlds/
+public/user/
+public/css/bg_load.css
+public/themes/
+public/OpenAI Settings/
+public/KoboldAI Settings/
+public/NovelAI Settings/
+public/TextGen Settings/
+public/instruct/
+public/context/
+public/scripts/extensions/third-party/*
+!public/scripts/extensions/third-party/.gitkeep
+!public/scripts/extensions/third-party/SillyTavern-MoonlitEchoesTheme/
+!public/scripts/extensions/third-party/SillyTavern-MoonlitEchoesTheme/**
+public/stats.json
+/uploads/
+*.jsonl
+/config.conf
+/config.yaml
+/config.conf.bak
+/docker/config
+/docker/user
+/docker/extensions
+/docker/data
+/docker/dist
+.DS_Store
+public/settings.json
+/thumbnails
+whitelist.txt
+.vscode/**
+!.vscode/extensions.json
+.idea/
+.windsurf/
+secrets.json
+.secret_key
+/dist
+/backups/
+public/movingUI/
+public/QuickReplies/
+content.log
+cloudflared.exe
+public/assets/
+access.log
+/vectors/
+/cache/
+public/css/user.css
+public/error/
+/plugins/
+/data
+/default/scaffold
+/certs
+.aider*
+.env
+/StartDev.bat
+yarn.lock
+*.code-workspace
+test-results/
+.playwright-cli/
+.playwright-mcp/
+.local-worklog/
+/output/
+/graphify-out/
+# SillyBunny: conflict scratch output from scripts/sync-quick-image-gen.sh; keep it out of git status so it cannot block the in-app updater
+/.quick-image-gen-merge/
+
+# Local UI/performance screenshots
+screenshots/layout-clean-desktop-workspace-20260505.png
+screenshots/layout-clean-mobile-api-sheet-20260505.png
+screenshots/layout-desktop-workspace-20260505.png
+screenshots/layout-mobile-api-sheet-20260505.png
+screenshots/layout-mobile-workspace-20260505.png
+screenshots/sillybunny-ui-polish-desktop-ooc.png
+screenshots/sillybunny-ui-polish-desktop-workspace.png
+screenshots/sillybunny-ui-polish-mobile-workspace.png
+
+# Local Agent Skills
+.agents/
+skills-lock.json

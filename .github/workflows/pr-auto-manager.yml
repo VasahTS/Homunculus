@@ -1,0 +1,241 @@
+name: 🔀 Pull Request Manager
+
+on:
+  workflow_dispatch: # Allow to manually call this workflow
+  # Allowed by a repository Actions event policy scoped to this file; GitHub blocks
+  # `pull_request_target` by default on public repos from 2026-11-02. Never check out or run PR code here.
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  # Label events must not cancel a size-label update before its cleanup finishes.
+  group: pr-auto-manager-${{ github.event.pull_request.number || github.ref_name }}-${{ (github.event.action == 'labeled' || github.event.action == 'unlabeled') && 'labels' || 'updates' }}
+  cancel-in-progress: true
+
+jobs:
+  label-by-size:
+    name: 🏷️ Label PR by Size
+    # This job should run after all others, to prevent possible concurrency issues
+    needs: [label-by-branches, check-merge-blocking-labels, write-auto-comments]
+    runs-on: ubuntu-latest
+    # Only needs to run when code is changed
+    if: always() && (github.event.action == 'opened' || github.event.action == 'synchronize')
+
+    # Override permissions, the labeler needs issues write access
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Check GitHub App Configuration
+        id: app-config
+        env:
+          ST_BOT_CLIENT_ID: ${{ vars.ST_BOT_CLIENT_ID }}
+          ST_BOT_PRIVATE_KEY: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$ST_BOT_CLIENT_ID" ] && [ -n "$ST_BOT_PRIVATE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mint App Token
+        if: steps.app-config.outputs.enabled == 'true'
+        id: app
+        # Create a GitHub App token
+        # https://github.com/marketplace/actions/create-github-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.ST_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Label PR Size
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ steps.app.outputs.token || github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: issue_number, per_page: 100,
+            });
+            const changes = files.reduce((total, file) => {
+              if (file.filename === 'package-lock.json' || file.filename.startsWith('public/lib/')) {
+                return total;
+              }
+              return total + file.additions + file.deletions;
+            }, 0);
+            const sizes = [
+              { label: '🟩 ⬤○○○○', max: 20 },
+              { label: '🟩 ⬤⬤○○○', max: 100 },
+              { label: '🟨 ⬤⬤⬤○○', max: 500 },
+              { label: '🟧 ⬤⬤⬤⬤○', max: 1000 },
+              { label: '🟥 ⬤⬤⬤⬤⬤', max: Infinity },
+            ];
+            const selected = sizes.find(size => changes < size.max).label;
+            const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            if (!labels.some(label => label.name === selected)) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [selected] });
+            }
+            // Never replace the full label set: other workflows and maintainers own unrelated labels.
+            for (const { name } of labels) {
+              if (name !== selected && sizes.some(size => size.label === name)) {
+                try {
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                }
+              }
+            }
+
+  label-by-branches:
+    name: 🏷️ Label PR by Branches
+    runs-on: ubuntu-latest
+    # Only label once when PR is created or when base branch is changed, to allow manual label removal
+    if: always() && (github.event.action == 'opened' || (github.event.action == 'synchronize' && github.event.changes.base))
+
+    steps:
+      - name: Check GitHub App Configuration
+        id: app-config
+        env:
+          ST_BOT_CLIENT_ID: ${{ vars.ST_BOT_CLIENT_ID }}
+          ST_BOT_PRIVATE_KEY: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$ST_BOT_CLIENT_ID" ] && [ -n "$ST_BOT_PRIVATE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mint App Token
+        if: steps.app-config.outputs.enabled == 'true'
+        id: app
+        # Create a GitHub App token
+        # https://github.com/marketplace/actions/create-github-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.ST_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Checkout Repository
+        # Checkout
+        # https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Apply Labels Based on Branch Name and Target Branch
+        # Pull Request Labeler
+        # https://github.com/marketplace/actions/labeler
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          configuration-path: .github/pr-auto-labels-by-branch.yml
+          repo-token: ${{ steps.app.outputs.token || github.token }}
+
+  check-merge-blocking-labels:
+    name: 🚫 Check Merge Blocking Labels
+    needs: [label-by-branches]
+    runs-on: ubuntu-latest
+    # Run, even if the previous jobs were skipped/failed
+    if: always()
+
+    # Override permissions, as this needs to write a check
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Check Merge Blocking
+        # GitHub Script
+        # https://github.com/marketplace/actions/github-script
+        id: label-check
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const prLabels = context.payload.pull_request.labels.map(label => label.name);
+            const blockingLabels = [
+              "⛔ Don't Merge",
+              "🔨 Needs Work",
+              "🔬 Needs Testing",
+              "⛔ Waiting For External/Upstream",
+              "💥💣 Breaking Changes"
+            ];
+            const hasBlockingLabel = prLabels.some(label => blockingLabels.includes(label));
+
+            if (hasBlockingLabel) {
+              console.log("Blocking label detected. Setting warning status.");
+              await github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "PR Label Warning",
+                head_sha: context.payload.pull_request.head.sha,
+                status: "completed",
+                conclusion: "neutral",
+                output: {
+                  title: "Potential Merge Issue",
+                  summary: "This PR has a merge-blocking label. Proceed with caution."
+                }
+              });
+            } else {
+              console.log("No merge-blocking labels found.");
+            }
+
+  write-auto-comments:
+    name: 💬 Post PR Comments Based on Labels
+    needs: [label-by-branches, check-merge-blocking-labels]
+    runs-on: ubuntu-latest
+    # Run, even if the previous jobs were skipped/failed
+    if: always() && (github.event_name == 'pull_request_target')
+
+    steps:
+      - name: Check GitHub App Configuration
+        id: app-config
+        env:
+          ST_BOT_CLIENT_ID: ${{ vars.ST_BOT_CLIENT_ID }}
+          ST_BOT_PRIVATE_KEY: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$ST_BOT_CLIENT_ID" ] && [ -n "$ST_BOT_PRIVATE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mint App Token
+        if: steps.app-config.outputs.enabled == 'true'
+        id: app
+        # Create a GitHub App token
+        # https://github.com/marketplace/actions/create-github-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.ST_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ST_BOT_PRIVATE_KEY }}
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Checkout Repository
+        # Checkout
+        # https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Post PR Comments Based on Labels
+        # Label Commenter for PRs
+        # https://github.com/marketplace/actions/label-commenter
+        uses: peaceiris/actions-label-commenter@f0dbbef043eb1b150b566db36b0bdc8b7f505579 # v1.10.0
+        with:
+          config_file: .github/pr-auto-comments.yml
+          github_token: ${{ steps.app.outputs.token || github.token }}
