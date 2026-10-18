@@ -90,14 +90,14 @@ if (!hasFlag) {
 // 9. Visual profiles ("temas"), effects and the Personalização drawer (scripts/classic-themes.js).
 // Checked one by one so installs that already have the classic interface also receive it.
 // 9a. Stylesheets and scripts of the visual layer, each added once, in this order.
-for (const sheet of ['classic-themes', 'classic-layout']) {
+for (const sheet of ['classic-themes', 'classic-layout', 'classic-features']) {
     if (!html.includes(`css/${sheet}.css`)) {
         replace(`user.css anchor (${sheet})`, new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/user\\.css${V}">)`),
             `$1<link rel="stylesheet" type="text/css" href="css/${sheet}.css">\n$1$2`);
     }
 }
 let previousScript = 'classic-ui';
-for (const script of ['classic-themes', 'classic-home', 'classic-editor']) {
+for (const script of ['classic-themes', 'classic-home', 'classic-editor', 'classic-quick-connect', 'classic-card-browser', 'classic-memory']) {
     if (!html.includes(`scripts/${script}.js`)) {
         replace(`${previousScript}.js anchor (${script})`, new RegExp(`([ \\t]*)(<script type="module" src="scripts/${previousScript}\\.js${V}"></script>)`),
             `$1$2\n$1<script type="module" src="scripts/${script}.js"></script>`);
@@ -113,6 +113,22 @@ if (!html.includes('id="ct-personalize-button"')) {
         '$1    </div>',
         '$1    <div id="ct_personalize_block" class="drawer-content closedDrawer">',
         '$1        <div id="ct_personalize"></div>',
+        '$1    </div>',
+        '$1</div>',
+        '$1$2',
+    ].join('\n'));
+}
+
+// 9b. Memory drawer (brain icon, scripts/classic-memory.js): chapter summaries and Recall.
+if (!html.includes('id="ct-memory-button"')) {
+    replace('persona drawer anchor (memory)', /([ \t]*)(<div id="persona-management-button" class="drawer">)/, [
+        '$1<!-- Classic UI fork: Memory (chapters and recall), filled by scripts/classic-memory.js -->',
+        '$1<div id="ct-memory-button" class="drawer">',
+        '$1    <div class="drawer-toggle">',
+        '$1        <div class="drawer-icon fa-solid fa-brain fa-fw closedIcon" title="Memory: chapters and recall"></div>',
+        '$1    </div>',
+        '$1    <div id="ct_memory_block" class="drawer-content closedDrawer">',
+        '$1        <div id="ct_memory"></div>',
         '$1    </div>',
         '$1</div>',
         '$1$2',
@@ -186,10 +202,30 @@ const scriptPatches = [
     },
 ];
 
+// Card Browser: server routes that search the card sites (src/endpoints/classic-card-browser.js).
+// Searching from the server avoids third-party CORS proxies: requests go straight to each site.
+scriptPatches.push(
+    {
+        file: 'src/server-startup.js',
+        label: 'Card Browser routes (import)',
+        find: /^(import \{ router as contentManagerRouter \} from '\.\/endpoints\/content-manager\.js';)$/m,
+        replace: '$1\nimport { router as classicCardBrowserRouter } from \'./endpoints/classic-card-browser.js\'; // Classic UI fork: Card Browser',
+        applied: 'classicCardBrowserRouter } from',
+    },
+    {
+        file: 'src/server-startup.js',
+        label: 'Card Browser routes (mount)',
+        find: /^([ \t]*)(app\.use\('\/api\/content', contentManagerRouter\);)$/m,
+        replace: '$1$2\n$1app.use(\'/api/classic-cards\', classicCardBrowserRouter); // Classic UI fork: Card Browser',
+        applied: "app.use('/api/classic-cards'",
+    },
+);
+
 const scriptOutputs = [];
+const patchedSources = new Map(); // several patches may touch the same file: apply them in sequence
 for (const patch of scriptPatches) {
     const filePath = path.join(repoRoot, patch.file);
-    const source = fs.readFileSync(filePath, 'utf8');
+    const source = patchedSources.get(filePath) ?? fs.readFileSync(filePath, 'utf8');
     if (source.includes(patch.applied)) {
         continue;
     }
@@ -198,6 +234,9 @@ for (const patch of scriptPatches) {
         problems.push(`${patch.file}: ${patch.label}`);
         continue;
     }
+    patchedSources.set(filePath, patched);
+}
+for (const [filePath, patched] of patchedSources) {
     scriptOutputs.push([filePath, patched]);
 }
 
@@ -211,7 +250,7 @@ const versionedStyleClassic = styleClassic.replace(/@import url\((css\/classic--
     (_, rel) => `@import url(${rel}?v=${fileHash(rel)});`);
 const versionedHtml = html.replace(/(href=")((?:style-classic|css\/classic[^"?]*|webfonts\/[A-Za-z]+\/classic-stylesheet)\.css)(?:\?v=[^"]*)?"/g,
     (_, prefix, rel) => `${prefix}${rel}?v=${rel === 'style-classic.css' ? crypto.createHash('sha1').update(versionedStyleClassic).digest('hex').slice(0, 10) : fileHash(rel)}"`)
-    .replace(/(src=")(scripts\/classic-(?:ui|themes|home|editor)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
+    .replace(/(src=")(scripts\/classic-[a-z-]+\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
 const versionChanged = versionedHtml !== html || versionedStyleClassic !== styleClassic;
 html = versionedHtml;
 

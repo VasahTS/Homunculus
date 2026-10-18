@@ -53,6 +53,7 @@
     <link rel="stylesheet" type="text/css" href="css/classic-ui.css?v=fbf5adbe22">
     <link rel="stylesheet" type="text/css" href="css/classic-themes.css?v=bef3771990">
     <link rel="stylesheet" type="text/css" href="css/classic-layout.css?v=ca871e9441">
+    <link rel="stylesheet" type="text/css" href="css/classic-features.css?v=a43feb1420">
     <link rel="stylesheet" type="text/css" href="css/user.css">
     <!-- Scripts are loaded at the end of the body to improve page load speed -->
 </head>
@@ -6373,6 +6374,15 @@
                 </div>
             </div>
         </div>
+        <!-- Classic UI fork: Memory (chapters and recall), filled by scripts/classic-memory.js -->
+        <div id="ct-memory-button" class="drawer">
+            <div class="drawer-toggle">
+                <div class="drawer-icon fa-solid fa-brain fa-fw closedIcon" title="Memory: chapters and recall"></div>
+            </div>
+            <div id="ct_memory_block" class="drawer-content closedDrawer">
+                <div id="ct_memory"></div>
+            </div>
+        </div>
         <div id="persona-management-button" class="drawer">
             <div class="drawer-toggle">
                 <div class="drawer-icon fa-solid fa-face-smile fa-fw closedIcon" title="Persona Management" data-i18n="[title]Persona Management"></div>
@@ -9099,8 +9109,11 @@
     <!-- Classic UI fork: replaces scripts/sillybunny-tabs.js (graphical shell) -->
     <script type="module" src="scripts/classic-ui.js?v=eea4046d95"></script>
     <script type="module" src="scripts/classic-themes.js?v=e3dd32ee52"></script>
-    <script type="module" src="scripts/classic-home.js?v=fbfe039159"></script>
+    <script type="module" src="scripts/classic-home.js?v=3eda37ff39"></script>
     <script type="module" src="scripts/classic-editor.js?v=ab27ee56b2"></script>
+    <script type="module" src="scripts/classic-quick-connect.js?v=2814e8d6c8"></script>
+    <script type="module" src="scripts/classic-card-browser.js?v=48782c7c2a"></script>
+    <script type="module" src="scripts/classic-memory.js?v=8988048d64"></script>
     <script type="module" src="scripts/sillybunny-conversation.js"></script>
     <script>
         window.addEventListener('load', (event) => {

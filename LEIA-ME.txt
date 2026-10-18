@@ -54,11 +54,33 @@ Home, Customize e layouts
     respeitar o "reduzir movimento" do Windows.
 - Para criar temas novos, veja classic-ui\TEMAS.md.
 
+Memory, Card Browser e troca rapida de conexao
+----------------------------------------------
+Toda tela nova tem botoes "?" que explicam como ela funciona (em ingles).
+- Icone de cerebro (Memory):
+  - Chapters: varios resumos ("capitulos") por chat. Cada um cobre um
+    trecho de mensagens, pode ser escrito pela IA ou por voce, e tem um
+    interruptor. Voce escolhe onde eles entram no prompt: antes/depois do
+    prompt principal, dentro do chat numa profundidade, ou so onde voce
+    escrever {{chapters}} (por exemplo numa entrada "Past Events" do
+    Prompt Manager). Opcional: esconder da IA as mensagens ja resumidas e
+    criar capitulos sozinho a cada N mensagens.
+  - Recall: tela simples do Vector Storage. Traz de volta mensagens antigas
+    parecidas com o momento atual. Liga/desliga, quantidade, profundidade.
+- Globo na aba Characters (ou Home > Card Browser): procura e importa cards
+  do ChubAI, JannyAI, Wyvern, DataCat e Pygmalion. As buscas vao direto
+  do seu SillyBunny para cada site, sem intermediarios.
+- Corrente na caixa de mensagem: troca de Connection Profile e de modelo
+  sem abrir o painel de API. A estrela fixa um modelo no topo.
+- Depois de aplicar um kit com estas telas, feche e abra o Start.bat de
+  novo: o Card Browser usa uma parte nova do servidor.
+
 Dicas
 -----
 - Tema: User Settings (icone de engrenagem com pessoa) > UI Theme.
   "Dark Lite" e o tema padrao do SillyTavern. Isso vale para o perfil
   "Classic"; outros perfis podem trocar essas cores.
 - O botao Roleplay / Conversation fica no topo do painel de personagens.
-- Os arquivos da interface classica estao em classic-ui\ e nos arquivos
-  public\*classic*. O resto e o SillyBunny original.
+- Os arquivos da interface classica estao em classic-ui\, nos arquivos
+  public\*classic* e em src\endpoints\classic-card-browser.js. O resto e o
+  SillyBunny original.

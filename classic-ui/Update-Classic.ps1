@@ -26,6 +26,8 @@ $ClassicPaths = @(
     'public/css/classic-sb-extras.css',
     'public/css/classic-themes.css',
     'public/css/classic-layout.css',
+    'public/css/classic-features.css',
+    'src/endpoints/classic-card-browser.js',
     'public/classic-themes',
     'public/webfonts/NotoSans/classic-stylesheet.css',
     'public/webfonts/NotoSansMono/classic-stylesheet.css'
@@ -66,7 +68,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'copy classic files' }
     & $runtime classic-ui/apply-classic.mjs
     if ($LASTEXITCODE -ne 0) { throw 'index.html' }
-    git add -A -- public classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
+    git add -A -- public src/server-startup.js src/endpoints/classic-card-browser.js classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
     git -c user.name='Classic UI updater' -c user.email='classic@localhost' commit -q -m 'Classic UI: SillyTavern interface on top of SillyBunny'
     if ($LASTEXITCODE -ne 0) { throw 'commit' }
     git branch -f classic-ui HEAD

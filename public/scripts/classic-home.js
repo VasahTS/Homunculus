@@ -18,7 +18,8 @@ const RAIL_ITEMS = Object.freeze([
     ['WI-SP-button', 'Lorebooks', 3],
     ['persona-management-button', 'Persona', 4],
     ['agents-settings-button', 'Agents', 5],
-    ['extensions-settings-button', 'Extensions', 6],
+    ['ct-memory-button', 'Memory', 6],
+    ['extensions-settings-button', 'Extensions', 7],
     ['ai-config-button', 'Presets', 10],
     ['sys-settings-button', 'API', 11],
     ['advanced-formatting-button', 'Formatting', 12],
@@ -32,6 +33,8 @@ const TOOLS = Object.freeze([
     { drawer: 'sys-settings-button', icon: 'fa-plug', name: 'API', desc: 'Connect to a model provider.' },
     { drawer: 'advanced-formatting-button', icon: 'fa-font', name: 'Formatting', desc: 'Instruct, context and system templates.' },
     { drawer: 'agents-settings-button', icon: 'fa-robot', name: 'Agents', desc: 'In-chat agents that help each reply.' },
+    { drawer: 'ct-memory-button', icon: 'fa-brain', name: 'Memory', desc: 'Chapter summaries and recall of old messages.' },
+    { open: 'SillyBunnyClassicCardBrowser', icon: 'fa-earth-americas', name: 'Card Browser', desc: 'Find and import cards from ChubAI, JannyAI and more.' },
     { drawer: 'extensions-settings-button', icon: 'fa-cubes', name: 'Extensions', desc: 'Install and configure extensions.' },
     { drawer: 'backgrounds-button', icon: 'fa-panorama', name: 'Backgrounds', desc: 'Pick the chat background.' },
     { drawer: 'ct-personalize-button', icon: 'fa-palette', name: 'Customize', desc: 'Visual profiles, layout and effects.' },
@@ -472,8 +475,8 @@ function render() {
             <section class="ct-home-section" aria-labelledby="ct_home_tools">
                 <div class="ct-home-head"><h2 class="ct-home-h2" id="ct_home_tools">Tools</h2></div>
                 <div class="ct-home-tools">
-                    ${TOOLS.filter(tool => document.getElementById(tool.drawer)).map((tool, i) => `
-                        <button type="button" class="ct-home-card ct-home-tool" style="--i:${i}" data-action="tool" data-drawer="${tool.drawer}">
+                    ${TOOLS.filter(tool => (tool.open ? globalThis[tool.open] : document.getElementById(tool.drawer))).map((tool, i) => `
+                        <button type="button" class="ct-home-card ct-home-tool" style="--i:${i}" data-action="tool" ${tool.open ? `data-open="${tool.open}"` : `data-drawer="${tool.drawer}"`}>
                             <i class="fa-solid ${tool.icon}" aria-hidden="true"></i><b>${escapeHtml(tool.name)}</b><small>${escapeHtml(tool.desc)}</small>
                         </button>`).join('')}
                 </div>
@@ -559,7 +562,7 @@ function bindHome(root) {
         else if (action === 'lorebook') void openLorebook(target.dataset.name);
         else if (action === 'persona') openPersona(target.dataset.file);
         else if (action === 'group') void openGroup(target.dataset.id);
-        else if (action === 'tool') { closeHome(); openDrawer(target.dataset.drawer); }
+        else if (action === 'tool') { closeHome(); if (target.dataset.open) globalThis[target.dataset.open]?.open?.(); else openDrawer(target.dataset.drawer); }
         else if (action === 'new-character') newCharacter();
         else if (action === 'toggle-chars') { state.showAllChars = !state.showAllChars; render(); }
         else if (action === 'toggle-lore') { state.showAllLore = !state.showAllLore; render(); }

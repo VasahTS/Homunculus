@@ -31,7 +31,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Record the change so Atualizar-Classic.bat keeps working (it needs a clean folder).
 if ((Test-Command 'git') -and (Test-Path '.git')) {
-    git add -A -- public classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
+    git add -A -- public src/server-startup.js src/endpoints/classic-card-browser.js classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
     git diff --cached --quiet
     if ($LASTEXITCODE -ne 0) {
         git -c user.name='Classic UI kit' -c user.email='classic@localhost' commit -q -m 'Classic UI: kit update'
@@ -41,3 +41,5 @@ if ((Test-Command 'git') -and (Test-Path '.git')) {
 
 Write-Host '[Classic] Pronto! Abra (ou recarregue) o SillyBunny pelo Start.bat como sempre.' -ForegroundColor Green
 Write-Host '[Classic] Icone de casa = Home. Icone de paleta = Customize (perfis, layout e efeitos).' -ForegroundColor Green
+Write-Host '[Classic] Icone de cerebro = Memory. Globo na aba Characters = Card Browser. Corrente na caixa de mensagem = troca rapida de conexao.' -ForegroundColor Green
+Write-Host '[Classic] Feche e abra o Start.bat de novo para o Card Browser funcionar (ele usa uma parte nova do servidor).' -ForegroundColor Yellow
