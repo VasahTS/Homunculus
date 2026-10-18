@@ -12,6 +12,8 @@
 
 import { randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
+import { execFile } from 'node:child_process';
+import process from 'node:process';
 import express from 'express';
 
 import { write as writeCardMetadata } from '../character-card-parser.js';
@@ -530,9 +532,81 @@ router.get('/janny/character/:id', handle(async (request) => {
     return { character };
 }));
 
+// Runs in a separate Node.js process. JannyAI's Cloudflare lets Node's fetch through (Marinara Engine runs
+// on Node) but challenges Bun's, so under Bun the JannyAI download is done by Node when it is installed.
+// The character id arrives as an argument; prints the card as base64, or a JSON line with the refusal.
+const JANNY_NODE_SCRIPT = `
+const id = process.argv[1];
+const signal = AbortSignal.timeout(50000);
+const fail = (code, info) => { process.stdout.write(JSON.stringify(info)); process.exit(code); };
+const api = await fetch(${JSON.stringify(JANNY_DOWNLOAD_API)}, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ characterId: id }),
+    redirect: 'manual',
+    signal,
+});
+if (!api.ok) {
+    const text = await api.text().catch(() => '');
+    fail(3, { status: api.status, cf: api.headers.has('cf-mitigated') || /Just a moment|challenge-platform/.test(text), retryAfter: api.headers.get('retry-after') || '' });
+}
+const payload = await api.json().catch(() => null);
+if (payload?.status !== 'ok' || typeof payload.downloadUrl !== 'string') fail(4, { status: 502, error: typeof payload?.error === 'string' ? payload.error : '' });
+const url = new URL(payload.downloadUrl);
+if (url.protocol !== 'https:' || /^(localhost|[\\d.]+)$|\\.(local|internal|localhost)$|:/.test(url.hostname)) fail(4, { status: 400, error: 'bad link' });
+const file = await fetch(url, { headers: { Accept: 'image/png,application/octet-stream;q=0.9' }, signal });
+if (!file.ok) fail(5, { status: file.status });
+const buf = Buffer.from(await file.arrayBuffer());
+if (buf.length > ${CARD_MAX_BYTES}) fail(6, { status: 502, error: 'too large' });
+process.stdout.write(buf.toString('base64'));
+`;
+
+/** @returns {Promise<Buffer|null>} the card, or null when Node.js is not available to run the download */
+function jannyCardViaNode(characterId) {
+    return new Promise((resolve, reject) => {
+        execFile('node', ['--input-type=module', '-e', JANNY_NODE_SCRIPT, characterId], {
+            timeout: 60_000,
+            maxBuffer: Math.ceil(CARD_MAX_BYTES * 1.4),
+            windowsHide: true,
+            encoding: 'utf8',
+        }, (error, stdout) => {
+            const out = String(stdout ?? '').trim();
+            if (error && (error.code === 'ENOENT' || !out.startsWith('{'))) {
+                // No Node.js on this computer, or it crashed: let the normal download try instead.
+                if (error.code !== 'ENOENT') console.warn('[Card Browser] JannyAI download through Node.js failed', error.message);
+                return resolve(null);
+            }
+            if (out.startsWith('{')) {
+                let info = {};
+                try {
+                    info = JSON.parse(out);
+                } catch { /* keep empty */ }
+                const status = Number(info.status) || 502;
+                const kind = status === 429 ? 'rate' : info.cf ? 'cloudflare' : '';
+                if (kind) {
+                    const headers = new Headers(info.retryAfter ? { 'retry-after': String(info.retryAfter) } : {});
+                    const retryIn = pauseSite('janny:download', kind, status, headers);
+                    return reject(new UpstreamError(status, blockMessage('janny:download', kind, retryIn), kind, retryIn));
+                }
+                return reject(new UpstreamError(status, info.error || `JannyAI could not provide the card (${status})`));
+            }
+            const buffer = Buffer.from(out, 'base64');
+            if (imageType(buffer) !== 'image/png' || !/tEXt(chara|ccv3)/.test(buffer.toString('latin1'))) {
+                return reject(new UpstreamError(502, 'JannyAI sent an invalid card file'));
+            }
+            resolve(buffer);
+        });
+    });
+}
+
 async function jannyCard(id) {
     const characterId = String(id || '').trim();
     if (!characterId || characterId.length > 256) throw new UpstreamError(400, 'Invalid JannyAI character id');
+    checkPaused('janny:download');
+    if (process.versions.bun) {
+        const viaNode = await jannyCardViaNode(characterId);
+        if (viaNode) return viaNode;
+    }
     const payload = await fetchJson(JANNY_DOWNLOAD_API, {
         hosts: ['api.jannyai.com'],
         site: 'janny:download',
