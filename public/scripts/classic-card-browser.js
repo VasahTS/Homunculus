@@ -54,12 +54,23 @@ async function api(path, { method = 'GET', body } = {}) {
         body: body ? JSON.stringify(body) : undefined,
         cache: 'no-cache',
     });
-    if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || `Request failed (${res.status})`);
-    }
+    if (!res.ok) throw await responseError(res, `Request failed (${res.status})`);
     return res.json();
 }
+
+/**
+ * Builds an Error from a failed answer of this app's server. `kind` says why a site refused:
+ * 'rate' (too many requests), 'cloudflare' ("checking your browser" page) or 'verify' (human check).
+ */
+async function responseError(res, fallback) {
+    const data = await res.json().catch(() => null);
+    const error = new Error(data?.error || fallback);
+    error.kind = typeof data?.kind === 'string' ? data.kind : '';
+    return error;
+}
+
+/** Card sites that need the user to download the card themselves (opened in a new tab). */
+const needsManualDownload = error => error?.kind === 'verify' || error?.kind === 'cloudflare';
 
 const encodePath = value => String(value ?? '').split('/').map(encodeURIComponent).join('/');
 const plain = value => (typeof value === 'string' ? value.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, '\'').trim() : '');
@@ -438,11 +449,7 @@ const SOURCES = {
             return { total, hasMore, cards: withoutExcluded(cards, p.exclude) };
         },
         async detail(card) {
-            try {
-                const dl = await api(`/datacat/download/${encodeURIComponent(card.id)}`);
-                const d = dl?.data ?? dl;
-                if (d && typeof d === 'object') return detailFromCard({ data: d });
-            } catch { /* try the character page */ }
+            // DataCat's download asks for a human check now, so the preview only uses the character page.
             const data = await api(`/datacat/character/${encodeURIComponent(card.id)}`);
             const c = data?.character ?? data ?? {};
             return {
@@ -527,6 +534,8 @@ const state = {
     detailLoading: false,
     detailError: '',
     importing: false,
+    /** Set when the site needs the user to download the card in their own browser. */
+    manual: /** @type {{ key: string, message: string }|null} */ (null),
     imported: /** @type {Map<string,string>} */ (new Map()), // card key -> avatar file name
     seenTags: /** @type {Map<string,number>} */ (new Map()),
 };
@@ -552,19 +561,73 @@ function remember() {
     saveStore(store);
 }
 
+/** True when the blob is a PNG with a character card inside. */
+async function isCardPng(blob) {
+    try {
+        const head = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+        return head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47 && Boolean(await readCardFromPng(blob));
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Fallback for JannyAI from the user's own browser, the way jannyai.com does it, for when JannyAI shows its Cloudflare
+ * page to this app's server but not to a normal browser. Only the character id is sent.
+ * @returns {Promise<Blob|null>} null when the browser could not get the card either
+ */
+async function jannyBrowserCard(card) {
+    try {
+        const res = await fetch('https://api.jannyai.com/api/v1/download', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ characterId: String(card.id) }),
+            credentials: 'omit',
+            referrerPolicy: 'no-referrer',
+            cache: 'no-store',
+        });
+        if (!res.ok) return null;
+        const payload = await res.json().catch(() => null);
+        const url = payload?.status === 'ok' && typeof payload.downloadUrl === 'string' ? payload.downloadUrl : '';
+        if (!url.startsWith('https://')) return null;
+        try {
+            const file = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' });
+            if (file.ok) {
+                const blob = await file.blob();
+                if (await isCardPng(blob)) return blob;
+            }
+        } catch { /* the card file may not allow reading from this page; let the server fetch it */ }
+        const viaServer = await fetch(`${API}/janny/card-file`, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify({ url, name: card.name }),
+            cache: 'no-cache',
+        });
+        return viaServer.ok ? await viaServer.blob() : null;
+    } catch {
+        return null;
+    }
+}
+
 /** Downloads the PNG card once and reuses it for the detail view and the import. */
 function cardBlob(card) {
     const key = `${state.source}:${card.id}`;
     if (!cardCache.has(key)) {
-        const params = new URLSearchParams({ source: state.source, id: String(card.id), name: card.name });
-        if (state.source === 'datacat' && card.raw?.avatar) params.set('avatar', card.raw.avatar);
-        const promise = fetch(`${API}/card?${params}`, { headers: headers(false), cache: 'no-cache' }).then(async (res) => {
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error || `Could not download the card (${res.status})`);
-            }
+        const source = state.source;
+        const params = new URLSearchParams({ source, id: String(card.id), name: card.name });
+        if (source === 'datacat' && card.raw?.avatar) params.set('avatar', card.raw.avatar);
+        const fromServer = () => fetch(`${API}/card?${params}`, { headers: headers(false), cache: 'no-cache' }).then(async (res) => {
+            if (!res.ok) throw await responseError(res, `Could not download the card (${res.status})`);
             return res.blob();
         });
+        // JannyAI: this app's server first (like Marinara Engine); the user's browser only if the server is blocked.
+        const promise = source === 'janny'
+            ? fromServer().catch(async (error) => {
+                const blob = await jannyBrowserCard(card);
+                if (blob) return blob;
+                throw error;
+            })
+            : fromServer();
         promise.catch(() => cardCache.delete(key));
         cardCache.set(key, promise);
     }
@@ -643,41 +706,87 @@ async function selectCard(card) {
     }
 }
 
+/**
+ * Sends a card file to the normal character import and remembers it for "Chat now".
+ * @param {any} card the card picked in the browser
+ * @param {Blob} file
+ * @param {'png'|'json'|'charx'} type
+ */
+async function importCardFile(card, file, type) {
+    const base = String(card.name).replace(/[^\w\- ]+/g, '').trim().slice(0, 60) || 'character';
+    const form = new FormData();
+    form.append('avatar', new File([file], `${base}.${type}`, { type: type === 'png' ? 'image/png' : type === 'json' ? 'application/json' : 'application/octet-stream' }));
+    form.append('file_type', type);
+    form.append('user_name', ctx()?.name1 ?? 'User');
+    const res = await fetch('/api/characters/import', { method: 'POST', body: form, headers: headers(false), cache: 'no-cache' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.error || !data?.file_name) throw new Error(data?.error || 'The card could not be imported.');
+    const avatar = `${data.file_name}.png`;
+    const { getCharacters } = await import('../script.js');
+    await getCharacters();
+    try {
+        const { importTags } = await import('./tags.js');
+        const character = ctx()?.characters?.find(c => c.avatar === avatar);
+        if (character) await importTags(character);
+    } catch (error) {
+        console.warn('[Card Browser] Tags were not imported', error);
+    }
+    state.imported.set(keyOf(card), avatar);
+    state.manual = null;
+    toastr.success(`${card.name} was added to your characters.`, 'Imported');
+}
+
 async function importSelected() {
     const card = state.selected;
     if (!card || state.importing) return;
-    const context = ctx();
     state.importing = true;
     renderDetail();
     try {
-        const blob = await cardBlob(card);
-        const fileName = `${String(card.name).replace(/[^\w\- ]+/g, '').trim().slice(0, 60) || 'character'}.png`;
-        const form = new FormData();
-        form.append('avatar', new File([blob], fileName, { type: 'image/png' }));
-        form.append('file_type', 'png');
-        form.append('user_name', context?.name1 ?? 'User');
-        const res = await fetch('/api/characters/import', { method: 'POST', body: form, headers: headers(false), cache: 'no-cache' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data?.error || !data?.file_name) throw new Error(data?.error || 'The card could not be imported.');
-        const avatar = `${data.file_name}.png`;
-        const { getCharacters } = await import('../script.js');
-        await getCharacters();
-        try {
-            const { importTags } = await import('./tags.js');
-            const character = ctx()?.characters?.find(c => c.avatar === avatar);
-            if (character) await importTags(character);
-        } catch (error) {
-            console.warn('[Card Browser] Tags were not imported', error);
-        }
-        state.imported.set(keyOf(card), avatar);
-        toastr.success(`${card.name} was added to your characters.`, 'Imported');
+        await importCardFile(card, await cardBlob(card), 'png');
     } catch (error) {
         console.error('[Card Browser] Import failed', error);
-        toastr.error(String(error?.message ?? error), 'Could not import');
+        if (needsManualDownload(error)) {
+            // The site wants a person in a real browser: show how to download it there and import the file.
+            state.manual = { key: keyOf(card), message: String(error.message) };
+            toastr.warning(String(error.message), 'Download it on the site');
+        } else {
+            toastr.error(String(error?.message ?? error), 'Could not import');
+        }
     } finally {
         state.importing = false;
         renderDetail();
     }
+}
+
+/** Lets the user pick a card file they downloaded from the site themselves, and imports it. */
+function importDownloadedFile() {
+    const card = state.selected;
+    if (!card || state.importing) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.png,.json,.charx,image/png,application/json';
+    input.addEventListener('change', async () => {
+        const file = input.files?.[0];
+        if (!file || state.selected !== card) return;
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const type = ext === 'json' ? 'json' : ext === 'charx' ? 'charx' : 'png';
+        if (type === 'png' && !(await isCardPng(file))) {
+            toastr.error('This PNG has no character card inside. Download the card file (PNG) from the site again.', 'Could not import');
+            return;
+        }
+        state.importing = true;
+        renderDetail();
+        try {
+            await importCardFile(card, file, type);
+        } catch (error) {
+            console.error('[Card Browser] Import failed', error);
+            toastr.error(String(error?.message ?? error), 'Could not import');
+        } finally {
+            state.importing = false;
+            renderDetail();
+        }
+    }, { once: true });
+    input.click();
 }
 
 async function chatWithImported() {
@@ -1041,6 +1150,25 @@ function renderDetail() {
     site.append(el('span', '', `View on ${source.short}`));
     actions.append(site);
 
+    let manualNote = null;
+    if (!importedAvatar && state.manual?.key === keyOf(card)) {
+        manualNote = el('div', 'ct-cb-manual');
+        manualNote.append(el('div', 'ct-cb-manual-text', state.manual.message));
+        const steps = el('div', 'ct-cb-manual-actions');
+        const open = document.createElement('a');
+        open.className = 'ct-cb-btn';
+        open.href = card.url;
+        open.target = '_blank';
+        open.rel = 'noopener noreferrer';
+        open.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i>';
+        open.append(el('span', '', `1. Open on ${source.short}`));
+        const pick = iconButton('fa-solid fa-file-import', '2. Import a downloaded file', 'is-primary');
+        pick.disabled = state.importing;
+        pick.addEventListener('click', () => importDownloadedFile());
+        steps.append(open, pick);
+        manualNote.append(steps);
+    }
+
     const sections = el('div', 'ct-cb-sections');
     if (state.detailLoading) {
         sections.append(el('div', 'ct-cb-loading-line'), el('div', 'ct-cb-loading-line'), el('div', 'ct-cb-loading-line short'));
@@ -1066,7 +1194,7 @@ function renderDetail() {
         sections.append(...parts);
         if (!parts.length) sections.append(el('div', 'ct-cb-detail-note', 'This card has no text to preview.'));
     }
-    aside.replaceChildren(top, portrait, head, actions, sections);
+    aside.replaceChildren(...[top, portrait, head, actions, manualNote, sections].filter(Boolean));
 }
 
 function addTag(value, mode) {

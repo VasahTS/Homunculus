@@ -41,11 +41,81 @@ const PYGMALION_ASSETS = 'https://assets.pygmalion.chat';
 // ───────────────────────── Safe fetching ─────────────────────────
 
 class UpstreamError extends Error {
-    /** @param {number} status @param {string} message */
-    constructor(status, message) {
+    /**
+     * @param {number} status
+     * @param {string} message
+     * @param {''|'rate'|'cloudflare'|'verify'} [kind] Why a site refused: too many requests, a Cloudflare
+     *   "checking your browser" page, or a human check (Turnstile) the server cannot pass.
+     * @param {number} [retryIn] ms until the site may be asked again
+     */
+    constructor(status, message, kind = '', retryIn = 0) {
         super(message);
         this.status = status;
+        this.kind = kind;
+        this.retryIn = retryIn;
     }
+}
+
+// ───────────────────────── Site pauses ─────────────────────────
+// When a site refuses (rate limit, Cloudflare challenge, human check), asking again right away only
+// makes it worse: Cloudflare answers repeated refused requests with a longer ban (error 1015). So the
+// refusal is remembered and the site is not contacted again until the pause ends.
+
+const SITE_NAMES = { chub: 'ChubAI', janny: 'JannyAI', wyvern: 'Wyvern', datacat: 'DataCat', pygmalion: 'Pygmalion' };
+const PAUSE_MS = { rate: 10 * 60_000, cloudflare: 5 * 60_000, verify: 30 * 60_000 };
+/** @type {Map<string, { until: number, kind: 'rate'|'cloudflare'|'verify', status: number }>} */
+const pauses = new Map();
+
+function blockMessage(site, kind, retryIn) {
+    const name = SITE_NAMES[String(site).split(':')[0]] ?? 'The site';
+    const minutes = Math.max(1, Math.ceil(retryIn / 60_000));
+    if (kind === 'rate') return `${name} asked this app to slow down (too many requests). Try again in about ${minutes} min.`;
+    const part = String(site).split(':')[1] ?? '';
+    if (part === 'search' || part === 'page') return `${name} is blocking requests from this app right now (Cloudflare). Try again in about ${minutes} min.`;
+    if (kind === 'verify') return `${name} now asks for a human check before a card can be downloaded, which this app cannot do for you. Open the card on ${name}, download it there, then use "Import a downloaded file".`;
+    return `${name} is showing its "checking your browser" page to this app, so the card cannot be downloaded from here right now. Open the card on ${name}, download it there, then use "Import a downloaded file".`;
+}
+
+/**
+ * Reads why a site refused, from the status, headers and body.
+ * @returns {''|'rate'|'cloudflare'|'verify'}
+ */
+function refusalKind(status, headers, bodyText) {
+    if (status === 429) return 'rate';
+    if (status !== 403 && status !== 503) return '';
+    if (/"turnstile"\s*:/.test(bodyText)) return 'verify';
+    if (headers?.get?.('cf-mitigated') || /Just a moment|cf-challenge|challenge-platform|_cf_chl_opt/.test(bodyText)) return 'cloudflare';
+    return '';
+}
+
+function retryAfterMs(headers, kind) {
+    const seconds = Number(headers?.get?.('retry-after'));
+    if (Number.isFinite(seconds) && seconds > 0) return Math.min(60 * 60_000, Math.max(30_000, seconds * 1000));
+    return PAUSE_MS[kind] ?? 60_000;
+}
+
+/** Throws right away if this site (or this part of it) is paused. @param {string} [key] "site" or "site:part" */
+function checkPaused(key) {
+    if (!key) return;
+    const now = Date.now();
+    for (const k of new Set([key.split(':')[0], key])) {
+        const pause = pauses.get(k);
+        if (!pause) continue;
+        if (pause.until <= now) {
+            pauses.delete(k);
+            continue;
+        }
+        const retryIn = pause.until - now;
+        throw new UpstreamError(pause.status, blockMessage(k, pause.kind, retryIn), pause.kind, retryIn);
+    }
+}
+
+/** Remembers a refusal. A rate limit pauses the whole site; the other refusals only the part that was refused. */
+function pauseSite(key, kind, status, headers) {
+    if (!key || !kind) return 0;
+    const retryIn = retryAfterMs(headers, kind);
+    pauses.set(kind === 'rate' ? key.split(':')[0] : key, { until: Date.now() + retryIn, kind, status });
+    return retryIn;
 }
 
 /**
@@ -70,9 +140,11 @@ function hostAllowed(hostname, allowed) {
  * @param {string} [options.method]
  * @param {Record<string,string>} [options.headers]
  * @param {string} [options.body]
+ * @param {boolean} [options.browserUa] Send a Chrome User-Agent (default). JannyAI's download API must get
+ *   false: Cloudflare challenges a "Chrome" that does not connect like Chrome, but lets a plain client through.
  * @returns {Promise<{ status: number, ok: boolean, buffer: Buffer, headers: Headers, url: string }>}
  */
-async function safeFetch(url, { hosts, maxBytes = JSON_MAX_BYTES, timeout = 30_000, method = 'GET', headers = {}, body } = { hosts: [] }) {
+async function safeFetch(url, { hosts, maxBytes = JSON_MAX_BYTES, timeout = 30_000, method = 'GET', headers = {}, body, browserUa = true } = { hosts: [] }) {
     const target = new URL(url);
     if (target.protocol !== 'https:') throw new UpstreamError(400, 'Only https addresses are allowed');
     if (hosts.length && !hostAllowed(target.hostname, hosts)) throw new UpstreamError(400, `Host not allowed: ${target.hostname}`);
@@ -82,7 +154,7 @@ async function safeFetch(url, { hosts, maxBytes = JSON_MAX_BYTES, timeout = 30_0
     try {
         const response = await fetch(target, {
             method,
-            headers: { 'User-Agent': BROWSER_UA, ...headers },
+            headers: browserUa ? { 'User-Agent': BROWSER_UA, ...headers } : headers,
             body,
             signal: controller.signal,
             redirect: 'follow',
@@ -115,12 +187,30 @@ async function safeFetch(url, { hosts, maxBytes = JSON_MAX_BYTES, timeout = 30_0
     }
 }
 
-/** Fetches and parses JSON from an allowed host. */
-async function fetchJson(url, options) {
-    const result = await safeFetch(url, { ...options, headers: { Accept: 'application/json', ...(options.headers ?? {}) } });
-    if (!result.ok) {
-        throw new UpstreamError(result.status, `The site answered ${result.status}: ${result.buffer.toString('utf8').slice(0, 200)}`);
+/**
+ * Turns a refused answer into an UpstreamError, pausing the site when it blocked us.
+ * @param {string} [site] pause key, "site" or "site:part"
+ */
+function refusal(result, site) {
+    const body = result.buffer.toString('utf8');
+    const kind = refusalKind(result.status, result.headers, body);
+    if (kind && site) {
+        const retryIn = pauseSite(site, kind, result.status, result.headers);
+        return new UpstreamError(result.status, blockMessage(site, kind, retryIn), kind, retryIn);
     }
+    const snippet = body.trimStart().startsWith('<') ? '(an HTML page)' : body.slice(0, 200);
+    return new UpstreamError(result.status, `The site answered ${result.status}: ${snippet}`, kind);
+}
+
+/**
+ * Fetches and parses JSON from an allowed host.
+ * @param {string|URL} url
+ * @param {Parameters<typeof safeFetch>[1] & { site?: string }} options `site` is the pause key for this request
+ */
+async function fetchJson(url, options) {
+    checkPaused(options.site);
+    const result = await safeFetch(url, { ...options, headers: { Accept: 'application/json', ...(options.headers ?? {}) } });
+    if (!result.ok) throw refusal(result, options.site);
     try {
         return JSON.parse(result.buffer.toString('utf8'));
     } catch {
@@ -158,8 +248,14 @@ const handle = fn => async (request, response) => {
         if (result !== undefined && !response.headersSent) response.json(result);
     } catch (error) {
         const status = error instanceof UpstreamError ? error.status : 500;
+        const kind = error instanceof UpstreamError ? error.kind : '';
         console.warn('[Card Browser]', error?.message ?? error);
-        if (!response.headersSent) response.status(status >= 400 && status < 600 ? status : 502).json({ error: String(error?.message ?? 'Unexpected error') });
+        if (!response.headersSent) {
+            response.status(status >= 400 && status < 600 ? status : 502).json({
+                error: String(error?.message ?? 'Unexpected error'),
+                ...(kind ? { kind, retryIn: error.retryIn || 0 } : {}),
+            });
+        }
     }
 };
 
@@ -316,10 +412,22 @@ let jannyToken = { value: '', fallback: false, at: 0 };
 let jannyTokenInFlight = null;
 
 async function jannyPage(path) {
+    try {
+        checkPaused('janny:page');
+    } catch {
+        return null;
+    }
     for (const base of [JANNY_SITE, JANNY_API_SITE]) {
         try {
             const res = await safeFetch(`${base}${path}`, { hosts: JANNY_HOSTS, maxBytes: JSON_MAX_BYTES, timeout: 15_000, headers: { Accept: 'text/html,application/xhtml+xml,*/*' } });
-            if (res.ok) return res.buffer.toString('utf8');
+            const html = res.buffer.toString('utf8');
+            if (res.ok) return html;
+            // Blocked: stop asking JannyAI's pages for a while instead of retrying on every click.
+            const kind = refusalKind(res.status, res.headers, html);
+            if (kind) {
+                pauseSite('janny:page', kind, res.status, res.headers);
+                return null;
+            }
         } catch { /* try the next address */ }
     }
     return null;
@@ -368,18 +476,20 @@ router.post('/janny/search', handle(async (request) => {
     const query = request.body?.query;
     if (!query || typeof query !== 'object') throw new UpstreamError(400, 'Missing query');
     const body = JSON.stringify({ queries: [{ ...query, indexUid: 'janny-characters' }] });
+    checkPaused('janny:search');
     let token = await getJannyToken();
     let res = await safeFetch(JANNY_SEARCH_URL, { hosts: JANNY_HOSTS, method: 'POST', headers: jannySearchHeaders(token), body });
-    if (res.status === 401 || res.status === 403) {
+    // A 401/403 without a Cloudflare page means the search key changed: read it again once.
+    if ((res.status === 401 || res.status === 403) && !refusalKind(res.status, res.headers, res.buffer.toString('utf8'))) {
         token = await getJannyToken(true);
         res = await safeFetch(JANNY_SEARCH_URL, { hosts: JANNY_HOSTS, method: 'POST', headers: jannySearchHeaders(token), body });
     }
-    if (!res.ok) {
-        throw new UpstreamError(res.status, res.status === 403
-            ? 'JannyAI is blocking requests right now (Cloudflare). Open jannyai.com once in your browser, then try again.'
-            : `JannyAI search failed (${res.status})`);
+    if (!res.ok) throw refusal(res, 'janny:search');
+    try {
+        return JSON.parse(res.buffer.toString('utf8'));
+    } catch {
+        throw new UpstreamError(502, 'JannyAI sent an unreadable answer');
     }
-    return JSON.parse(res.buffer.toString('utf8'));
 }));
 
 router.get('/janny/avatar/*', handle(async (request, response) => {
@@ -416,7 +526,7 @@ router.get('/janny/character/:id', handle(async (request) => {
     if (!id) throw new UpstreamError(400, 'Missing character id');
     const html = await jannyPage(`/characters/${id}_${slug}`);
     const character = parseJannyPage(html);
-    if (!character) throw new UpstreamError(404, 'JannyAI did not share this character page (it may be behind Cloudflare). The card can still be imported.');
+    if (!character) throw new UpstreamError(404, 'JannyAI did not share this character page (it may be behind Cloudflare).');
     return { character };
 }));
 
@@ -425,6 +535,8 @@ async function jannyCard(id) {
     if (!characterId || characterId.length > 256) throw new UpstreamError(400, 'Invalid JannyAI character id');
     const payload = await fetchJson(JANNY_DOWNLOAD_API, {
         hosts: ['api.jannyai.com'],
+        site: 'janny:download',
+        browserUa: false,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ characterId }),
@@ -432,11 +544,46 @@ async function jannyCard(id) {
     if (payload?.status !== 'ok' || typeof payload.downloadUrl !== 'string') {
         throw new UpstreamError(502, typeof payload?.error === 'string' ? payload.error : 'JannyAI did not provide the card');
     }
-    // The card file lives on JannyAI's storage; any https host is accepted but the file must be a PNG card.
-    const res = await safeFetch(payload.downloadUrl, { hosts: [], maxBytes: CARD_MAX_BYTES, timeout: 60_000, headers: { Accept: 'image/png,application/octet-stream;q=0.9' } });
-    if (!res.ok || imageType(res.buffer) !== 'image/png') throw new UpstreamError(502, 'JannyAI sent an invalid card file');
+    return jannyCardFile(payload.downloadUrl);
+}
+
+/** True for addresses that point at this computer or a private network, which a card link must never use. */
+function isLocalHost(hostname) {
+    const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    return host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')
+        || /^[\d.]+$/.test(host) || host.includes(':');
+}
+
+/**
+ * Downloads the card file JannyAI's download API pointed to. The file lives on JannyAI's storage, so any
+ * public https host is accepted, but the answer must be a PNG that carries a character card.
+ */
+async function jannyCardFile(downloadUrl) {
+    let target;
+    try {
+        target = new URL(String(downloadUrl));
+    } catch {
+        throw new UpstreamError(400, 'JannyAI sent an invalid card link');
+    }
+    if (target.protocol !== 'https:' || isLocalHost(target.hostname)) throw new UpstreamError(400, 'JannyAI sent a card link that is not allowed');
+    const res = await safeFetch(target, { hosts: [], maxBytes: CARD_MAX_BYTES, timeout: 60_000, browserUa: false, headers: { Accept: 'image/png,application/octet-stream;q=0.9' } });
+    if (isLocalHost(new URL(res.url).hostname)) throw new UpstreamError(400, 'JannyAI sent a card link that is not allowed');
+    if (!res.ok) throw refusal(res, 'janny:download');
+    if (imageType(res.buffer) !== 'image/png' || !/tEXt(chara|ccv3)/.test(res.buffer.toString('latin1'))) {
+        throw new UpstreamError(502, 'JannyAI sent an invalid card file');
+    }
     return res.buffer;
 }
+
+/**
+ * Used when the browser itself got the card link from JannyAI (JannyAI often blocks this server but
+ * not the user's own browser) and the card file could not be read from the browser.
+ */
+router.post('/janny/card-file', handle(async (request, response) => {
+    const url = str(request.body?.url);
+    if (!url) throw new UpstreamError(400, 'Missing card link');
+    sendCard(response, await jannyCardFile(url), str(request.body?.name));
+}));
 
 // ───────────────────────── Wyvern ─────────────────────────
 
@@ -509,6 +656,7 @@ async function getDatacatSession(force = false) {
     datacatSessionInFlight ??= (async () => {
         const data = await fetchJson(`${DATACAT_API}/api/liberator/identify`, {
             hosts: DATACAT_HOSTS,
+            site: 'datacat',
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Origin: DATACAT_API, Referer: `${DATACAT_API}/` },
             body: JSON.stringify({ deviceToken: randomUUID() }),
@@ -520,13 +668,15 @@ async function getDatacatSession(force = false) {
     return datacatSessionInFlight;
 }
 
-async function datacatGet(path) {
+/** @param {string} path @param {string} [site] pause key; downloads use "datacat:download" */
+async function datacatGet(path, site = 'datacat') {
     const headers = token => ({ Origin: DATACAT_API, Referer: `${DATACAT_API}/`, 'X-Session-Token': token });
+    checkPaused(site);
     try {
-        return await fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, headers: headers(await getDatacatSession()) });
+        return await fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, headers: headers(await getDatacatSession()) });
     } catch (error) {
         if (error?.status !== 401) throw error;
-        return fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, headers: headers(await getDatacatSession(true)) });
+        return fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, headers: headers(await getDatacatSession(true)) });
     }
 }
 
@@ -551,7 +701,7 @@ router.get('/datacat/tags', handle(async () => datacatGet(`/api/tags/faceted?${n
 
 router.get('/datacat/character/:id', handle(async (request) => datacatGet(`/api/characters/${encodeURIComponent(String(request.params.id || ''))}`)));
 
-router.get('/datacat/download/:id', handle(async (request) => datacatGet(`/api/characters/${encodeURIComponent(String(request.params.id || ''))}/download?t=${Date.now()}`)));
+router.get('/datacat/download/:id', handle(async (request) => datacatGet(`/api/characters/${encodeURIComponent(String(request.params.id || ''))}/download?t=${Date.now()}`, 'datacat:download')));
 
 const DATACAT_IMAGE_HOSTS = ['ella.janitorai.com', 'media.datacat.run'];
 function datacatAvatarUrl(src) {
@@ -566,13 +716,50 @@ router.get('/datacat/avatar', handle(async (request, response) => {
     sendImage(response, await fetchImage(url, DATACAT_IMAGE_HOSTS, { Referer: `${DATACAT_API}/` }));
 }));
 
-async function datacatCard(id, avatarSrc) {
-    const dl = await datacatGet(`/api/characters/${encodeURIComponent(String(id))}/download?t=${Date.now()}`);
-    const d = dl?.data ?? dl;
-    if (!d || typeof d !== 'object') throw new UpstreamError(404, 'DataCat did not return this character');
-    const url = datacatAvatarUrl(avatarSrc || d.avatar);
+/**
+ * DataCat card. The ready-made card (/download) now often asks for a human check; then the card is
+ * built from the public character page data instead, the same way Marinara Engine imports DataCat.
+ */
+async function datacatCard(id, avatarSrc, name) {
+    const safeId = encodeURIComponent(String(id));
+    let card = null;
+    let avatarFrom = '';
+    try {
+        const dl = await datacatGet(`/api/characters/${safeId}/download?t=${Date.now()}`, 'datacat:download');
+        const d = dl?.data ?? dl;
+        if (d && typeof d === 'object' && (d.description || d.first_mes || d.personality)) {
+            card = buildCard({ ...d, character_book: d.character_book });
+            avatarFrom = d.avatar;
+        }
+    } catch (error) {
+        if (error?.kind === 'rate') throw error;
+    }
+    if (!card) {
+        const raw = await datacatGet(`/api/characters/${safeId}`);
+        const c = raw?.character ?? raw;
+        if (!c || typeof c !== 'object') throw new UpstreamError(404, 'DataCat did not return this character');
+        const pick = (...values) => values.find(v => typeof v === 'string' && v.trim()) ?? '';
+        const greetings = [c.alternate_greetings, c.alternateGreetings, c.first_messages, c.firstMessages].find(Array.isArray) ?? [];
+        const first = pick(c.first_mes, c.first_message, c.firstMessage, greetings[0]);
+        card = buildCard({
+            name: pick(c.name, c.chat_name, c.chatName, name),
+            description: pick(c.personality, c.description_text),
+            scenario: pick(c.scenario),
+            first_mes: first,
+            mes_example: pick(c.mes_example, c.example_dialogs, c.exampleDialogs),
+            creator_notes: pick(c.description).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').trim(),
+            system_prompt: pick(c.system_prompt, c.systemPrompt),
+            post_history_instructions: pick(c.post_history_instructions, c.postHistoryInstructions),
+            alternate_greetings: greetings.filter(g => typeof g === 'string' && g !== first),
+            tags: Array.isArray(c.tags) ? c.tags : [],
+            creator: pick(c.creator_name, c.creatorName),
+            extensions: { datacat: { id: String(id) } },
+        });
+        avatarFrom = c.avatar;
+    }
+    const url = datacatAvatarUrl(avatarSrc || avatarFrom);
     const avatar = url ? await fetchImage(url, DATACAT_IMAGE_HOSTS, { Referer: `${DATACAT_API}/` }).catch(() => null) : null;
-    return cardPng(buildCard({ ...d, character_book: d.character_book }), avatar);
+    return cardPng(card, avatar);
 }
 
 // ───────────────────────── Pygmalion (public, SFW only) ─────────────────────────
@@ -647,7 +834,7 @@ router.get('/card', handle(async (request, response) => {
         case 'chub': buffer = await chubCard(id); break;
         case 'janny': buffer = await jannyCard(id); break;
         case 'wyvern': buffer = await wyvernCard(id); break;
-        case 'datacat': buffer = await datacatCard(id, str(request.query.avatar)); break;
+        case 'datacat': buffer = await datacatCard(id, str(request.query.avatar), str(request.query.name)); break;
         case 'pygmalion': buffer = await pygmalionCard(id); break;
         default: throw new UpstreamError(400, 'Unknown source');
     }
