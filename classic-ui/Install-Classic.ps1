@@ -59,7 +59,7 @@ if ($LASTEXITCODE -ne 0) { Fail 'Falha ao preparar os arquivos.' }
 & $runtime classic-ui/apply-classic.mjs
 if ($LASTEXITCODE -ne 0) { Fail 'O SillyBunny mudou demais nesta versao; peca ajuda para ajustar a interface classica.' }
 
-git add -A -- public classic-ui Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
+git add -A -- public classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
 git -c user.name='Classic UI installer' -c user.email='classic@localhost' commit -q -m 'Classic UI: SillyTavern interface on top of SillyBunny'
 git tag -f classic-base $base | Out-Null
 

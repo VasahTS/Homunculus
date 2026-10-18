@@ -1,0 +1,63 @@
+{
+  "format": "classic-theme@1",
+  "id": "lanterna-arcana",
+  "name": "Lanterna Arcana",
+  "description": "Noite, ouro e magia sutil. Luz que segue o mouse, halos e poeira de estrelas.",
+  "author": "Daniel",
+  "version": "1.0.0",
+  "layout": "classic",
+  "preview": {
+    "background": "#07080B",
+    "text": "#F3EEDF",
+    "displayFont": "'Cormorant Garamond', Georgia, serif",
+    "colors": ["#E8C27A", "#67D4AE", "#8AB8FF", "#F2A3B9"],
+    "orb": true
+  },
+  "variables": {
+    "--SmartThemeBodyColor": "rgb(243, 238, 223)",
+    "--SmartThemeEmColor": "rgb(190, 183, 167)",
+    "--SmartThemeUnderlineColor": "rgb(138, 184, 255)",
+    "--SmartThemeQuoteColor": "rgb(243, 217, 164)",
+    "--SmartThemeBlurTintColor": "rgba(13, 15, 19, 0.94)",
+    "--SmartThemeChatTintColor": "rgba(10, 11, 15, 0.72)",
+    "--SmartThemeUserMesBlurTintColor": "rgba(30, 34, 42, 0.55)",
+    "--SmartThemeBotMesBlurTintColor": "rgba(19, 22, 27, 0.4)",
+    "--SmartThemeShadowColor": "rgba(0, 0, 0, 0.55)",
+    "--SmartThemeBorderColor": "rgba(255, 255, 255, 0.08)",
+    "--SmartThemeCheckboxBgColorR": "232",
+    "--SmartThemeCheckboxBgColorG": "194",
+    "--SmartThemeCheckboxBgColorB": "122",
+    "--mainFontFamily": "'Geist', 'Noto Sans', sans-serif",
+    "--ct-display-font": "'Cormorant Garamond', Georgia, serif",
+    "--ct-glow-2": "#B7A6FF"
+  },
+  "fonts": [
+    { "family": "Geist", "src": "fonts/geist-sans-latin-400-normal.woff2", "weight": "400", "style": "normal" },
+    { "family": "Geist", "src": "fonts/geist-sans-latin-500-normal.woff2", "weight": "500", "style": "normal" },
+    { "family": "Geist", "src": "fonts/geist-sans-latin-600-normal.woff2", "weight": "600", "style": "normal" },
+    { "family": "Cormorant Garamond", "src": "fonts/cormorant-garamond-latin-500-normal.woff2", "weight": "500", "style": "normal" },
+    { "family": "Cormorant Garamond", "src": "fonts/cormorant-garamond-latin-600-normal.woff2", "weight": "600", "style": "normal" },
+    { "family": "Cormorant Garamond", "src": "fonts/cormorant-garamond-latin-500-italic.woff2", "weight": "500", "style": "italic" },
+    { "family": "Cormorant Garamond", "src": "fonts/cormorant-garamond-latin-600-italic.woff2", "weight": "600", "style": "italic" },
+    { "family": "Newsreader", "src": "fonts/newsreader-latin-400-normal.woff2", "weight": "400", "style": "normal" },
+    { "family": "Newsreader", "src": "fonts/newsreader-latin-400-italic.woff2", "weight": "400", "style": "italic" },
+    { "family": "Newsreader", "src": "fonts/newsreader-latin-500-normal.woff2", "weight": "500", "style": "normal" },
+    { "family": "Newsreader", "src": "fonts/newsreader-latin-500-italic.woff2", "weight": "500", "style": "italic" }
+  ],
+  "stylesheet": "theme.css",
+  "accents": ["#E8C27A", "#B7A6FF", "#8AB8FF", "#67D4AE", "#F2A3B9"],
+  "storyFonts": [
+    { "label": "Livro", "value": "'Newsreader', Georgia, serif" },
+    { "label": "Antiga", "value": "'Cormorant Garamond', Georgia, serif" },
+    { "label": "Moderna", "value": "'Geist', 'Noto Sans', sans-serif" }
+  ],
+  "effects": {
+    "lantern": true,
+    "halo": true,
+    "shine": true,
+    "motes": true,
+    "aura": true,
+    "blur": true,
+    "glow": true
+  }
+}

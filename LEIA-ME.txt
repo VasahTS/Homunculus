@@ -26,10 +26,28 @@ desfaz tudo e avisa; nesse caso e so pedir ajuda.
 O atualizador automatico do Start.bat fica desligado nesta pasta de
 proposito, para nao apagar a interface classica.
 
+Ja tem o Classic instalado e baixou um kit novo?
+-----------------------------------------------
+1. Feche o SillyBunny.
+2. Extraia o zip novo POR CIMA da pasta onde o Classic esta instalado
+   (aceite substituir os arquivos). Sua pasta data nao e tocada.
+3. De dois cliques em Aplicar-Kit.bat.
+
+Personalizacao (perfis visuais e efeitos)
+-----------------------------------------
+- Icone de paleta na barra do topo.
+- "Classico" e o visual de sempre (usa o UI Theme do User Settings).
+- "Lanterna Arcana" troca cores e fontes e liga efeitos (luz que segue o
+  mouse, halo, reflexo, poeira de estrelas, aurora, desfoque, brilho).
+- Cada efeito liga e desliga sozinho. Ha tambem intensidade e a opcao de
+  respeitar o "reduzir movimento" do Windows.
+- Para criar temas novos, veja classic-ui\TEMAS.md.
+
 Dicas
 -----
 - Tema: User Settings (icone de engrenagem com pessoa) > UI Theme.
-  "Dark Lite" e o tema padrao do SillyTavern.
+  "Dark Lite" e o tema padrao do SillyTavern. Isso vale para o perfil
+  "Classico"; outros perfis podem trocar essas cores.
 - O botao Roleplay / Conversation fica no topo do painel de personagens.
 - Os arquivos da interface classica estao em classic-ui\ e nos arquivos
   public\*classic*. O resto e o SillyBunny original.

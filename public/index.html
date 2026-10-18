@@ -51,6 +51,7 @@
     <link rel="stylesheet" type="text/css" href="css/classic--extensions-panel.css?v=12c12c0278">
     <link rel="stylesheet" type="text/css" href="css/classic-sb-extras.css?v=f334999a9f">
     <link rel="stylesheet" type="text/css" href="css/classic-ui.css?v=fbf5adbe22">
+    <link rel="stylesheet" type="text/css" href="css/classic-themes.css?v=a5d4c794cc">
     <link rel="stylesheet" type="text/css" href="css/user.css">
     <!-- Scripts are loaded at the end of the body to improve page load speed -->
 </head>
@@ -6189,6 +6190,15 @@
                 </div>
             </div>
         </div>
+        <!-- Classic UI fork: Personalização (visual profiles and effects), filled by scripts/classic-themes.js -->
+        <div id="ct-personalize-button" class="drawer">
+            <div class="drawer-toggle">
+                <div class="drawer-icon fa-solid fa-palette fa-fw closedIcon" title="Personalização"></div>
+            </div>
+            <div id="ct_personalize_block" class="drawer-content closedDrawer">
+                <div id="ct_personalize"></div>
+            </div>
+        </div>
         <div id="backgrounds-button" class="drawer">
             <div id="backgrounds-drawer-toggle" class="drawer-toggle drawer-header" title="Change Background Image" data-i18n="[title]Change Background Image">
                 <div class="drawer-icon fa-solid fa-panorama fa-fw closedIcon"></div>
@@ -9087,6 +9097,7 @@
     <script type="module" src="script.js"></script>
     <!-- Classic UI fork: replaces scripts/sillybunny-tabs.js (graphical shell) -->
     <script type="module" src="scripts/classic-ui.js?v=eea4046d95"></script>
+    <script type="module" src="scripts/classic-themes.js?v=7526d508c5"></script>
     <script type="module" src="scripts/sillybunny-conversation.js"></script>
     <script>
         window.addEventListener('load', (event) => {

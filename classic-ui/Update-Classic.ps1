@@ -15,6 +15,7 @@ function Fail([string]$Message) {
 
 # Files that belong to the Classic UI fork (everything else comes from SillyBunny).
 $ClassicPaths = @(
+    'Aplicar-Kit.bat',
     'Atualizar-Classic.bat',
     'Instalar.bat',
     'LEIA-ME.txt',
@@ -23,6 +24,8 @@ $ClassicPaths = @(
     'public/style-classic.css',
     'public/css/classic-ui.css',
     'public/css/classic-sb-extras.css',
+    'public/css/classic-themes.css',
+    'public/classic-themes',
     'public/webfonts/NotoSans/classic-stylesheet.css',
     'public/webfonts/NotoSansMono/classic-stylesheet.css'
 )
@@ -62,7 +65,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'copy classic files' }
     & $runtime classic-ui/apply-classic.mjs
     if ($LASTEXITCODE -ne 0) { throw 'index.html' }
-    git add -A -- public classic-ui Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
+    git add -A -- public classic-ui Aplicar-Kit.bat Atualizar-Classic.bat Instalar.bat LEIA-ME.txt
     git -c user.name='Classic UI updater' -c user.email='classic@localhost' commit -q -m 'Classic UI: SillyTavern interface on top of SillyBunny'
     if ($LASTEXITCODE -ne 0) { throw 'commit' }
     git branch -f classic-ui HEAD

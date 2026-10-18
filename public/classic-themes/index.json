@@ -1,0 +1,13 @@
+{
+  "generatedBy": "classic-ui/apply-classic.mjs",
+  "themes": [
+    {
+      "id": "classico",
+      "v": "48e531eb24"
+    },
+    {
+      "id": "lanterna-arcana",
+      "v": "55b265f4f1"
+    }
+  ]
+}

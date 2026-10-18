@@ -1,0 +1,29 @@
+{
+  "format": "classic-theme@1",
+  "id": "classico",
+  "name": "Clássico",
+  "description": "O SillyBunny Classic de sempre, sem mudar nada. Usa o tema escolhido em User Settings › UI Theme.",
+  "author": "SillyBunny Classic",
+  "version": "1.0.0",
+  "layout": "classic",
+  "preview": {
+    "background": "#1B1B1E",
+    "text": "#DCDCD2",
+    "displayFont": "'Noto Sans', sans-serif",
+    "colors": ["#E18A24", "#BCE7CF", "#919191"],
+    "orb": false
+  },
+  "variables": {},
+  "fonts": [],
+  "accents": [],
+  "storyFonts": [],
+  "effects": {
+    "lantern": false,
+    "halo": false,
+    "shine": false,
+    "motes": false,
+    "aura": false,
+    "blur": false,
+    "glow": false
+  }
+}

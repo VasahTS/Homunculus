@@ -87,6 +87,66 @@ if (!hasFlag) {
     replace('head anchor', /([ \t]*)(<meta charset="utf-8">)/, '$1$2\n$1<script>globalThis.SillyBunnyClassicUi = true; /* Classic UI fork */</script>');
 }
 
+// 9. Visual profiles ("temas"), effects and the Personalização drawer (scripts/classic-themes.js).
+// Checked one by one so installs that already have the classic interface also receive it.
+if (!html.includes('css/classic-themes.css')) {
+    replace('user.css anchor (themes)', new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/user\\.css${V}">)`),
+        '$1<link rel="stylesheet" type="text/css" href="css/classic-themes.css">\n$1$2');
+}
+if (!html.includes('scripts/classic-themes.js')) {
+    replace('classic-ui.js anchor (themes)', new RegExp(`([ \\t]*)(<script type="module" src="scripts/classic-ui\\.js${V}"></script>)`),
+        '$1$2\n$1<script type="module" src="scripts/classic-themes.js"></script>');
+}
+if (!html.includes('id="ct-personalize-button"')) {
+    replace('backgrounds drawer anchor (themes)', /([ \t]*)(<div id="backgrounds-button" class="drawer">)/, [
+        '$1<!-- Classic UI fork: Personalização (visual profiles and effects), filled by scripts/classic-themes.js -->',
+        '$1<div id="ct-personalize-button" class="drawer">',
+        '$1    <div class="drawer-toggle">',
+        '$1        <div class="drawer-icon fa-solid fa-palette fa-fw closedIcon" title="Personalização"></div>',
+        '$1    </div>',
+        '$1    <div id="ct_personalize_block" class="drawer-content closedDrawer">',
+        '$1        <div id="ct_personalize"></div>',
+        '$1    </div>',
+        '$1</div>',
+        '$1$2',
+    ].join('\n'));
+}
+
+// 10. List of built-in profiles: every public/classic-themes/<folder>/theme.json, with a content hash so
+// browsers pick up edited themes. Run this script again after adding or editing a theme folder.
+const themesDir = path.join(repoRoot, 'public', 'classic-themes');
+let themesIndexOutput = null;
+if (fs.existsSync(themesDir)) {
+    const themes = [];
+    for (const entry of fs.readdirSync(themesDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        const folder = path.join(themesDir, entry.name);
+        if (!entry.isDirectory() || !/^[a-z0-9-]+$/.test(entry.name) || !fs.existsSync(path.join(folder, 'theme.json'))) {
+            continue;
+        }
+        try {
+            JSON.parse(fs.readFileSync(path.join(folder, 'theme.json'), 'utf8'));
+        } catch (error) {
+            problems.push(`classic-themes/${entry.name}/theme.json: ${error.message}`);
+            continue;
+        }
+        const hash = crypto.createHash('sha1');
+        const walk = dir => {
+            for (const item of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+                const full = path.join(dir, item.name);
+                if (item.isDirectory()) walk(full);
+                else hash.update(item.name).update(fs.readFileSync(full));
+            }
+        };
+        walk(folder);
+        themes.push({ id: entry.name, v: hash.digest('hex').slice(0, 10) });
+    }
+    const indexJson = `${JSON.stringify({ generatedBy: 'classic-ui/apply-classic.mjs', themes }, null, 2)}\n`;
+    const indexFile = path.join(themesDir, 'index.json');
+    if (!fs.existsSync(indexFile) || fs.readFileSync(indexFile, 'utf8') !== indexJson) {
+        themesIndexOutput = [indexFile, indexJson];
+    }
+}
+
 // Script switches: each is a single, flag-guarded line so SillyBunny behaves normally without the flag.
 const scriptPatches = [
     {
@@ -144,7 +204,7 @@ const versionedStyleClassic = styleClassic.replace(/@import url\((css\/classic--
     (_, rel) => `@import url(${rel}?v=${fileHash(rel)});`);
 const versionedHtml = html.replace(/(href=")((?:style-classic|css\/classic[^"?]*|webfonts\/[A-Za-z]+\/classic-stylesheet)\.css)(?:\?v=[^"]*)?"/g,
     (_, prefix, rel) => `${prefix}${rel}?v=${rel === 'style-classic.css' ? crypto.createHash('sha1').update(versionedStyleClassic).digest('hex').slice(0, 10) : fileHash(rel)}"`)
-    .replace(/(src=")(scripts\/classic-ui\.js)(?:\?v=[^"]*)?"/, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
+    .replace(/(src=")(scripts\/classic-(?:ui|themes)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
 const versionChanged = versionedHtml !== html || versionedStyleClassic !== styleClassic;
 html = versionedHtml;
 
@@ -155,11 +215,15 @@ if (problems.length) {
     process.exit(1);
 }
 
-if (!alreadyApplied || !hasFlag || versionChanged) {
+const htmlChanged = html !== fs.readFileSync(indexPath, 'utf8');
+if (!alreadyApplied || !hasFlag || versionChanged || htmlChanged) {
     fs.writeFileSync(indexPath, html);
     fs.writeFileSync(styleClassicPath, versionedStyleClassic);
 }
 for (const [filePath, contents] of scriptOutputs) {
     fs.writeFileSync(filePath, contents);
 }
-console.log(alreadyApplied && hasFlag && !versionChanged && !scriptOutputs.length ? '[Classic] Already applied.' : '[Classic] Classic interface applied.');
+if (themesIndexOutput) {
+    fs.writeFileSync(...themesIndexOutput);
+}
+console.log(alreadyApplied && hasFlag && !versionChanged && !htmlChanged && !scriptOutputs.length && !themesIndexOutput ? '[Classic] Already applied.' : '[Classic] Classic interface applied.');

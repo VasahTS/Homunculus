@@ -1,0 +1,85 @@
+/* Lanterna Arcana — visual adjustments on top of the classic layout.
+   Every rule starts with body.ct-theme-lanterna-arcana so nothing leaks into other profiles.
+   Colors and fonts come from the variables in theme.json; this file only changes shapes and type. */
+
+body.ct-theme-lanterna-arcana {
+    --ct-key: inset 0 1px 0 rgba(255, 255, 255, .05), 0 0 0 1px rgba(255, 255, 255, .06), inset 0 -1px 0 rgba(0, 0, 0, .35);
+    background-color: #07080B;
+}
+
+body.ct-theme-lanterna-arcana ::selection {
+    background: rgba(232, 194, 122, .3);
+}
+
+/* Story text: a book face for the roleplay, names in the display serif. */
+body.ct-theme-lanterna-arcana .mes_text {
+    font-family: var(--ct-story-font, var(--mainFontFamily));
+    font-size: calc(var(--mainFontSize) * 1.08);
+    line-height: 1.66;
+}
+body.ct-theme-lanterna-arcana .mes .name_text {
+    font-family: var(--ct-display-font);
+    font-size: 1.32em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+body.ct-theme-lanterna-arcana .character_select .ch_name,
+body.ct-theme-lanterna-arcana .group_select .ch_name {
+    font-family: var(--ct-display-font);
+    font-size: 1.15em;
+    font-weight: 600;
+}
+body.ct-theme-lanterna-arcana .drawer-content h3,
+body.ct-theme-lanterna-arcana #rm_button_selected_ch h2 {
+    font-family: var(--ct-display-font);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+body.ct-theme-lanterna-arcana .drawer-content h3 {
+    font-size: 1.45em;
+}
+
+/* Surfaces: rounded, separated by a thin top highlight instead of hard borders. */
+body.ct-theme-lanterna-arcana #top-bar {
+    background-color: rgba(10, 11, 15, .9);
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .05), 0 8px 30px rgba(0, 0, 0, .45);
+}
+body.ct-theme-lanterna-arcana .drawer-content {
+    background-color: rgba(13, 15, 19, .97);
+    border-radius: 18px;
+    border-color: transparent;
+    box-shadow: var(--ct-key), 0 24px 60px rgba(0, 0, 0, .55);
+}
+body.ct-theme-lanterna-arcana .mes {
+    border-radius: 16px;
+}
+body.ct-theme-lanterna-arcana #send_form {
+    border-radius: 20px;
+    border-color: transparent;
+    box-shadow: var(--ct-key), 0 10px 30px rgba(0, 0, 0, .35);
+}
+body.ct-theme-lanterna-arcana .menu_button {
+    border-radius: 10px;
+}
+body.ct-theme-lanterna-arcana .text_pole,
+body.ct-theme-lanterna-arcana textarea,
+body.ct-theme-lanterna-arcana select {
+    border-radius: 10px;
+}
+body.ct-theme-lanterna-arcana .character_select,
+body.ct-theme-lanterna-arcana .group_select {
+    border-radius: 14px;
+}
+
+/* Gold for "you": open drawer icon and the send button. */
+body.ct-theme-lanterna-arcana .drawer-icon.openIcon {
+    color: var(--ct-accent);
+}
+body.ct-theme-lanterna-arcana #send_but {
+    color: var(--ct-accent);
+}
+
+/* Scrollbars in the same night tones. */
+body.ct-theme-lanterna-arcana * {
+    scrollbar-color: rgba(243, 238, 223, .18) transparent;
+}
