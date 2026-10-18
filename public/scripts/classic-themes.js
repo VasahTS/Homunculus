@@ -1,5 +1,5 @@
 // Classic UI fork: visual profiles ("temas"), individually switchable effects and the
-// Personalização drawer (palette icon in the top bar).
+// Customize drawer (palette icon).
 //
 // A profile is a small JSON file (format "classic-theme@1") that bundles three choices:
 //   1. layout    - which interface shell to use ("classic" today; more can be added later);
@@ -9,7 +9,7 @@
 // classic-ui/apply-classic.mjs regenerates). Profiles imported from the drawer are stored in the
 // user's settings (extension_settings.classicThemes.custom). See classic-ui/TEMAS.md.
 //
-// Nothing here changes how SillyBunny works: with the "Clássico" profile (the default) no
+// Nothing here changes how SillyBunny works: with the "Classic" profile (the default) no
 // variables, stylesheets or effects are applied, so the page looks exactly as before.
 
 const THEMES_BASE = 'classic-themes/';
@@ -21,27 +21,27 @@ const MOTE_COUNT = 26;
 
 /** Effects the engine knows. A profile can only switch these on or off (see TEMAS.md). */
 export const EFFECTS = Object.freeze([
-    { id: 'lantern', name: 'Lanterna', desc: 'Uma luz suave segue o mouse pela tela.' },
-    { id: 'halo', name: 'Halo', desc: 'Anel de luz girando em volta do avatar da última resposta.' },
-    { id: 'shine', name: 'Reflexo', desc: 'Um brilho atravessa cartões de personagem e botões quando você passa o mouse.' },
-    { id: 'motes', name: 'Poeira de estrelas', desc: 'Partículas que piscam e sobem devagar no fundo.' },
-    { id: 'aura', name: 'Aurora', desc: 'Nuvens de cor bem suaves se movendo atrás do chat.' },
-    { id: 'blur', name: 'Entrada com desfoque', desc: 'A mensagem nova aparece saindo de um leve desfoque.' },
-    { id: 'glow', name: 'Brilho nos botões', desc: 'Botões, ícones abertos e caixas marcadas ganham um contorno luminoso.' },
+    { id: 'lantern', name: 'Lantern', desc: 'A soft light follows your mouse around the screen.' },
+    { id: 'halo', name: 'Halo', desc: 'A ring of light circles the avatar of the latest reply.' },
+    { id: 'shine', name: 'Sheen', desc: 'A glint sweeps across character cards and buttons when you hover them.' },
+    { id: 'motes', name: 'Stardust', desc: 'Tiny specks twinkle and drift upward in the background.' },
+    { id: 'aura', name: 'Aurora', desc: 'Very soft clouds of color drift behind the chat.' },
+    { id: 'blur', name: 'Blur-in', desc: 'New messages appear out of a light blur.' },
+    { id: 'glow', name: 'Glow', desc: 'Buttons, open icons and checked boxes get a luminous outline.' },
 ]);
 const EFFECT_IDS = EFFECTS.map(effect => effect.id);
 
-/** Interface shells. Only "classic" exists for now; the rest are shown as coming later. */
+/** Interface shells. The layout only rearranges SillyTavern's own panels (see css/classic-layout.css). */
 const LAYOUTS = Object.freeze([
-    { id: 'classic', name: 'Clássico', desc: 'Ícones na barra de cima e gavetas por cima do chat. Igual ao SillyTavern.', available: true },
-    { id: 'lanterna', name: 'Lanterna', desc: 'Barra lateral com nomes, painel de Agents ao lado e telas inteiras para personagens.', available: false },
+    { id: 'classic', name: 'Classic', desc: 'Icons in the top bar, drawers open over the chat. Just like SillyTavern.', available: true },
+    { id: 'lanterna', name: 'Lantern', desc: 'Labeled sidebar on the left, panels slide in beside the chat. Desktop only.', available: true },
 ]);
 
 const DEFAULT_ACCENTS = ['#E18A24', '#E8C27A', '#B7A6FF', '#8AB8FF', '#67D4AE', '#F2A3B9'];
 const INTENSITIES = [
-    { value: 1, label: 'Suave' },
-    { value: 2, label: 'Equilibrada' },
-    { value: 3, label: 'Intensa' },
+    { value: 1, label: 'Soft' },
+    { value: 2, label: 'Balanced' },
+    { value: 3, label: 'Intense' },
 ];
 
 /** @type {Map<string, any>} */
@@ -94,17 +94,17 @@ function writeCache(resolved) {
  */
 export function normalizeProfile(raw, origin = {}) {
     if (!raw || typeof raw !== 'object') {
-        throw new Error('O arquivo não é um perfil válido.');
+        throw new Error('This file is not a valid profile.');
     }
     if (typeof raw.format !== 'string' || !raw.format.startsWith(FORMAT_PREFIX)) {
-        throw new Error(`Campo "format" precisa ser "${FORMAT_PREFIX}".`);
+        throw new Error(`The "format" field must be "${FORMAT_PREFIX}".`);
     }
     const id = slugify(raw.id);
     if (!id) {
-        throw new Error('Campo "id" está vazio ou inválido (use letras minúsculas, números e hífen).');
+        throw new Error('The "id" field is empty or invalid (use lowercase letters, numbers and hyphens).');
     }
     if (typeof raw.name !== 'string' || !raw.name.trim()) {
-        throw new Error('Campo "name" está vazio.');
+        throw new Error('The "name" field is empty.');
     }
 
     const variables = {};
@@ -184,6 +184,7 @@ function getSettings() {
     settings = store[SETTINGS_KEY];
     settings.active ??= DEFAULT_PROFILE_ID;
     settings.reduceMotion ??= true;
+    settings.layout ??= null; // null = use the active profile's layout
     settings.perProfile ??= {};
     settings.custom ??= [];
     return settings;
@@ -225,7 +226,12 @@ function updatePrefs(profile, change) {
 /* Applying a profile                                                                          */
 /* ----------------------------------------------------------------------------------------- */
 
-function resolve(profile, prefs, reduceMotion) {
+function activeLayout(profile) {
+    const chosen = getSettings()?.layout ?? profile.layout;
+    return LAYOUTS.some(item => item.id === chosen && item.available) ? chosen : 'classic';
+}
+
+function resolve(profile, prefs, reduceMotion, layout = 'classic') {
     const effects = EFFECT_IDS.filter(effectId => prefs.effects[effectId]);
     const variables = { ...profile.variables, '--ct-accent': prefs.accent };
     if (prefs.storyFont >= 0 && profile.storyFonts[prefs.storyFont]) {
@@ -234,7 +240,7 @@ function resolve(profile, prefs, reduceMotion) {
     const fontsCss = profile.fonts.map(font => `@font-face{font-family:"${font.family}";src:url("${font.src}") format("woff2");font-weight:${font.weight};font-style:${font.style};font-display:swap;}`).join('\n');
     return {
         id: profile.id,
-        classes: [`ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...effects.map(effectId => `ct-fx-${effectId}`), ...(reduceMotion ? ['ct-rm'] : [])],
+        classes: [`ct-layout-${layout}`, `ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...effects.map(effectId => `ct-fx-${effectId}`), ...(reduceMotion ? ['ct-rm'] : [])],
         variables,
         fontsCss,
         stylesheet: profile.stylesheet,
@@ -308,7 +314,7 @@ function applyResolved(resolved) {
     if (!body || !resolved) return;
 
     for (const cls of [...body.classList]) {
-        if (/^ct-(theme-|fx-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
+        if (/^ct-(layout-|theme-|fx-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
     }
     body.classList.add(...resolved.classes);
 
@@ -340,9 +346,10 @@ function activeProfile() {
 function applyActive() {
     const profile = activeProfile();
     if (!profile) return;
-    const resolved = resolve(profile, prefsFor(profile), shouldReduceMotion());
+    const resolved = resolve(profile, prefsFor(profile), shouldReduceMotion(), activeLayout(profile));
     applyResolved(resolved);
     writeCache(resolved);
+    document.dispatchEvent(new CustomEvent('ct:appearance-changed', { detail: { profile: profile.id, layout: activeLayout(profile) } }));
 }
 
 /* ----------------------------------------------------------------------------------------- */
@@ -374,7 +381,7 @@ async function loadBuiltInProfiles() {
     }));
     // The default must always exist, even if its folder is missing.
     if (!profiles.has(DEFAULT_PROFILE_ID)) {
-        profiles.set(DEFAULT_PROFILE_ID, normalizeProfile({ format: FORMAT_PREFIX, id: DEFAULT_PROFILE_ID, name: 'Clássico', description: 'O visual de sempre.' }, { builtIn: true }));
+        profiles.set(DEFAULT_PROFILE_ID, normalizeProfile({ format: FORMAT_PREFIX, id: DEFAULT_PROFILE_ID, name: 'Classic', description: 'The usual look.' }, { builtIn: true }));
     }
 }
 
@@ -390,16 +397,16 @@ function loadCustomProfiles() {
 }
 
 /* ----------------------------------------------------------------------------------------- */
-/* The Personalização drawer                                                                    */
+/* The Customize drawer                                                                         */
 /* ----------------------------------------------------------------------------------------- */
 
 function profileCard(profile, isActive) {
     const p = profile.preview;
     const dots = p.colors.map(color => `<i style="background:${color}"></i>`).join('');
     const stars = p.orb ? '<span class="ct-th-star" style="left:22%;top:26%"></span><span class="ct-th-star" style="left:48%;top:14%"></span><span class="ct-th-star" style="left:64%;top:48%"></span><span class="ct-th-star" style="left:14%;top:58%"></span><span class="ct-th-orb"></span>' : '';
-    const layoutName = LAYOUTS.find(item => item.id === profile.layout)?.name ?? 'Clássico';
+    const layoutName = LAYOUTS.find(item => item.id === profile.layout)?.name ?? 'Classic';
     const effectCount = EFFECT_IDS.filter(effectId => profile.effects[effectId]).length;
-    const meta = `Layout ${layoutName} · ${effectCount ? `${effectCount} efeito${effectCount > 1 ? 's' : ''}` : 'sem efeitos'}${profile.builtIn ? '' : ' · importado'}`;
+    const meta = `${layoutName} layout · ${effectCount ? `${effectCount} effect${effectCount > 1 ? 's' : ''}` : 'no effects'}${profile.builtIn ? '' : ' · imported'}`;
     return `
         <div class="ct-card-wrap">
             <button type="button" class="ct-card${isActive ? ' is-active' : ''}" role="radio" aria-checked="${isActive}" data-action="pick" data-id="${escapeHtml(profile.id)}">
@@ -409,12 +416,12 @@ function profileCard(profile, isActive) {
                     <span class="ct-th-dots">${dots}</span>
                 </span>
                 <span class="ct-card-body">
-                    <span class="ct-card-name">${escapeHtml(profile.name)}${isActive ? '<span class="ct-badge">Em uso</span>' : ''}</span>
+                    <span class="ct-card-name">${escapeHtml(profile.name)}${isActive ? '<span class="ct-badge">In use</span>' : ''}</span>
                     <span class="ct-card-desc">${escapeHtml(profile.description)}</span>
                     <span class="ct-card-meta">${escapeHtml(meta)}</span>
                 </span>
             </button>
-            ${profile.builtIn ? '' : `<button type="button" class="ct-card-del" data-action="delete" data-id="${escapeHtml(profile.id)}" title="Remover perfil importado" aria-label="Remover ${escapeHtml(profile.name)}"><i class="fa-solid fa-xmark"></i></button>`}
+            ${profile.builtIn ? '' : `<button type="button" class="ct-card-del" data-action="delete" data-id="${escapeHtml(profile.id)}" title="Remove imported profile" aria-label="Remove ${escapeHtml(profile.name)}"><i class="fa-solid fa-xmark"></i></button>`}
         </div>`;
 }
 
@@ -422,7 +429,7 @@ function layoutCard(layout, isActive) {
     const wire = layout.id === 'classic'
         ? '<span class="ct-w-top"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ct-w-chat ct-w-chat-top"><b></b><b style="width:70%"></b><b style="width:86%"></b></span>'
         : '<span class="ct-w-rail"><i></i><i></i><i></i><i></i></span><span class="ct-w-chat"><b></b><b style="width:70%"></b><b style="width:86%"></b></span><span class="ct-w-side"><b></b><b></b><b></b></span>';
-    const badge = isActive ? '<span class="ct-badge">Em uso</span>' : (layout.available ? '' : '<span class="ct-badge ct-badge-soft">Em breve</span>');
+    const badge = isActive ? '<span class="ct-badge">In use</span>' : (layout.available ? '' : '<span class="ct-badge ct-badge-soft">Soon</span>');
     return `
         <button type="button" class="ct-card ct-layout${isActive ? ' is-active' : ''}" role="radio" aria-checked="${isActive}" ${layout.available ? '' : 'aria-disabled="true"'} data-action="layout" data-id="${layout.id}">
             <span class="ct-wire" aria-hidden="true">${wire}</span>
@@ -439,7 +446,7 @@ const DEMOS = {
     shine: '<span class="ct-d-card"></span>',
     motes: '<span class="ct-d-dot" style="left:18%;top:30%"></span><span class="ct-d-dot" style="left:52%;top:62%;animation-delay:-.7s"></span><span class="ct-d-dot" style="left:76%;top:24%;animation-delay:-1.3s"></span><span class="ct-d-dot" style="left:34%;top:74%;animation-delay:-.4s"></span>',
     aura: '<span class="ct-d-blob"></span><span class="ct-d-blob ct-d-blob2"></span>',
-    blur: '<span class="ct-d-txt">“Olá…”</span>',
+    blur: '<span class="ct-d-txt">“Hello…”</span>',
     glow: '<span class="ct-d-btn"></span>',
 };
 
@@ -459,18 +466,18 @@ function renderPanel() {
 
     root.innerHTML = `
         <div class="ct-head">
-            <h3 class="margin0">Personalização</h3>
+            <h3 class="margin0">Customize</h3>
             <div class="ct-head-actions">
-                <button type="button" class="menu_button ct-btn" data-action="import"><i class="fa-solid fa-file-import"></i><span>Importar perfil</span></button>
-                <button type="button" class="menu_button ct-btn" data-action="export"><i class="fa-solid fa-file-export"></i><span>Exportar</span></button>
+                <button type="button" class="menu_button ct-btn" data-action="import"><i class="fa-solid fa-file-import"></i><span>Import profile</span></button>
+                <button type="button" class="menu_button ct-btn" data-action="export"><i class="fa-solid fa-file-export"></i><span>Export</span></button>
                 <input type="file" id="ct_import_file" accept=".json,application/json" hidden>
             </div>
         </div>
-        <p class="ct-lead">Escolha um perfil visual e ajuste o que quiser. As mudanças aparecem na hora.</p>
+        <p class="ct-lead">Pick a visual profile and tweak whatever you like. Changes apply instantly.</p>
 
         <section class="ct-section" aria-labelledby="ct_h_profiles">
-            <h4 class="ct-h" id="ct_h_profiles">Perfil visual</h4>
-            <p class="ct-sub">Cada perfil traz suas próprias cores, fontes e efeitos.</p>
+            <h4 class="ct-h" id="ct_h_profiles">Visual profile</h4>
+            <p class="ct-sub">Each profile brings its own colors, fonts and effects.</p>
             <div class="ct-grid" role="radiogroup" aria-labelledby="ct_h_profiles">
                 ${sortedProfiles.map(item => profileCard(item, item.id === profile.id)).join('')}
             </div>
@@ -478,9 +485,9 @@ function renderPanel() {
 
         <section class="ct-section" aria-labelledby="ct_h_layout">
             <h4 class="ct-h" id="ct_h_layout">Layout</h4>
-            <p class="ct-sub">Onde ficam os menus. Chats, personagens e Agents são os mesmos em qualquer layout.</p>
+            <p class="ct-sub">Where the menus live. Chats, characters and Agents are the same in every layout.</p>
             <div class="ct-grid ct-grid-2" role="radiogroup" aria-labelledby="ct_h_layout">
-                ${LAYOUTS.map(layout => layoutCard(layout, layout.id === 'classic')).join('')}
+                ${LAYOUTS.map(layout => layoutCard(layout, layout.id === activeLayout(profile))).join('')}
             </div>
         </section>
 
@@ -488,11 +495,11 @@ function renderPanel() {
             <section class="ct-section ct-box" aria-labelledby="ct_h_fx">
                 <div class="ct-box-head">
                     <div>
-                        <h4 class="ct-h" id="ct_h_fx">Efeitos</h4>
-                        <p class="ct-sub">${onCount} de ${EFFECT_IDS.length} ligados. Ligue só os que quiser.</p>
+                        <h4 class="ct-h" id="ct_h_fx">Effects</h4>
+                        <p class="ct-sub">${onCount} of ${EFFECT_IDS.length} on. Turn on only the ones you like.</p>
                     </div>
-                    <label class="ct-switch-wrap" title="Ligar ou desligar todos">
-                        <span class="ct-sr">Todos os efeitos</span>
+                    <label class="ct-switch-wrap" title="Turn all on or off">
+                        <span class="ct-sr">All effects</span>
                         <input type="checkbox" role="switch" class="ct-switch" data-action="fx-all" ${allOn ? 'checked' : ''}>
                     </label>
                 </div>
@@ -503,34 +510,34 @@ function renderPanel() {
                         <input type="checkbox" role="switch" class="ct-switch" data-action="fx" data-fx="${effect.id}" ${prefs.effects[effect.id] ? 'checked' : ''}>
                     </label>`).join('')}
                 <div class="ct-field">
-                    <span class="ct-label" id="ct_l_int">Intensidade</span>
+                    <span class="ct-label" id="ct_l_int">Intensity</span>
                     <div class="ct-seg" role="group" aria-labelledby="ct_l_int">
                         ${INTENSITIES.map(item => `<button type="button" class="ct-seg-btn${prefs.intensity === item.value ? ' is-on' : ''}" aria-pressed="${prefs.intensity === item.value}" data-action="intensity" data-value="${item.value}">${item.label}</button>`).join('')}
                     </div>
                 </div>
                 <label class="ct-row ct-row-plain">
-                    <span class="ct-row-text"><b>Respeitar “reduzir movimento”</b><small>Se o Windows pedir menos animação, os efeitos param sozinhos.</small></span>
+                    <span class="ct-row-text"><b>Respect “reduce motion”</b><small>When your system asks for less animation, effects stop on their own.</small></span>
                     <input type="checkbox" role="switch" class="ct-switch" data-action="reduce" ${store.reduceMotion ? 'checked' : ''}>
                 </label>
             </section>
 
             <section class="ct-section ct-box" aria-labelledby="ct_h_tweaks">
-                <h4 class="ct-h" id="ct_h_tweaks">Ajustes do perfil</h4>
-                <p class="ct-sub">Valem só para “${escapeHtml(profile.name)}”.</p>
+                <h4 class="ct-h" id="ct_h_tweaks">Profile tweaks</h4>
+                <p class="ct-sub">Only for “${escapeHtml(profile.name)}”.</p>
                 <div class="ct-field">
-                    <span class="ct-label" id="ct_l_acc">${profile.accents.length ? 'Cor de destaque' : 'Cor dos efeitos'}</span>
+                    <span class="ct-label" id="ct_l_acc">${profile.accents.length ? 'Accent color' : 'Effect color'}</span>
                     <div class="ct-swatches" role="radiogroup" aria-labelledby="ct_l_acc">
                         ${accents.map(color => `<button type="button" class="ct-swatch${prefs.accent.toLowerCase() === color.toLowerCase() ? ' is-on' : ''}" role="radio" aria-checked="${prefs.accent.toLowerCase() === color.toLowerCase()}" aria-label="${color}" title="${color}" style="background:${color};color:${color}" data-action="accent" data-value="${color}"></button>`).join('')}
                     </div>
                 </div>
                 ${profile.storyFonts.length ? `
                 <div class="ct-field">
-                    <span class="ct-label" id="ct_l_font">Fonte da história</span>
+                    <span class="ct-label" id="ct_l_font">Story font</span>
                     <div class="ct-seg" role="group" aria-labelledby="ct_l_font">
                         ${profile.storyFonts.map((font, i) => `<button type="button" class="ct-seg-btn${prefs.storyFont === i ? ' is-on' : ''}" aria-pressed="${prefs.storyFont === i}" style="font-family:${escapeHtml(font.value)}" data-action="font" data-value="${i}">${escapeHtml(font.label)}</button>`).join('')}
                     </div>
-                </div>` : `<p class="ct-sub">Este perfil usa as cores e fontes do tema escolhido em <b>User Settings › UI Theme</b>.</p>`}
-                <button type="button" class="menu_button ct-btn ct-reset" data-action="reset"><i class="fa-solid fa-rotate-left"></i><span>Restaurar padrão do perfil</span></button>
+                </div>` : `<p class="ct-sub">This profile uses the colors and fonts of the theme picked in <b>User Settings › UI Theme</b>.</p>`}
+                <button type="button" class="menu_button ct-btn ct-reset" data-action="reset"><i class="fa-solid fa-rotate-left"></i><span>Reset profile defaults</span></button>
             </section>
         </div>`;
 
@@ -581,7 +588,7 @@ async function importFile(file) {
         const raw = JSON.parse(await file.text());
         const profile = normalizeProfile(raw);
         if (profiles.get(profile.id)?.builtIn) {
-            raw.id = `${profile.id}-importado`;
+            raw.id = `${profile.id}-imported`;
         }
         const clean = normalizeProfile(raw);
         const stored = { ...raw, id: clean.id };
@@ -591,9 +598,9 @@ async function importFile(file) {
         saveSettings();
         applyActive();
         renderPanel();
-        notify('success', `Perfil “${clean.name}” importado.`);
+        notify('success', `Profile “${clean.name}” imported.`);
     } catch (error) {
-        notify('error', `Não consegui importar: ${error.message}`);
+        notify('error', `Could not import: ${error.message}`);
     }
 }
 
@@ -612,12 +619,12 @@ function bindPanel() {
 
         if (action === 'pick') {
             store.active = target.dataset.id;
+            store.layout = profiles.get(store.active)?.layout ?? null;
             saveSettings();
         } else if (action === 'layout') {
-            if (target.getAttribute('aria-disabled') === 'true') {
-                notify('info', 'O layout Lanterna vem numa próxima etapa. Por enquanto só o Clássico está pronto.');
-            }
-            return;
+            if (target.getAttribute('aria-disabled') === 'true') return;
+            store.layout = target.dataset.id;
+            saveSettings();
         } else if (action === 'intensity') {
             updatePrefs(profile, { intensity: Number(target.dataset.value) });
         } else if (action === 'accent') {
@@ -706,6 +713,8 @@ function bindAppEvents() {
 }
 
 function init() {
+    // Older installs got a Portuguese tooltip on the drawer icon; the UI is in English now.
+    document.querySelector('#ct-personalize-button .drawer-icon')?.setAttribute('title', 'Customize');
     reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
     reducedMotionQuery?.addEventListener?.('change', () => { if (started) applyActive(); });
     // Paint the last used profile right away (before settings load) to avoid a flash of the default look.

@@ -25,6 +25,7 @@ $ClassicPaths = @(
     'public/css/classic-ui.css',
     'public/css/classic-sb-extras.css',
     'public/css/classic-themes.css',
+    'public/css/classic-layout.css',
     'public/classic-themes',
     'public/webfonts/NotoSans/classic-stylesheet.css',
     'public/webfonts/NotoSansMono/classic-stylesheet.css'

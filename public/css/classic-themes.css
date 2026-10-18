@@ -83,12 +83,40 @@ body.ct-fx-halo #chat .mes.last_mes:not([is_user="true"]) .mesAvatarWrapper .ava
     opacity: calc(var(--ct-k) * .8);
 }
 
-/* Reflexo */
-body.ct-fx-shine .character_select:hover,
-body.ct-fx-shine .group_select:hover,
-body.ct-fx-shine .bogus_folder_select:hover,
-body.ct-fx-shine .menu_button:hover,
-body.ct-fx-shine .ct-card:hover {
+/* Sheen. Cards get an overlay above their content (so the glint crosses the avatar PNG too);
+   plain buttons only get a background glint, because some of them are positioned by SillyTavern. */
+body.ct-fx-shine .character_select,
+body.ct-fx-shine .group_select,
+body.ct-fx-shine .bogus_folder_select,
+body.ct-fx-shine .ct-card,
+body.ct-fx-shine .ct-home-card {
+    position: relative;
+}
+body.ct-fx-shine .character_select::after,
+body.ct-fx-shine .group_select::after,
+body.ct-fx-shine .bogus_folder_select::after,
+body.ct-fx-shine .ct-card::after,
+body.ct-fx-shine .ct-home-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 35%, rgba(255, 240, 210, calc(var(--ct-k) * .26)) 50%, transparent 65%) no-repeat;
+    background-size: 260% 100%;
+    background-position: 130% 0;
+    opacity: 0;
+}
+body.ct-fx-shine .character_select:hover::after,
+body.ct-fx-shine .group_select:hover::after,
+body.ct-fx-shine .bogus_folder_select:hover::after,
+body.ct-fx-shine .ct-card:hover::after,
+body.ct-fx-shine .ct-home-card:hover::after {
+    opacity: 1;
+    animation: ct-sheen 950ms var(--ct-ease-out) both;
+}
+body.ct-fx-shine .menu_button:hover {
     background-image: linear-gradient(115deg, transparent 35%, rgba(255, 240, 210, calc(var(--ct-k) * .16)) 50%, transparent 65%);
     background-size: 260% 100%;
     background-repeat: no-repeat;
@@ -126,6 +154,7 @@ body.ct-fx-glow input[type="checkbox"]:checked:not(.ct-switch) {
     body.ct-rm #chat .avatar::before,
     body.ct-rm #chat .avatar::after,
     body.ct-rm .character_select,
+    body.ct-rm :is(.character_select, .group_select, .bogus_folder_select, .ct-card, .ct-home-card)::after,
     body.ct-rm .menu_button {
         animation: none !important;
     }

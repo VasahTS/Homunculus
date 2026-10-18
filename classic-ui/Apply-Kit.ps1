@@ -40,4 +40,4 @@ if ((Test-Command 'git') -and (Test-Path '.git')) {
 }
 
 Write-Host '[Classic] Pronto! Abra (ou recarregue) o SillyBunny pelo Start.bat como sempre.' -ForegroundColor Green
-Write-Host '[Classic] O novo icone de paleta na barra do topo abre a Personalizacao.' -ForegroundColor Green
+Write-Host '[Classic] Icone de casa = Home. Icone de paleta = Customize (perfis, layout e efeitos).' -ForegroundColor Green

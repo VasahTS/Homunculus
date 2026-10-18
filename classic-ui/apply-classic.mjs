@@ -89,20 +89,27 @@ if (!hasFlag) {
 
 // 9. Visual profiles ("temas"), effects and the Personalização drawer (scripts/classic-themes.js).
 // Checked one by one so installs that already have the classic interface also receive it.
-if (!html.includes('css/classic-themes.css')) {
-    replace('user.css anchor (themes)', new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/user\\.css${V}">)`),
-        '$1<link rel="stylesheet" type="text/css" href="css/classic-themes.css">\n$1$2');
+// 9a. Stylesheets and scripts of the visual layer, each added once, in this order.
+for (const sheet of ['classic-themes', 'classic-layout']) {
+    if (!html.includes(`css/${sheet}.css`)) {
+        replace(`user.css anchor (${sheet})`, new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/user\\.css${V}">)`),
+            `$1<link rel="stylesheet" type="text/css" href="css/${sheet}.css">\n$1$2`);
+    }
 }
-if (!html.includes('scripts/classic-themes.js')) {
-    replace('classic-ui.js anchor (themes)', new RegExp(`([ \\t]*)(<script type="module" src="scripts/classic-ui\\.js${V}"></script>)`),
-        '$1$2\n$1<script type="module" src="scripts/classic-themes.js"></script>');
+let previousScript = 'classic-ui';
+for (const script of ['classic-themes', 'classic-home']) {
+    if (!html.includes(`scripts/${script}.js`)) {
+        replace(`${previousScript}.js anchor (${script})`, new RegExp(`([ \\t]*)(<script type="module" src="scripts/${previousScript}\\.js${V}"></script>)`),
+            `$1$2\n$1<script type="module" src="scripts/${script}.js"></script>`);
+    }
+    previousScript = script;
 }
 if (!html.includes('id="ct-personalize-button"')) {
     replace('backgrounds drawer anchor (themes)', /([ \t]*)(<div id="backgrounds-button" class="drawer">)/, [
-        '$1<!-- Classic UI fork: Personalização (visual profiles and effects), filled by scripts/classic-themes.js -->',
+        '$1<!-- Classic UI fork: Customize (visual profiles, layout and effects), filled by scripts/classic-themes.js -->',
         '$1<div id="ct-personalize-button" class="drawer">',
         '$1    <div class="drawer-toggle">',
-        '$1        <div class="drawer-icon fa-solid fa-palette fa-fw closedIcon" title="Personalização"></div>',
+        '$1        <div class="drawer-icon fa-solid fa-palette fa-fw closedIcon" title="Customize"></div>',
         '$1    </div>',
         '$1    <div id="ct_personalize_block" class="drawer-content closedDrawer">',
         '$1        <div id="ct_personalize"></div>',
@@ -204,7 +211,7 @@ const versionedStyleClassic = styleClassic.replace(/@import url\((css\/classic--
     (_, rel) => `@import url(${rel}?v=${fileHash(rel)});`);
 const versionedHtml = html.replace(/(href=")((?:style-classic|css\/classic[^"?]*|webfonts\/[A-Za-z]+\/classic-stylesheet)\.css)(?:\?v=[^"]*)?"/g,
     (_, prefix, rel) => `${prefix}${rel}?v=${rel === 'style-classic.css' ? crypto.createHash('sha1').update(versionedStyleClassic).digest('hex').slice(0, 10) : fileHash(rel)}"`)
-    .replace(/(src=")(scripts\/classic-(?:ui|themes)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
+    .replace(/(src=")(scripts\/classic-(?:ui|themes|home)\.js)(?:\?v=[^"]*)?"/g, (_, prefix, rel) => `${prefix}${rel}?v=${fileHash(rel)}"`);
 const versionChanged = versionedHtml !== html || versionedStyleClassic !== styleClassic;
 html = versionedHtml;
 

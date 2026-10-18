@@ -1,6 +1,6 @@
 # Como criar temas (perfis visuais) — SillyBunny Classic
 
-Este guia explica como fazer um tema novo para a tela **Personalização** (ícone de paleta na barra do topo).
+Este guia explica como fazer um tema novo para a tela **Customize** (ícone de paleta). A interface do programa está em inglês; este guia continua em português.
 A primeira parte é para quem não programa. A última parte ("Para o Claude") traz os detalhes técnicos que uma
 sessão futura do Claude precisa para criar ou mudar temas sem quebrar nada.
 
@@ -10,16 +10,16 @@ sessão futura do Claude precisa para criar ou mudar temas sem quebrar nada.
 
 Cada tema (a tela chama de **perfil**) junta três escolhas:
 
-| Parte | O que muda | Exemplo no Lanterna Arcana |
+| Parte | O que muda | Exemplo no Arcane Lantern |
 |---|---|---|
-| **Layout** | Onde ficam os menus | `classic`: barra de ícones no topo, igual ao SillyTavern |
+| **Layout** | Onde ficam os menus | `lanterna`: barra lateral com nomes (o outro é `classic`, barra de ícones no topo) |
 | **Visual** | Cores, fontes, cantos, sombras | Fundo noite, texto creme, nomes em fonte serifada |
 | **Efeitos** | Quais efeitos começam ligados | Os 7 ligados |
 
 O usuário sempre pode ligar e desligar cada efeito, mudar a intensidade e escolher outra cor de destaque. O tema
 só define **como começa**.
 
-O perfil **Clássico** não muda nada: usa o tema escolhido em *User Settings › UI Theme*. Ele é o padrão e precisa
+O perfil **Classic** não muda nada: usa o tema escolhido em *User Settings › UI Theme*. Ele é o padrão e precisa
 continuar existindo.
 
 ---
@@ -44,21 +44,21 @@ public/classic-themes/
 
 **B) Um arquivo `.json` só, importado pela tela**
 
-Na Personalização, botão **Importar perfil**. Bom para trocar temas entre computadores. O botão **Exportar** gera
+Na tela Customize, botão **Import profile**. Bom para trocar temas entre computadores. O botão **Export** gera
 esse arquivo a partir do tema em uso.
 
 ---
 
 ## 3. Criar um tema novo — passo a passo (jeito fácil)
 
-1. Copie a pasta `public/classic-themes/lanterna-arcana` e dê outro nome à cópia. Use só letras minúsculas,
+1. Copie a pasta `public/classic-themes/lanterna-arcana` (o tema Arcane Lantern) e dê outro nome à cópia. Use só letras minúsculas,
    números e hífen, por exemplo `floresta-encantada`.
 2. Abra o `theme.json` da cópia num editor de texto (o Bloco de Notas serve).
 3. Troque **`id`** pelo mesmo nome da pasta (`"floresta-encantada"`) e troque **`name`** e **`description`**.
 4. Troque as cores em **`variables`** e em **`preview`** (veja a seção 5).
 5. No `theme.css`, troque todas as vezes que aparece `ct-theme-lanterna-arcana` por `ct-theme-floresta-encantada`.
 6. Feche o SillyBunny e dê dois cliques em **`Aplicar-Kit.bat`**. Ele coloca o tema novo na lista.
-7. Abra o SillyBunny → ícone de paleta → escolha o tema novo.
+7. Abra o SillyBunny → ícone de paleta (Customize) → escolha o tema novo.
 
 Se algo estiver errado no `theme.json`, o `Aplicar-Kit.bat` avisa qual arquivo tem problema, e o tema não entra na
 lista. Os outros temas continuam funcionando.
@@ -113,14 +113,14 @@ classic-ui/TEMAS.md. Ideia: …"*. Descreva o clima (cores, época, sensação) 
 | `name` | sim | Nome que aparece no cartão (até 40 letras). |
 | `description` | não | Uma ou duas frases no cartão. |
 | `author`, `version` | não | Só informação. |
-| `layout` | não | Hoje só existe `"classic"`. Se ficar vazio, usa `"classic"`. |
+| `layout` | não | Layout sugerido: `"classic"` (barra no topo) ou `"lanterna"` (barra lateral). O usuário pode trocar depois. Se ficar vazio, usa `"classic"`. |
 | `preview` | não | Como o cartão do tema aparece na lista: cor de fundo, cor do "Aa", fonte do "Aa", até 5 bolinhas de cor e, com `orb: true`, uma lua brilhante com estrelas. |
 | `variables` | não | As cores e fontes do programa (seção 5). |
 | `fonts` | não | Fontes que vêm junto com o tema (seção 6). |
 | `stylesheet` | não | Nome do arquivo CSS da pasta, normalmente `"theme.css"` (seção 7). |
 | `css` | não | O mesmo que `stylesheet`, mas o texto CSS vai dentro do próprio JSON. Usado pelos temas importados/exportados. |
-| `accents` | não | Opções de **cor de destaque** (até 8). A primeira é a padrão. Pinta os efeitos, o ícone aberto e o botão de enviar. |
-| `storyFonts` | não | Opções de **fonte da história** (até 5). A primeira é a padrão. Sem este campo, a tela não mostra a escolha. |
+| `accents` | não | Opções de **Accent color** (até 8). A primeira é a padrão. Pinta os efeitos, o ícone aberto e o botão de enviar. |
+| `storyFonts` | não | Opções de **Story font** (até 5). A primeira é a padrão. Sem este campo, a tela não mostra a escolha. |
 | `effects` | não | Quais efeitos começam ligados (seção 8). O que faltar começa desligado. |
 
 Cores podem ser escritas como `#E8C27A`, `rgb(232, 194, 122)` ou `rgba(13, 15, 19, 0.94)` (o último número é a
@@ -157,7 +157,7 @@ Variáveis extras deste sistema de temas:
 | `--ct-story-font` | **Não coloque aqui.** Vem de `storyFonts` e da escolha do usuário. |
 
 Enquanto um tema com `variables` está em uso, ele manda nessas cores, por cima do *UI Theme*. Para voltar às cores
-do *UI Theme*, escolha o perfil Clássico.
+do *UI Theme*, escolha o perfil Classic.
 
 ---
 
@@ -213,13 +213,13 @@ Os efeitos já existem no programa. O tema **só escolhe quais começam ligados*
 
 | Nome no `effects` | Na tela | O que faz |
 |---|---|---|
-| `lantern` | Lanterna | Uma luz suave segue o mouse |
+| `lantern` | Lantern | Uma luz suave segue o mouse |
 | `halo` | Halo | Anel girando em volta do avatar da última resposta |
-| `shine` | Reflexo | Brilho atravessa cartões e botões ao passar o mouse |
-| `motes` | Poeira de estrelas | Partículas piscando e subindo no fundo |
+| `shine` | Sheen | Brilho atravessa cartões (por cima da imagem) e botões ao passar o mouse |
+| `motes` | Stardust | Partículas piscando e subindo no fundo |
 | `aura` | Aurora | Nuvens de cor se movendo atrás do chat |
-| `blur` | Entrada com desfoque | A mensagem nova aparece saindo de um desfoque |
-| `glow` | Brilho nos botões | Contorno luminoso em botões, ícones e caixas marcadas |
+| `blur` | Blur-in | A mensagem nova aparece saindo de um desfoque |
+| `glow` | Glow | Contorno luminoso em botões, ícones e caixas marcadas |
 
 Os efeitos usam a cor de destaque (`accents`) e a `--ct-glow-2`. Para um efeito **novo** (por exemplo, folhas
 caindo) é preciso mexer no programa. Peça ao Claude e mostre a seção "Para o Claude".
@@ -234,7 +234,8 @@ caindo) é preciso mexer no programa. Peça ao Claude e mostre a seção "Para o
 - [ ] Falas, ações e nomes continuam diferentes entre si.
 - [ ] Com todos os efeitos desligados o tema continua bonito.
 - [ ] Rodou o `Aplicar-Kit.bat` depois de criar ou editar a pasta.
-- [ ] Trocar para **Clássico** volta tudo ao normal.
+- [ ] Funciona nos dois layouts (troque em Customize › Layout).
+- [ ] Trocar para **Classic** volta tudo ao normal.
 
 ---
 
@@ -245,9 +246,10 @@ caindo) é preciso mexer no programa. Peça ao Claude e mostre a seção "Para o
 | Arquivo | Papel |
 |---|---|
 | `public/scripts/classic-themes.js` | Motor: lê os perfis, valida (`normalizeProfile`), aplica classes e variáveis no `<body>`, cria a camada de efeitos `#ct-fx-layer` e desenha a gaveta `#ct_personalize`. Guarda as escolhas em `extension_settings.classicThemes` (`active`, `reduceMotion`, `perProfile[id]` = `{effects, intensity, accent, storyFont}`, `custom[]` = perfis importados) e um cache em `localStorage['ct-theme-cache-v1']` para pintar antes das configurações carregarem. |
-| `public/css/classic-themes.css` | Efeitos (todos atrás de `body.ct-fx-<id>`) e estilos da gaveta. Intensidade: `body.ct-k1/2/3` → `--ct-k`. Reduzir movimento: `body.ct-rm` + `prefers-reduced-motion`. |
+| `public/css/classic-themes.css` | Efeitos (todos atrás de `body.ct-fx-<id>`) e estilos da gaveta Customize. Intensidade: `body.ct-k1/2/3` → `--ct-k`. Reduzir movimento: `body.ct-rm` + `prefers-reduced-motion`. |
 | `public/classic-themes/<id>/` | Um tema por pasta. `index.json` é gerado por `classic-ui/apply-classic.mjs` (passo 10) com um hash `v` por pasta. Esse hash entra como `?v=` em `theme.json`, no CSS e nas fontes para furar o cache. |
-| `classic-ui/apply-classic.mjs` | Passo 9: põe no `index.html` o `<link>` do CSS, o `<script>` do motor e a gaveta (antes de `#backgrounds-button`). Cada um é conferido separadamente, então roda em instalações antigas sem problema. Passo 10: gera `index.json`. |
+| `public/css/classic-layout.css`, `public/scripts/classic-home.js` | Layout Lantern e Home (veja abaixo). |
+| `classic-ui/apply-classic.mjs` | Passo 9: põe no `index.html` os `<link>` (`classic-themes.css`, `classic-layout.css`), os `<script>` (`classic-themes.js`, `classic-home.js`) e a gaveta Customize (antes de `#backgrounds-button`). Cada um é conferido separadamente, então roda em instalações antigas sem problema. Passo 10: gera `index.json`. |
 | `classic-ui/Apply-Kit.ps1` / `Aplicar-Kit.bat` | Roda o apply e faz commit, para quem extraiu um kit novo ou criou uma pasta de tema. |
 
 **Como o tema é aplicado**
@@ -269,17 +271,20 @@ caindo) é preciso mexer no programa. Peça ao Claude e mostre a seção "Para o
 3. Se precisar de elementos novos, crie-os em `ensureFxLayer()` (`pointer-events: none`, `aria-hidden`).
 4. Atualize a tabela da seção 8.
 
-**Para acrescentar um layout novo (ex.: "lanterna")**
+**Layouts**
 
-O layout é a "casca" da interface, como `classic-ui.js` é hoje. Ele reorganiza os elementos do SillyTavern sem mudar
-as funções. Já existe a entrada `lanterna` em `LAYOUTS` com `available: false`. Para ativar:
+O layout é só uma reorganização dos painéis do SillyTavern: as gavetas da barra do topo continuam sendo os mesmos elementos, com as mesmas funções.
 
-1. Faça um módulo próprio (ex.: `public/scripts/classic-layout-lanterna.js` + CSS) que só reposiciona/estiliza
-   os elementos existentes. Mantenha a API `globalThis.SillyBunnyShell` que `classic-ui.js` oferece.
-2. Carregue esse módulo só quando `extension_settings.classicThemes.layout === 'lanterna'`. Trocar de layout
-   recarrega a página.
-3. Marque `available: true` e faça o cartão de layout gravar a escolha e recarregar.
-4. O perfil Clássico sempre usa `classic`. Teste os Agents, o editor de personagem e as gavetas nos dois layouts.
+- `classic`: o SillyTavern de sempre.
+- `lanterna`: `public/css/classic-layout.css`, tudo atrás de `body.ct-layout-lanterna` e dentro de `@media (min-width: 1000px)`. Abaixo disso, a página volta para o classic sozinha. O `#top-settings-holder` vira uma barra lateral fixa (`--ct-rail-w`). As gavetas viram painéis `position: fixed` ao lado da barra (largos para Settings/Extensions/Formatting/Lorebooks/Backgrounds/Customize; à direita para Agents e Persona). O `#left-nav-panel` e o `#right-nav-panel` ocupam as laterais do chat. O `#sheld` fica centralizado no espaço que sobra.
+- A ordem e os nomes da barra lateral ficam em `RAIL_ITEMS` (`public/scripts/classic-home.js`), via `--ct-rail-order` e `.ct-rail-label`.
+- A escolha fica em `extension_settings.classicThemes.layout`. `null` quer dizer "usar o layout do perfil". Escolher um perfil grava o `layout` dele. Trocar de layout é instantâneo, sem recarregar a página.
+
+Para um layout **novo**: acrescente `{ id, name, desc, available: true }` em `LAYOUTS` (`classic-themes.js`) e um wireframe em `layoutCard()`. Escreva o CSS atrás de `body.ct-layout-<id>`, sempre num `@media` de desktop, e só reposicione os elementos existentes. Teste os Agents, o editor de personagem, World Info e Persona.
+
+**Home** (`public/scripts/classic-home.js` + o final de `classic-layout.css`)
+
+Botão de casa (`#ct-home-button`, criado pelo JS dentro do `#top-settings-holder`, fora do bind de `.drawer-toggle` do SillyTavern). Abre `#ct-home`, uma camada fixa (z-index 2900, abaixo das gavetas) que esconde o `#sheld` enquanto está aberta. Os dados vêm de `getContext()` (characters, groups, tags), `world-info.js` (`world_names`, `selected_world_info`), `power-user.js` (`power_user.personas`) e `POST /api/chats/recent`. Os cliques usam as mesmas funções do SillyTavern: `selectCharacterById`, `openCharacterChat`, `openWorldInfoEditor`, `openGroupById`/`openGroupChat`. O efeito "crescer ao passar o mouse" é CSS (`.ct-home-char:hover`, `.ct-home-lorebook:hover`). A animação de entrada usa `animation-fill-mode: backwards`, para não travar o `transform` do hover.
 
 **Testar**
 

@@ -1,0 +1,710 @@
+/* Classic UI fork: the "Lantern" layout and the Home page (scripts/classic-home.js).
+   The layout only moves SillyTavern's own top-bar drawers into a labeled sidebar; every panel,
+   button and feature is the same element as in the classic layout. Below 1000px wide the page
+   falls back to the classic layout automatically. */
+
+.ct-rail-label {
+    display: none;
+}
+
+/* ===================================== Lantern layout ===================================== */
+
+@media (min-width: 1000px) {
+    body.ct-layout-lanterna {
+        --ct-rail-w: 90px;
+        --topBarBlockSize: 0px;
+        --ct-side-w: max(280px, calc((100vw - var(--ct-rail-w) - var(--sheldWidth)) / 2));
+    }
+
+    body.ct-layout-lanterna #top-bar {
+        display: none;
+    }
+
+    body.ct-layout-lanterna #top-settings-holder {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--ct-rail-w);
+        height: 100vh;
+        height: 100dvh;
+        margin: 0;
+        padding: 14px 0 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 2px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-width: none;
+        background-color: var(--SmartThemeBlurTintColor);
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--SmartThemeBodyColor) 8%, transparent), 8px 0 30px rgba(0, 0, 0, .25);
+        z-index: 3005;
+    }
+
+    body.ct-layout-lanterna #top-settings-holder > .drawer {
+        order: var(--ct-rail-order, 50);
+        flex: none;
+        width: 80px;
+    }
+
+    /* Settings-type items sit at the bottom of the rail. */
+    body.ct-layout-lanterna #ai-config-button {
+        margin-top: auto;
+    }
+
+    body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle,
+    body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 80px;
+        height: 56px;
+        padding: 0;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: background-color 180ms ease, box-shadow 220ms ease;
+    }
+
+    body.ct-layout-lanterna #top-settings-holder .drawer-icon {
+        margin: 0;
+        padding: 0;
+        width: auto;
+        height: auto;
+        font-size: 19px;
+        line-height: 1;
+        transition: transform 260ms var(--ct-ease-spring, ease), color 180ms ease, filter 220ms ease;
+    }
+
+    body.ct-layout-lanterna .ct-rail-label {
+        display: block;
+        max-width: 78px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.1;
+        color: var(--SmartThemeEmColor);
+        transition: color 180ms ease;
+    }
+
+    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) > .drawer-toggle,
+    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open > .ct-home-toggle {
+        background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 0 0 1px rgba(255, 255, 255, .06);
+    }
+    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) .ct-rail-label,
+    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open .ct-rail-label {
+        color: var(--SmartThemeBodyColor);
+    }
+    body.ct-layout-lanterna #top-settings-holder > .drawer:has(> .drawer-content.openDrawer) .drawer-icon,
+    body.ct-layout-lanterna #top-settings-holder > .drawer.is-open .drawer-icon {
+        color: var(--ct-accent, var(--SmartThemeQuoteColor));
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle:hover,
+        body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle:hover {
+            background-color: color-mix(in srgb, var(--SmartThemeBodyColor) 6%, transparent);
+        }
+        body.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle:hover .drawer-icon,
+        body.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle:hover .drawer-icon {
+            transform: translateY(-2px);
+        }
+        body.ct-layout-lanterna #top-settings-holder > .drawer > :is(.drawer-toggle, .ct-home-toggle):hover .ct-rail-label {
+            color: var(--SmartThemeBodyColor);
+        }
+    }
+
+    /* Chat column: centered in the space to the right of the rail. */
+    body.ct-layout-lanterna #sheld {
+        top: 12px;
+        height: calc(100vh - 12px);
+        height: calc(100dvh - 12px);
+        max-height: calc(100dvh - 12px);
+        left: calc(var(--ct-rail-w) + (100vw - var(--ct-rail-w) - var(--sheldWidth)) / 2) !important;
+        right: auto !important;
+        margin: 0 !important;
+    }
+
+    /* Drawers slide in next to the rail instead of dropping from the top. */
+    body.ct-layout-lanterna #top-settings-holder .drawer-content:not(.fillLeft):not(.fillRight) {
+        position: fixed !important;
+        top: 12px !important;
+        left: calc(var(--ct-rail-w) + 12px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0 !important;
+        width: min(760px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
+        max-height: calc(100dvh - 24px) !important;
+    }
+    body.ct-layout-lanterna #top-settings-holder #user-settings-button > #user-settings-block,
+    body.ct-layout-lanterna #top-settings-holder #extensions-settings-button > #rm_extensions_block,
+    body.ct-layout-lanterna #top-settings-holder #advanced-formatting-button > #AdvancedFormatting,
+    body.ct-layout-lanterna #top-settings-holder #WI-SP-button > #WorldInfo,
+    body.ct-layout-lanterna #top-settings-holder #backgrounds-button > #Backgrounds,
+    body.ct-layout-lanterna #top-settings-holder #ct-personalize-button > #ct_personalize_block {
+        width: min(1180px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
+    }
+    /* People and Agents open on the right, like the character list. */
+    body.ct-layout-lanterna #top-settings-holder #agents-settings-button > #rm_agents_block,
+    body.ct-layout-lanterna #top-settings-holder #persona-management-button > #PersonaManagement {
+        left: auto !important;
+        right: 12px !important;
+        width: min(560px, calc(100vw - var(--ct-rail-w) - 24px)) !important;
+    }
+    body.ct-layout-lanterna #left-nav-panel {
+        left: var(--ct-rail-w) !important;
+        right: auto !important;
+        top: 0 !important;
+        width: var(--ct-side-w) !important;
+        max-height: 100dvh !important;
+    }
+    body.ct-layout-lanterna #right-nav-panel {
+        right: 0 !important;
+        left: auto !important;
+        top: 0 !important;
+        width: var(--ct-side-w) !important;
+        max-height: 100dvh !important;
+    }
+
+    body.ct-layout-lanterna #ct-home {
+        top: 0;
+        left: var(--ct-rail-w);
+    }
+}
+
+/* ======================================== Home button ======================================== */
+
+#ct-home-button .ct-home-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+#ct-home-button.is-open .drawer-icon {
+    opacity: 1;
+    color: var(--ct-accent, var(--SmartThemeQuoteColor));
+}
+
+/* ========================================= Home page ========================================= */
+
+#ct-home {
+    --ct-h-surface: color-mix(in srgb, var(--SmartThemeBodyColor) 5%, transparent);
+    --ct-h-surface-2: color-mix(in srgb, var(--SmartThemeBodyColor) 9%, transparent);
+    --ct-h-line: color-mix(in srgb, var(--SmartThemeBodyColor) 11%, transparent);
+    --ct-h-display: var(--ct-display-font, var(--mainFontFamily));
+    position: fixed;
+    top: var(--topBarBlockSize);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2900;
+    display: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: var(--SmartThemeBodyColor);
+    background-color: color-mix(in srgb, var(--SmartThemeBlurTintColor) 82%, transparent);
+}
+#ct-home.is-open {
+    display: block;
+    animation: ct-home-in 420ms var(--ct-ease-out, ease-out) both;
+}
+body.ct-home-open #sheld {
+    visibility: hidden;
+}
+body.ct-home-open #ct-fx-layer {
+    z-index: 2901;
+}
+
+.ct-home-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 44px 48px 96px;
+}
+
+.ct-home-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.ct-home-hello {
+    margin: 0;
+    font-size: 15px;
+    color: var(--SmartThemeEmColor);
+}
+.ct-home-title {
+    margin: 6px 0 0;
+    font-family: var(--ct-h-display);
+    font-size: clamp(44px, 5.4vw, 76px);
+    line-height: .92;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+.ct-home-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+.ct-home-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--SmartThemeEmColor);
+    background: var(--ct-h-surface);
+    box-shadow: inset 0 0 0 1px var(--ct-h-line);
+}
+.ct-home-stat b {
+    color: var(--SmartThemeBodyColor);
+    font-weight: 600;
+}
+.ct-home-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.ct-home-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 300px;
+    max-width: 100%;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    color: var(--SmartThemeEmColor);
+    background: var(--ct-h-surface);
+    box-shadow: inset 0 0 0 1px var(--ct-h-line);
+    transition: box-shadow 220ms ease, background-color 220ms ease;
+}
+.ct-home-search:focus-within {
+    background: var(--ct-h-surface-2);
+    box-shadow: inset 0 0 0 1px var(--ct-accent, var(--SmartThemeQuoteColor));
+}
+#ct-home .ct-home-search input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--SmartThemeBodyColor);
+    font: inherit;
+    font-size: 15px;
+}
+.ct-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #1E1606;
+    background: var(--ct-accent, var(--SmartThemeQuoteColor));
+    transition: transform 140ms var(--ct-ease-out, ease-out), box-shadow 260ms ease, filter 180ms ease;
+}
+.ct-home-btn:active {
+    transform: scale(.96);
+}
+.ct-home-btn.is-ghost {
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--SmartThemeBodyColor) 25%, transparent);
+}
+body.ct-fx-glow .ct-home-btn:not(.is-ghost) {
+    box-shadow: 0 8px 26px -8px color-mix(in srgb, var(--ct-accent, #E8C27A) 60%, transparent);
+}
+
+.ct-home-section {
+    margin-top: 44px;
+}
+.ct-home-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.ct-home-h2 {
+    margin: 0;
+    font-family: var(--ct-h-display);
+    font-size: 32px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+.ct-home-h2 small {
+    margin-left: 10px;
+    font-family: var(--mainFontFamily);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--SmartThemeEmColor);
+}
+.ct-home-link {
+    border: 0;
+    padding: 6px 2px;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    color: var(--SmartThemeEmColor);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: .25em;
+    transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+.ct-home-link:hover {
+    color: var(--SmartThemeBodyColor);
+    text-decoration-color: currentColor;
+}
+.ct-home-empty {
+    margin: 0;
+    padding: 18px;
+    border-radius: 16px;
+    color: var(--SmartThemeEmColor);
+    background: var(--ct-h-surface);
+}
+
+/* Cards shared */
+.ct-home-card {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--ct-h-surface);
+    box-shadow: inset 0 0 0 1px var(--ct-h-line);
+    transform: translateZ(0);
+    transition: transform 420ms cubic-bezier(.34, 1.3, .64, 1), box-shadow 320ms ease, background-color 200ms ease;
+    animation: ct-home-card-in 520ms var(--ct-ease-out, ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 16) * 35ms + 60ms);
+}
+.ct-home-card:focus-visible {
+    outline: 2px solid var(--ct-accent, var(--SmartThemeQuoteColor));
+    outline-offset: 3px;
+}
+.ct-home-card:active {
+    transform: scale(.98);
+}
+
+/* Recent chats */
+.ct-home-recent {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+.ct-home-recent .ct-home-card {
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px 10px 10px;
+    border-radius: 999px;
+    min-width: 0;
+}
+.ct-home-recent img {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.ct-home-recent-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.ct-home-recent-text b {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+}
+.ct-home-recent-text b span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ct-home-recent-text b small {
+    flex: none;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--SmartThemeEmColor);
+}
+.ct-home-recent-text em {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--SmartThemeEmColor);
+}
+
+/* Characters */
+.ct-home-chars {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 18px;
+}
+.ct-home-char {
+    position: relative;
+    flex-direction: column;
+    border-radius: 18px;
+    overflow: hidden;
+}
+.ct-home-char-img {
+    display: block;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    background: var(--ct-h-surface-2);
+}
+.ct-home-char-img img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 700ms var(--ct-ease-out, ease-out);
+}
+.ct-home-char-cap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 40px 14px 12px;
+    background: linear-gradient(to top, rgba(6, 7, 10, .92), rgba(6, 7, 10, 0));
+    color: #F6F2E8;
+}
+.ct-home-char-cap b {
+    font-family: var(--ct-h-display);
+    font-size: 21px;
+    line-height: 1.05;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ct-home-char-cap small {
+    font-size: 12px;
+    color: rgba(246, 242, 232, .72);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ct-home-fav {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #F3D9A4;
+    background: rgba(6, 7, 10, .6);
+}
+
+/* Lorebooks */
+.ct-home-lore {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+}
+.ct-home-lorebook {
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    min-width: 0;
+}
+.ct-home-lore-ico {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--h);
+    background: color-mix(in srgb, var(--h) 16%, transparent);
+    transition: transform 420ms cubic-bezier(.34, 1.3, .64, 1), box-shadow 300ms ease;
+}
+.ct-home-lore-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+.ct-home-lore-text b {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ct-home-lore-text small {
+    font-size: 12px;
+    color: var(--SmartThemeEmColor);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Personas and groups */
+.ct-home-people {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.ct-home-person {
+    align-items: center;
+    gap: 10px;
+    padding: 6px 16px 6px 6px;
+    border-radius: 999px;
+}
+.ct-home-person img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.ct-home-person span {
+    font-size: 14px;
+    font-weight: 500;
+}
+.ct-home-person.is-current {
+    box-shadow: inset 0 0 0 1.5px var(--ct-accent, var(--SmartThemeQuoteColor));
+}
+
+/* Tools */
+.ct-home-tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+.ct-home-tool {
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+}
+.ct-home-tool i {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--ct-accent, var(--SmartThemeQuoteColor));
+    background: color-mix(in srgb, var(--ct-accent, var(--SmartThemeQuoteColor)) 14%, transparent);
+}
+.ct-home-tool b {
+    font-size: 15px;
+}
+.ct-home-tool small {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--SmartThemeEmColor);
+}
+
+/* Hover: things you can open grow a little. */
+@media (hover: hover) and (pointer: fine) {
+    .ct-home-card:hover {
+        background-color: var(--ct-h-surface-2);
+    }
+    .ct-home-char:hover,
+    .ct-home-lorebook:hover {
+        transform: translateY(-4px) scale(1.045);
+        box-shadow: inset 0 0 0 1px var(--ct-h-line), 0 18px 40px -18px rgba(0, 0, 0, .7);
+    }
+    .ct-home-char:hover .ct-home-char-img img {
+        transform: scale(1.06);
+    }
+    .ct-home-lorebook:hover .ct-home-lore-ico {
+        transform: rotate(-8deg) scale(1.08);
+    }
+    .ct-home-recent .ct-home-card:hover,
+    .ct-home-person:hover,
+    .ct-home-tool:hover {
+        transform: translateY(-2px);
+    }
+    body.ct-fx-glow .ct-home-char:hover,
+    body.ct-fx-glow .ct-home-lorebook:hover {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-accent, #E8C27A) 45%, transparent), 0 20px 50px -18px color-mix(in srgb, var(--ct-accent, #E8C27A) 55%, transparent);
+    }
+    body.ct-fx-glow .ct-home-lorebook:hover .ct-home-lore-ico {
+        box-shadow: 0 0 18px color-mix(in srgb, var(--h) 55%, transparent);
+    }
+    .ct-home-btn:hover {
+        filter: brightness(1.06);
+    }
+}
+
+@keyframes ct-home-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes ct-home-card-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #ct-home.is-open,
+    .ct-home-card {
+        animation: none;
+    }
+    .ct-home-card,
+    .ct-home-char-img img,
+    .ct-home-lore-ico {
+        transition-duration: 1ms;
+    }
+}
+@media (max-width: 760px) {
+    .ct-home-inner {
+        padding: 24px 16px 64px;
+    }
+    .ct-home-chars {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 12px;
+    }
+}
+
+/* Persona picked from Home: brief highlight in Persona Management. */
+#user_avatar_block .ct-flash {
+    animation: ct-flash 1.8s ease-out;
+}
+@keyframes ct-flash {
+    0%, 30% { box-shadow: 0 0 0 2px var(--ct-accent, var(--SmartThemeQuoteColor)), 0 0 24px color-mix(in srgb, var(--ct-accent, #E8C27A) 50%, transparent); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}

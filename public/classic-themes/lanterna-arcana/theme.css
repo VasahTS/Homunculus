@@ -1,4 +1,4 @@
-/* Lanterna Arcana — visual adjustments on top of the classic layout.
+/* Arcane Lantern — visual adjustments on top of the classic layout.
    Every rule starts with body.ct-theme-lanterna-arcana so nothing leaks into other profiles.
    Colors and fonts come from the variables in theme.json; this file only changes shapes and type. */
 
@@ -45,7 +45,7 @@ body.ct-theme-lanterna-arcana #top-bar {
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .05), 0 8px 30px rgba(0, 0, 0, .45);
 }
 body.ct-theme-lanterna-arcana .drawer-content {
-    background-color: rgba(13, 15, 19, .97);
+    background-color: #0D0F13;
     border-radius: 18px;
     border-color: transparent;
     box-shadow: var(--ct-key), 0 24px 60px rgba(0, 0, 0, .55);
