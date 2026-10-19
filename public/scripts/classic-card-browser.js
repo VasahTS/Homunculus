@@ -9,7 +9,7 @@
 // HTML, and nothing from them is executed. Importing downloads the card as a PNG and hands it to
 // SillyTavern's normal "Import Character from File".
 //
-// Open it from the globe button in the Characters panel, from Home -> Tools, or with
+// Open it from its own globe button in the top bar, the globe in the Characters panel, Home -> Tools, or with
 // globalThis.SillyBunnyClassicCardBrowser.open().
 
 import { helpButton, closeHelp } from './classic-help.js';
@@ -22,7 +22,8 @@ const HELP_HTML = `
 <ul>
 <li><b>Source:</b> pick the site to search (ChubAI, JannyAI, Wyvern, DataCat or Pygmalion).</li>
 <li><b>Search</b> starts by itself when you stop typing. <b>Sort</b> changes the order.</li>
-<li><b>Tags:</b> click <b>+</b> to require a tag or <b>&minus;</b> to hide cards that have it.</li>
+<li><b>Tags:</b> tick a tag to require it, or press its red <b>&minus;</b> to hide cards that have it. Click an active tag at the top of the list to remove it.</li>
+<li><b>Filters:</b> extra options for the current source (for example, only cards with a lorebook, or a token range).</li>
 <li>Click a card to read its description, greetings and scenario before importing.</li>
 <li><b>Import</b> adds the card to your Characters. <b>Chat now</b> opens it.</li>
 </ul>
@@ -153,6 +154,17 @@ const CHUB_SORTS = {
     random: { label: 'Random', sort: 'random', days: 0 },
 };
 
+/** Common ChubAI topics, so the tag list is useful before the first search. Tags seen in results are added to it. */
+const CHUB_TAGS = ['Action', 'Adventure', 'Alternate Greetings', 'Angst', 'Anime', 'Anime Game Characters', 'AnyPOV', 'Assistant', 'Books', 'Celebrity', 'Childhood Friend', 'Comedy', 'Cute', 'Cyberpunk', 'Dark Fantasy', 'Demon', 'Detective', 'Dominant', 'Drama', 'Elf', 'Enemies to Lovers', 'Fantasy', 'Female', 'Fluff', 'Furry', 'Game Characters', 'Historical', 'Horror', 'Human', 'Isekai', 'Knight', 'Kuudere', 'Lorebook', 'Magic', 'Male', 'Medieval', 'Military', 'Modern', 'Monster', 'Monster Girl', 'Movies & TV', 'Multiple Characters', 'Mystery', 'NSFW', 'OC', 'Original Character', 'Post-apocalyptic', 'Psychological', 'Robot', 'Roleplay', 'Romance', 'Royalty', 'RPG', 'Scenario', 'School', 'Sci-Fi', 'Simulator', 'Slice of Life', 'Submissive', 'Supernatural', 'Tomboy', 'Tsundere', 'Utility', 'Vampire', 'Villain', 'Western', 'Wholesome', 'Witch', 'Yandere'];
+
+/** Filters each source understands. 'must': required card parts; 'direction': ascending/descending; 'tokens': token range. */
+const MUST_HAVE = [
+    ['gallery', 'fa-images', 'Image gallery', 'require_images'],
+    ['lore', 'fa-book-atlas', 'Lorebook', 'require_lore'],
+    ['expressions', 'fa-face-smile', 'Expressions', 'require_expressions'],
+    ['greetings', 'fa-comments', 'Alt greetings', 'require_alternate_greetings'],
+];
+
 const JANNY_TAGS = { 1: 'Male', 2: 'Female', 3: 'Non-binary', 4: 'Celebrity', 5: 'OC', 6: 'Fictional', 7: 'Real', 8: 'Game', 9: 'Anime', 10: 'Historical', 11: 'Royalty', 12: 'Detective', 13: 'Hero', 14: 'Villain', 15: 'Magical', 16: 'Non-human', 17: 'Monster', 18: 'Monster Girl', 19: 'Alien', 20: 'Robot', 21: 'Politics', 22: 'Vampire', 23: 'Giant', 24: 'OpenAI', 25: 'Elf', 26: 'Multiple', 27: 'VTuber', 28: 'Dominant', 29: 'Submissive', 30: 'Scenario', 31: 'Pokemon', 32: 'Assistant', 34: 'Non-English', 36: 'Philosophy', 38: 'RPG', 39: 'Religion', 41: 'Books', 42: 'AnyPOV', 43: 'Angst', 44: 'Demi-Human', 45: 'Enemies to Lovers', 46: 'Smut', 47: 'MLM', 48: 'WLW', 49: 'Action', 50: 'Romance', 51: 'Horror', 52: 'Slice of Life', 53: 'Fantasy', 54: 'Drama', 55: 'Comedy', 56: 'Mystery', 57: 'Sci-Fi', 59: 'Yandere', 60: 'Furry', 61: 'Movies/TV' };
 const JANNY_TAG_IDS = Object.fromEntries(Object.entries(JANNY_TAGS).map(([id, name]) => [name.toLowerCase(), Number(id)]));
 
@@ -198,6 +210,8 @@ const SOURCES = {
         defaultSort: 'popular_all',
         nsfw: 'toggle',
         pageSize: 48,
+        filters: ['must', 'direction', 'tokens'],
+        suggestedTags: CHUB_TAGS,
         async search(p) {
             const preset = CHUB_SORTS[p.sort] ?? CHUB_SORTS.popular_all;
             const params = new URLSearchParams({ q: p.query, page: String(p.page), nsfw: String(p.nsfw) });
@@ -210,6 +224,10 @@ const SOURCES = {
             }
             if (p.include.length) params.set('tags', p.include.join(','));
             if (p.exclude.length) params.set('excludeTags', p.exclude.join(','));
+            for (const [key, , , param] of MUST_HAVE) if (p.filters.must[key]) params.set(param, 'true');
+            if (p.filters.asc) params.set('asc', 'true');
+            if (p.filters.minTokens) params.set('min_tokens', String(p.filters.minTokens));
+            if (p.filters.maxTokens) params.set('max_tokens', String(p.filters.maxTokens));
             const raw = await api(`/chub/search?${params}`);
             const data = raw?.data ?? raw;
             const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
@@ -260,11 +278,12 @@ const SOURCES = {
         defaultSort: 'newest',
         nsfw: 'toggle',
         pageSize: 80,
+        filters: ['tokens'],
         suggestedTags: Object.values(JANNY_TAGS),
         async search(p) {
             const sortMap = { newest: ['createdAtStamp:desc'], oldest: ['createdAtStamp:asc'], tokens_desc: ['totalToken:desc'], tokens_asc: ['totalToken:asc'], relevant: [] };
             const sort = sortMap[p.sort] ?? sortMap.newest;
-            const filter = ['totalToken >= 29', 'totalToken <= 100000', 'isLowQuality = false'];
+            const filter = [`totalToken >= ${Math.max(29, p.filters.minTokens || 0)}`, `totalToken <= ${p.filters.maxTokens || 100000}`, 'isLowQuality = false'];
             if (!p.nsfw) filter.push('isNsfw = false');
             const known = p.include.map(t => JANNY_TAG_IDS[t.toLowerCase()]).filter(Boolean);
             if (known.length) filter.push(known.map(id => `tagIds = ${id}`).join(' AND '));
@@ -522,8 +541,15 @@ const state = {
     page: 1,
     include: /** @type {string[]} */ ([]),
     exclude: /** @type {string[]} */ ([]),
-    tagsOpen: false,
+    tagsOpen: store.tagsOpen ?? true,
     tagInput: '',
+    filtersOpen: false,
+    filters: {
+        must: { gallery: false, lore: false, expressions: false, greetings: false },
+        asc: false,
+        minTokens: 0,
+        maxTokens: 0,
+    },
     loading: false,
     error: '',
     cards: /** @type {any[]} */ ([]),
@@ -650,6 +676,7 @@ async function runSearch() {
             nsfw: nsfwOn(),
             include: state.include,
             exclude: state.exclude,
+            filters: state.filters,
         });
         if (seq !== searchSeq) return;
         state.cards = result.cards.filter(c => c.id);
@@ -862,12 +889,24 @@ function build() {
         <div class="ct-cb-toolbar">
             <label class="ct-cb-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" placeholder="Search characters..." autocomplete="off"></label>
             <select class="ct-cb-sort text_pole" title="Sort"></select>
-            <button type="button" class="ct-cb-btn ct-cb-tags-btn"><i class="fa-solid fa-tags"></i><span>Tags</span><b class="ct-cb-badge"></b></button>
+            <button type="button" class="ct-cb-btn ct-cb-tags-btn" aria-expanded="false"><i class="fa-solid fa-tags"></i><span>Tags</span><b class="ct-cb-badge"></b></button>
+            <button type="button" class="ct-cb-btn ct-cb-filters-btn" aria-expanded="false"><i class="fa-solid fa-sliders"></i><span>Filters</span><b class="ct-cb-badge"></b></button>
             <label class="ct-cb-nsfw"><input type="checkbox"><span>Show NSFW</span></label>
             <button type="button" class="ct-cb-btn ct-cb-refresh" title="Search again"><i class="fa-solid fa-rotate"></i></button>
         </div>
-        <div class="ct-cb-tags-panel"></div>
+        <div class="ct-cb-filters"></div>
         <div class="ct-cb-main">
+            <aside class="ct-cb-tagbar" aria-label="Tags">
+                <div class="ct-cb-tagbar-head">
+                    <i class="fa-solid fa-tags" aria-hidden="true"></i><b>Tags</b>
+                    <button type="button" class="ct-cb-btn ct-cb-mini-btn ct-cb-tags-clear" title="Clear all tags">Clear</button>
+                    <button type="button" class="ct-cb-btn ct-cb-mini-btn ct-cb-tagbar-close" title="Hide the tag list" aria-label="Hide the tag list"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <label class="ct-cb-tagsearch"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input class="ct-cb-tag-input" type="search" placeholder="Search tags" autocomplete="off" aria-label="Search tags"></label>
+                <div class="ct-cb-active-tags"></div>
+                <div class="ct-cb-taglist" role="list"></div>
+                <div class="ct-cb-tagbar-hint">Tick = require &middot; <span class="is-exclude">&minus;</span> = hide</div>
+            </aside>
             <div class="ct-cb-results">
                 <div class="ct-cb-grid"></div>
                 <div class="ct-cb-state"></div>
@@ -913,9 +952,20 @@ function build() {
         remember();
         searchSoon(0);
     });
-    root.querySelector('.ct-cb-tags-btn').addEventListener('click', () => {
-        state.tagsOpen = !state.tagsOpen;
-        renderTags();
+    root.querySelector('.ct-cb-tags-btn').addEventListener('click', () => setTagsOpen(!state.tagsOpen));
+    root.querySelector('.ct-cb-tagbar-close').addEventListener('click', () => setTagsOpen(false));
+    root.querySelector('.ct-cb-filters-btn').addEventListener('click', () => {
+        state.filtersOpen = !state.filtersOpen;
+        renderFilters();
+    });
+    const filters = root.querySelector('.ct-cb-filters');
+    filters.addEventListener('change', onFilterChange);
+    filters.addEventListener('click', (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (!target.closest('.ct-cb-filters-reset')) return;
+        state.filters = { must: { gallery: false, lore: false, expressions: false, greetings: false }, asc: false, minTokens: 0, maxTokens: 0 };
+        renderFilters();
+        searchSoon(0);
     });
     const nsfw = /** @type {HTMLInputElement} */ (root.querySelector('.ct-cb-nsfw input'));
     nsfw.addEventListener('change', () => {
@@ -945,20 +995,17 @@ function build() {
             void selectCard(state.cards[Number(tile.dataset.index)]);
         }
     });
-    root.querySelector('.ct-cb-tags-panel').addEventListener('click', onTagPanelClick);
-    root.querySelector('.ct-cb-tags-panel').addEventListener('keydown', (event) => {
-        const input = /** @type {HTMLElement} */ (event.target);
-        if (input.matches('.ct-cb-tag-input') && event.key === 'Enter') {
-            event.preventDefault();
-            addTag(/** @type {HTMLInputElement} */ (input).value, event.shiftKey ? 'exclude' : 'include');
-        }
+    const tagbar = root.querySelector('.ct-cb-tagbar');
+    tagbar.addEventListener('click', onTagPanelClick);
+    const tagInput = /** @type {HTMLInputElement} */ (tagbar.querySelector('.ct-cb-tag-input'));
+    tagInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || !tagInput.value.trim()) return;
+        event.preventDefault();
+        setTag(tagInput.value, event.shiftKey ? 'exclude' : 'include', { clearInput: true });
     });
-    root.querySelector('.ct-cb-tags-panel').addEventListener('input', (event) => {
-        const input = /** @type {HTMLInputElement} */ (event.target);
-        if (input.matches('.ct-cb-tag-input')) {
-            state.tagInput = input.value;
-            renderTagSuggestions();
-        }
+    tagInput.addEventListener('input', () => {
+        state.tagInput = tagInput.value;
+        renderTagList(true);
     });
     document.body.append(root);
 }
@@ -1197,136 +1244,238 @@ function renderDetail() {
     aside.replaceChildren(...[top, portrait, head, actions, manualNote, sections].filter(Boolean));
 }
 
-function addTag(value, mode) {
+/** Sets a tag to 'include', 'exclude' or '' (not used). Clicking the same state again clears it. */
+function setTag(value, mode, { toggle = false, clearInput = false } = {}) {
     const tag = String(value ?? '').trim();
     if (!tag) return;
     const lower = tag.toLowerCase();
+    const current = state.include.some(t => t.toLowerCase() === lower) ? 'include' : state.exclude.some(t => t.toLowerCase() === lower) ? 'exclude' : '';
+    const next = toggle && current === mode ? '' : mode;
     state.include = state.include.filter(t => t.toLowerCase() !== lower);
     state.exclude = state.exclude.filter(t => t.toLowerCase() !== lower);
-    (mode === 'exclude' ? state.exclude : state.include).push(tag);
-    state.tagInput = '';
-    renderTags();
-    searchSoon(0);
-}
-
-function removeTag(value) {
-    const lower = String(value).toLowerCase();
-    state.include = state.include.filter(t => t.toLowerCase() !== lower);
-    state.exclude = state.exclude.filter(t => t.toLowerCase() !== lower);
+    if (next === 'include') state.include.push(tag);
+    if (next === 'exclude') state.exclude.push(tag);
+    if (clearInput) state.tagInput = '';
     renderTags();
     searchSoon(0);
 }
 
 function onTagPanelClick(event) {
     const target = /** @type {HTMLElement} */ (event.target);
-    const add = target.closest('[data-add]');
-    if (add) return addTag(add.getAttribute('data-tag'), add.getAttribute('data-add'));
+    const row = target.closest('[data-tag]');
+    if (row) {
+        const mode = target.closest('[data-mode]')?.getAttribute('data-mode');
+        if (mode) setTag(row.getAttribute('data-tag'), mode, row.classList.contains('is-typed') ? { clearInput: true } : { toggle: true });
+        return;
+    }
     const remove = target.closest('[data-remove]');
-    if (remove) return removeTag(remove.getAttribute('data-remove'));
+    if (remove) return setTag(remove.getAttribute('data-remove'), '');
     if (target.closest('.ct-cb-tags-clear')) {
         state.include = [];
         state.exclude = [];
         renderTags();
         searchSoon(0);
     }
-    const typed = target.closest('[data-typed]');
-    if (typed) {
-        const input = /** @type {HTMLInputElement|null} */ (root.querySelector('.ct-cb-tag-input'));
-        addTag(input?.value, typed.getAttribute('data-typed'));
-    }
 }
 
-function suggestionNames() {
+function setTagsOpen(open) {
+    state.tagsOpen = open;
+    store.tagsOpen = open;
+    saveStore(store);
+    renderTags();
+}
+
+/** Every tag worth listing for the current source, A-Z, without duplicates (case-insensitive). */
+function tagNames() {
     const source = SOURCES[state.source];
-    const active = new Set([...state.include, ...state.exclude].map(t => t.toLowerCase()));
-    let names = state.source === 'datacat' && datacatTags.top.length
-        ? datacatTags.top
-        : source.suggestedTags ?? [...state.seenTags.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+    const pool = [...state.include, ...state.exclude, ...(source.suggestedTags ?? []), ...[...state.seenTags.keys()]];
+    if (state.source === 'datacat') pool.push(...datacatTags.top);
     const typed = state.tagInput.trim().toLowerCase();
-    if (typed) {
-        const pool = state.source === 'datacat' ? [...datacatTags.byName.keys()].map(k => datacatTags.byId.get(datacatTags.byName.get(k))) : names;
-        names = pool.filter(n => n && n.toLowerCase().includes(typed));
+    if (typed && state.source === 'datacat') pool.push(...datacatTags.byId.values());
+    const seen = new Map();
+    for (const name of pool) {
+        const clean = String(name ?? '').trim();
+        if (clean && !seen.has(clean.toLowerCase())) seen.set(clean.toLowerCase(), clean);
     }
-    return names.filter(n => !active.has(n.toLowerCase())).slice(0, 40);
+    let names = [...seen.values()];
+    if (typed) names = names.filter(n => n.toLowerCase().includes(typed));
+    return names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })).slice(0, 400);
 }
 
-function renderTagSuggestions() {
-    const box = root?.querySelector('.ct-cb-tag-suggestions');
-    if (!box) return;
-    const names = suggestionNames();
-    box.replaceChildren(...names.map((name) => {
-        const chip = el('span', 'ct-cb-suggest');
-        chip.append(el('span', '', name));
-        const plus = iconButton('fa-solid fa-plus', '', 'ct-cb-mini is-include');
-        plus.title = `Only show cards tagged "${name}"`;
-        plus.dataset.add = 'include';
-        plus.dataset.tag = name;
-        const minus = iconButton('fa-solid fa-minus', '', 'ct-cb-mini is-exclude');
-        minus.title = `Hide cards tagged "${name}"`;
-        minus.dataset.add = 'exclude';
-        minus.dataset.tag = name;
-        chip.append(plus, minus);
-        return chip;
-    }));
-    if (!names.length) box.append(el('span', 'ct-cb-muted', state.tagInput.trim() ? 'No known tag matches. Use the buttons to add it anyway.' : 'Tags appear here after a search.'));
+function tagMode(name) {
+    const lower = name.toLowerCase();
+    if (state.include.some(t => t.toLowerCase() === lower)) return 'include';
+    if (state.exclude.some(t => t.toLowerCase() === lower)) return 'exclude';
+    return '';
+}
+
+function renderTagList(keepScroll = true) {
+    const list = root?.querySelector('.ct-cb-taglist');
+    if (!list) return;
+    const scroll = list.scrollTop;
+    const names = tagNames();
+    const rows = names.map((name) => {
+        const mode = tagMode(name);
+        const row = el('div', `ct-cb-tagrow${mode ? ` is-${mode}` : ''}`);
+        row.dataset.tag = name;
+        row.setAttribute('role', 'listitem');
+        const check = el('button', 'ct-cb-tagcheck');
+        check.type = 'button';
+        check.dataset.mode = 'include';
+        check.setAttribute('aria-pressed', String(mode === 'include'));
+        check.title = mode === 'include' ? `Stop requiring "${name}"` : `Only show cards tagged "${name}"`;
+        check.innerHTML = '<span class="ct-cb-box" aria-hidden="true"><i class="fa-solid fa-check"></i></span>';
+        check.append(el('span', 'ct-cb-tagname', name));
+        const minus = el('button', 'ct-cb-tagminus');
+        minus.type = 'button';
+        minus.dataset.mode = 'exclude';
+        minus.setAttribute('aria-pressed', String(mode === 'exclude'));
+        minus.title = mode === 'exclude' ? `Stop hiding "${name}"` : `Hide cards tagged "${name}"`;
+        minus.setAttribute('aria-label', minus.title);
+        minus.innerHTML = '<i class="fa-solid fa-minus" aria-hidden="true"></i>';
+        row.append(check, minus);
+        return row;
+    });
+    const typed = state.tagInput.trim();
+    if (typed && !names.some(n => n.toLowerCase() === typed.toLowerCase())) {
+        const row = el('div', 'ct-cb-tagrow is-typed');
+        row.dataset.tag = typed;
+        const add = el('button', 'ct-cb-tagcheck');
+        add.type = 'button';
+        add.dataset.mode = 'include';
+        add.innerHTML = '<span class="ct-cb-box" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>';
+        add.append(el('span', 'ct-cb-tagname', `Require "${typed}"`));
+        const minus = el('button', 'ct-cb-tagminus');
+        minus.type = 'button';
+        minus.dataset.mode = 'exclude';
+        minus.title = `Hide cards tagged "${typed}"`;
+        minus.setAttribute('aria-label', minus.title);
+        minus.innerHTML = '<i class="fa-solid fa-minus" aria-hidden="true"></i>';
+        row.append(add, minus);
+        rows.unshift(row);
+    }
+    list.replaceChildren(...rows);
+    if (!rows.length) list.append(el('div', 'ct-cb-muted ct-cb-tag-empty', 'Tags appear here after a search.'));
+    list.scrollTop = keepScroll ? scroll : 0;
 }
 
 function renderTags() {
     if (!root) return;
     const count = state.include.length + state.exclude.length;
-    const badge = root.querySelector('.ct-cb-badge');
-    badge.textContent = count ? String(count) : '';
-    root.querySelector('.ct-cb-tags-btn').classList.toggle('is-active', state.tagsOpen || count > 0);
-    const panel = root.querySelector('.ct-cb-tags-panel');
-    panel.classList.toggle('is-open', state.tagsOpen);
-    if (!state.tagsOpen) return;
-    const hadFocus = document.activeElement?.classList.contains('ct-cb-tag-input');
-    panel.innerHTML = `
-        <div class="ct-cb-tag-row">
-            <input class="ct-cb-tag-input text_pole" type="text" placeholder="Type a tag..." autocomplete="off">
-            <button type="button" class="ct-cb-btn" data-typed="include"><i class="fa-solid fa-plus"></i><span>Require</span></button>
-            <button type="button" class="ct-cb-btn" data-typed="exclude"><i class="fa-solid fa-minus"></i><span>Hide</span></button>
-            <button type="button" class="ct-cb-btn ct-cb-tags-clear"${count ? '' : ' disabled'}>Clear</button>
-        </div>
-        <div class="ct-cb-active-tags"></div>
-        <div class="ct-cb-tag-suggestions"></div>`;
-    const input = /** @type {HTMLInputElement} */ (panel.querySelector('.ct-cb-tag-input'));
-    input.value = state.tagInput;
-    const active = panel.querySelector('.ct-cb-active-tags');
+    const button = root.querySelector('.ct-cb-tags-btn');
+    button.querySelector('.ct-cb-badge').textContent = count ? String(count) : '';
+    button.classList.toggle('is-active', state.tagsOpen || count > 0);
+    button.setAttribute('aria-expanded', String(state.tagsOpen));
+    root.querySelector('.ct-cb-main').classList.toggle('has-tags', state.tagsOpen);
+    /** @type {HTMLButtonElement} */ (root.querySelector('.ct-cb-tags-clear')).disabled = !count;
+    const input = /** @type {HTMLInputElement} */ (root.querySelector('.ct-cb-tag-input'));
+    if (input.value !== state.tagInput) input.value = state.tagInput;
+    const active = root.querySelector('.ct-cb-active-tags');
+    active.replaceChildren();
     for (const [tags, kind] of [[state.include, 'include'], [state.exclude, 'exclude']]) {
         for (const tag of tags) {
             const chip = el('button', `ct-cb-chip is-${kind}`);
             chip.type = 'button';
             chip.dataset.remove = tag;
-            chip.title = 'Remove';
+            chip.title = `Remove "${tag}"`;
             chip.innerHTML = `<i class="fa-solid fa-${kind === 'include' ? 'check' : 'ban'}"></i>`;
             chip.append(el('span', '', tag), Object.assign(document.createElement('i'), { className: 'fa-solid fa-xmark' }));
             active.append(chip);
         }
     }
-    renderTagSuggestions();
-    if (hadFocus) input.focus();
+    if (state.tagsOpen) renderTagList(true);
+}
+
+function activeFilterCount() {
+    const f = state.filters;
+    const supported = SOURCES[state.source].filters ?? [];
+    let count = 0;
+    if (supported.includes('must')) count += Object.values(f.must).filter(Boolean).length;
+    if (supported.includes('direction') && f.asc) count += 1;
+    if (supported.includes('tokens')) count += Number(Boolean(f.minTokens)) + Number(Boolean(f.maxTokens));
+    return count;
+}
+
+function renderFilters() {
+    if (!root) return;
+    const supported = SOURCES[state.source].filters ?? [];
+    const button = root.querySelector('.ct-cb-filters-btn');
+    const panel = root.querySelector('.ct-cb-filters');
+    const count = activeFilterCount();
+    button.hidden = !supported.length;
+    button.querySelector('.ct-cb-badge').textContent = count ? String(count) : '';
+    button.classList.toggle('is-active', state.filtersOpen || count > 0);
+    button.setAttribute('aria-expanded', String(state.filtersOpen));
+    const open = state.filtersOpen && supported.length > 0;
+    panel.classList.toggle('is-open', open);
+    if (!open) {
+        panel.replaceChildren();
+        return;
+    }
+    const f = state.filters;
+    const groups = [];
+    if (supported.includes('must')) {
+        groups.push(`<fieldset class="ct-cb-fgroup"><legend>Character must have</legend>${MUST_HAVE.map(([key, icon, label]) => `
+            <label class="ct-cb-fcheck"><input type="checkbox" data-must="${key}"${f.must[key] ? ' checked' : ''}><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span></label>`).join('')}</fieldset>`);
+    }
+    const advanced = [];
+    if (supported.includes('direction')) {
+        advanced.push(`<label class="ct-cb-ffield"><span>Sort direction</span><select class="text_pole" data-filter="asc"><option value="false"${f.asc ? '' : ' selected'}>Descending</option><option value="true"${f.asc ? ' selected' : ''}>Ascending</option></select></label>`);
+    }
+    if (supported.includes('tokens')) {
+        advanced.push(`<label class="ct-cb-ffield"><span>Min tokens</span><input class="text_pole" type="number" min="0" step="50" inputmode="numeric" placeholder="Any" data-filter="minTokens" value="${f.minTokens || ''}"></label>`);
+        advanced.push(`<label class="ct-cb-ffield"><span>Max tokens</span><input class="text_pole" type="number" min="0" step="100" inputmode="numeric" placeholder="Any" data-filter="maxTokens" value="${f.maxTokens || ''}"></label>`);
+    }
+    if (advanced.length) groups.push(`<fieldset class="ct-cb-fgroup"><legend>Advanced options</legend><div class="ct-cb-fgrid">${advanced.join('')}</div></fieldset>`);
+    panel.innerHTML = `${groups.join('')}<button type="button" class="ct-cb-btn ct-cb-filters-reset"${count ? '' : ' disabled'}><i class="fa-solid fa-rotate-left"></i><span>Reset</span></button>`;
+}
+
+function onFilterChange(event) {
+    const input = /** @type {HTMLInputElement} */ (event.target);
+    if (input.dataset.must) state.filters.must[input.dataset.must] = input.checked;
+    else if (input.dataset.filter === 'asc') state.filters.asc = input.value === 'true';
+    else if (input.dataset.filter === 'minTokens' || input.dataset.filter === 'maxTokens') {
+        const value = Math.max(0, Math.min(1_000_000, Math.round(Number(input.value) || 0)));
+        state.filters[input.dataset.filter] = value;
+    } else return;
+    renderFilters();
+    searchSoon(0);
 }
 
 function renderAll() {
     renderHeader();
     renderResults();
     renderTags();
+    renderFilters();
     renderDetail();
 }
 
 // ───────────────────────── Open / close ─────────────────────────
 
 let returnFocus = null;
+const VIEW_ID = 'ct-cards-button';
+
+function setButtonState(open) {
+    const button = document.getElementById(VIEW_ID);
+    button?.classList.toggle('is-open', open);
+    button?.querySelector('.ct-home-toggle')?.setAttribute('aria-pressed', String(open));
+    const icon = button?.querySelector('.drawer-icon');
+    icon?.classList.toggle('openIcon', open);
+    icon?.classList.toggle('closedIcon', !open);
+}
 
 function open() {
     if (!root) build();
     if (state.open) return;
+    const home = globalThis.SillyBunnyClassicHome;
+    home?.closeHome?.(); // before state.open: closing Home switches the view to the chat
     state.open = true;
     returnFocus = document.activeElement;
-    globalThis.SillyBunnyClassicHome?.closeHome?.();
     document.body.classList.add('ct-cb-open');
     root.classList.add('is-open');
+    // It is a page of its own: the top bar / sidebar marks its button, and any other page closes it.
+    home?.setView?.(VIEW_ID);
+    setButtonState(true);
     renderAll();
     if (!state.cards.length && !state.loading) void runSearch();
     requestAnimationFrame(() => /** @type {HTMLElement|null} */ (root.querySelector('.ct-cb-search input'))?.focus());
@@ -1338,6 +1487,9 @@ function close() {
     closeHelp();
     root?.classList.remove('is-open');
     document.body.classList.remove('ct-cb-open');
+    setButtonState(false);
+    const home = globalThis.SillyBunnyClassicHome;
+    if (home?.getView?.() === VIEW_ID) home.setView('chat');
     if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
 }
 
@@ -1362,6 +1514,13 @@ function addEntryButton() {
 
 function init() {
     addEntryButton();
+    document.addEventListener('ct:view-changed', (event) => {
+        if (state.open && event.detail?.view !== VIEW_ID) close();
+    });
+    // A drawer icon in the top bar / sidebar always leaves the Card Browser (even one that only closes a panel).
+    document.addEventListener('click', (event) => {
+        if (state.open && /** @type {HTMLElement} */ (event.target)?.closest?.('#top-settings-holder > .drawer > .drawer-toggle')) close();
+    }, true);
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !state.open) return;
         if (document.querySelector('.ct-help-card, dialog[open]')) return;

@@ -339,13 +339,13 @@
 
 /* ======================================== Home button ======================================== */
 
-#ct-home-button .ct-home-toggle {
+#top-settings-holder .ct-home-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
 }
-#ct-home-button.is-open .drawer-icon {
+#top-settings-holder > .drawer.is-open > .ct-home-toggle .drawer-icon {
     opacity: 1;
     color: var(--ct-accent, var(--SmartThemeQuoteColor));
 }
@@ -362,12 +362,14 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 2900;
+    /* Above #top-settings-holder (3005), so pinned side panels never cover Home. Home starts below
+       the top bar (or right of the Lantern rail), so the bar stays clickable. */
+    z-index: 3010;
     display: none;
     overflow-y: auto;
     overscroll-behavior: contain;
     color: var(--SmartThemeBodyColor);
-    background-color: color-mix(in srgb, var(--SmartThemeBlurTintColor) 82%, transparent);
+    background-color: var(--cf-solid, #17181c);
 }
 #ct-home.is-open {
     display: block;
@@ -376,8 +378,13 @@
 body.ct-home-open #sheld {
     visibility: hidden;
 }
-body.ct-home-open #ct-fx-layer {
-    z-index: 2901;
+body.ct-home-open #ct-fx-layer,
+body.ct-cb-open #ct-fx-layer {
+    z-index: 3011;
+    clip-path: inset(var(--topBarBlockSize) 0 0 0);
+}
+body.ct-layout-lanterna:is(.ct-home-open, .ct-cb-open) #ct-fx-layer {
+    clip-path: inset(0 0 0 var(--ct-rail-w, 0px));
 }
 
 .ct-home-inner {

@@ -20,6 +20,7 @@ const RAIL_ITEMS = Object.freeze([
     ['agents-settings-button', 'Agents', 5],
     ['ct-memory-button', 'Memory', 6],
     ['extensions-settings-button', 'Extensions', 7],
+    ['ct-cards-button', 'Card Browser', 8],
     ['ai-config-button', 'Presets', 10],
     ['sys-settings-button', 'API', 11],
     ['advanced-formatting-button', 'Formatting', 12],
@@ -48,6 +49,8 @@ const state = {
     query: '',
     showAllChars: false,
     showAllLore: false,
+    showAllPeople: false,
+    showAllGroups: false,
     recent: [],
     worlds: [],
     activeWorlds: [],
@@ -108,14 +111,15 @@ function openDrawer(drawerId) {
 /* Sidebar labels + Home button                                                                  */
 /* ------------------------------------------------------------------------------------------- */
 
-function makeRailButton(id, icon, label, onActivate) {
+function makeRailButton(id, icon, label, onActivate, before = null) {
     const holder = document.getElementById('top-settings-holder');
     if (!holder || document.getElementById(id)) return;
     const wrap = document.createElement('div');
     wrap.id = id;
     wrap.className = 'drawer';
     wrap.innerHTML = `<div class="ct-home-toggle" role="button" tabindex="0" title="${label}" aria-label="${label}"><div class="drawer-icon fa-solid ${icon} fa-fw closedIcon"></div></div>`;
-    holder.prepend(wrap);
+    const anchor = before ? document.getElementById(before) : null;
+    if (anchor?.parentElement === holder) anchor.before(wrap); else holder.prepend(wrap);
     const toggle = wrap.querySelector('.ct-home-toggle');
     toggle.addEventListener('click', () => onActivate());
     toggle.addEventListener('keydown', (event) => {
@@ -129,6 +133,12 @@ function makeRailButton(id, icon, label, onActivate) {
 function ensureHomeButton() {
     makeRailButton('ct-chat-button', 'fa-comments', 'Chat', () => showChat());
     makeRailButton('ct-home-button', 'fa-house', 'Home', () => toggleHome());
+    // Card Browser gets its own button, next to the Characters icon in the top bar.
+    makeRailButton('ct-cards-button', 'fa-earth-americas', 'Card Browser', () => {
+        const browser = globalThis.SillyBunnyClassicCardBrowser;
+        if (!browser) return;
+        if (currentView === 'ct-cards-button') browser.close(); else browser.open();
+    }, 'rightNavHolder');
     const holder = document.getElementById('top-settings-holder');
     if (holder && !document.getElementById('ct-rail-indicator')) {
         const indicator = document.createElement('div');
@@ -366,8 +376,18 @@ function render() {
         .filter(item => item.character || item.group)
         .slice(0, 4);
 
-    const people = personaEntries.filter(([, name]) => matches(name));
-    const groupList = groups.filter(group => matches(group.name));
+    // Current persona first, then A-Z; only a preview row unless "Show all" or a search is active.
+    const people = personaEntries
+        .filter(([, name]) => matches(name))
+        .sort(([fileA, nameA], [fileB, nameB]) => Number(fileB === context.userAvatar) - Number(fileA === context.userAvatar)
+            || String(nameA).localeCompare(String(nameB)));
+    const visiblePeople = state.showAllPeople || state.query ? people : people.slice(0, PREVIEW_COUNT);
+    const groupList = groups
+        .filter(group => matches(group.name))
+        .sort((a, b) => Number(Boolean(b.fav)) - Number(Boolean(a.fav))
+            || (Number(b.date_last_chat) || 0) - (Number(a.date_last_chat) || 0)
+            || String(a.name).localeCompare(String(b.name)));
+    const visibleGroups = state.showAllGroups || state.query ? groupList : groupList.slice(0, PREVIEW_COUNT);
 
     const firstRecent = recent[0];
     const continueLabel = firstRecent ? (firstRecent.character?.name ?? firstRecent.group?.name ?? '') : '';
@@ -451,9 +471,12 @@ function render() {
 
             ${people.length ? `
             <section class="ct-home-section" aria-labelledby="ct_home_people">
-                <div class="ct-home-head"><h2 class="ct-home-h2" id="ct_home_people">Personas<small>${people.length}</small></h2></div>
+                <div class="ct-home-head">
+                    <h2 class="ct-home-h2" id="ct_home_people">Personas<small>${people.length}</small></h2>
+                    ${!state.query && people.length > PREVIEW_COUNT ? `<button type="button" class="ct-home-link" data-action="toggle-people">${state.showAllPeople ? 'Show fewer' : `Show all ${people.length}`}</button>` : ''}
+                </div>
                 <div class="ct-home-people">
-                    ${people.map(([file, name], i) => `
+                    ${visiblePeople.map(([file, name], i) => `
                         <button type="button" class="ct-home-card ct-home-person${context.userAvatar === file ? ' is-current' : ''}" style="--i:${i}" data-action="persona" data-file="${escapeHtml(file)}" aria-label="Edit persona ${escapeHtml(name)}">
                             <img src="${escapeHtml(thumb('persona', file))}" alt="" loading="lazy" width="36" height="36"><span>${escapeHtml(name)}</span>
                         </button>`).join('')}
@@ -462,9 +485,12 @@ function render() {
 
             ${groupList.length ? `
             <section class="ct-home-section" aria-labelledby="ct_home_groups">
-                <div class="ct-home-head"><h2 class="ct-home-h2" id="ct_home_groups">Groups<small>${groupList.length}</small></h2></div>
+                <div class="ct-home-head">
+                    <h2 class="ct-home-h2" id="ct_home_groups">Groups<small>${groupList.length}</small></h2>
+                    ${!state.query && groupList.length > PREVIEW_COUNT ? `<button type="button" class="ct-home-link" data-action="toggle-groups">${state.showAllGroups ? 'Show fewer' : `Show all ${groupList.length}`}</button>` : ''}
+                </div>
                 <div class="ct-home-people">
-                    ${groupList.map((group, i) => `
+                    ${visibleGroups.map((group, i) => `
                         <button type="button" class="ct-home-card ct-home-person" style="--i:${i}" data-action="group" data-id="${escapeHtml(group.id)}" aria-label="Open group ${escapeHtml(group.name)}">
                             <img src="${escapeHtml(group.avatar_url || (group.members?.[0] ? thumb('avatar', group.members[0]) : 'img/five.png'))}" alt="" loading="lazy" width="36" height="36"><span>${escapeHtml(group.name)}</span>
                         </button>`).join('')}
@@ -566,6 +592,8 @@ function bindHome(root) {
         else if (action === 'new-character') newCharacter();
         else if (action === 'toggle-chars') { state.showAllChars = !state.showAllChars; render(); }
         else if (action === 'toggle-lore') { state.showAllLore = !state.showAllLore; render(); }
+        else if (action === 'toggle-people') { state.showAllPeople = !state.showAllPeople; render(); }
+        else if (action === 'toggle-groups') { state.showAllGroups = !state.showAllGroups; render(); }
     });
     root.addEventListener('input', (event) => {
         const input = /** @type {HTMLInputElement} */ (event.target);
@@ -606,6 +634,7 @@ function setOpenState(open, { keepView = false } = {}) {
 }
 
 export async function openHome() {
+    globalThis.SillyBunnyClassicCardBrowser?.close?.();
     const root = ensureHomeRoot();
     // Close any open (unpinned) drawer so Home is not hidden behind it.
     for (const content of document.querySelectorAll('#top-settings-holder .drawer-content.openDrawer:not(.pinnedOpen)')) {
@@ -636,8 +665,9 @@ function init() {
     const markReady = () => {
         if (viewsReady) return;
         viewsReady = true;
-        // Panels SillyTavern reopens at start-up (pinned ones) stay hidden; the app starts on the chat.
-        setView('chat');
+        // Panels SillyTavern reopens at start-up (pinned ones) stay hidden; the app starts on the chat,
+        // unless Home or the Card Browser was already opened while the app was still loading.
+        setView(currentView === 'home' || currentView === 'ct-cards-button' ? currentView : 'chat');
     };
     const waitForApp = window.setInterval(() => {
         const context = ctx();

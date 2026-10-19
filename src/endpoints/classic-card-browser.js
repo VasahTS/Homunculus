@@ -360,6 +360,10 @@ router.get('/chub/search', handle(async (request) => {
     if (str(q.special_mode)) params.set('special_mode', str(q.special_mode));
     if (str(q.tags)) params.set('topics', str(q.tags));
     if (str(q.excludeTags)) params.set('excludetopics', str(q.excludeTags));
+    if (int(q.max_tokens, 0, 0, 1_000_000) > 0) params.set('max_tokens', String(int(q.max_tokens, 0, 0, 1_000_000)));
+    for (const flag of ['require_images', 'require_lore', 'require_expressions', 'require_alternate_greetings']) {
+        if (q[flag] === 'true') params.set(flag, 'true');
+    }
     return fetchJson(`${CHUB_API}/search?${params}`, { hosts: CHUB_HOSTS });
 }));
 
