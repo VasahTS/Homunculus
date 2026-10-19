@@ -147,6 +147,26 @@ body.ct-fx-glow input[type="checkbox"]:checked:not(.ct-switch) {
     box-shadow: 0 0 10px color-mix(in srgb, var(--ct-accent) 55%, transparent);
 }
 
+/* Watching eye: the Homunculus eye (Specimen home hero + sidebar logo) turns its gear and breathes. */
+.ct-eye-gear,
+.ct-eye-pupil {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+body.ct-fx-eye .ct-hero-eye .ct-eye-gear {
+    animation: ct-spin 60s linear infinite;
+}
+body.ct-fx-eye .ct-hero-eye .ct-eye-pupil {
+    animation: ct-dilate 6s ease-in-out infinite;
+}
+body.ct-fx-eye .ct-rail-logo .ct-eye-gear {
+    transition: transform 900ms var(--ct-ease-out);
+}
+body.ct-fx-eye .ct-rail-logo:hover .ct-eye-gear,
+body.ct-fx-eye .ct-rail-logo:focus-visible .ct-eye-gear {
+    transform: rotate(90deg);
+}
+
 /* "Reduzir movimento": keep the look, stop the travel. */
 @media (prefers-reduced-motion: reduce) {
     body.ct-rm #ct-fx-layer *,
@@ -155,11 +175,13 @@ body.ct-fx-glow input[type="checkbox"]:checked:not(.ct-switch) {
     body.ct-rm #chat .avatar::after,
     body.ct-rm .character_select,
     body.ct-rm :is(.character_select, .group_select, .bogus_folder_select, .ct-card, .ct-home-card)::after,
-    body.ct-rm .menu_button {
+    body.ct-rm .menu_button,
+    body.ct-rm :is(.ct-eye-gear, .ct-eye-pupil) {
         animation: none !important;
     }
 }
 
+@keyframes ct-dilate { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
 @keyframes ct-drift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(60px, 40px) scale(1.08); } 100% { transform: translate(-50px, -30px) scale(.94); } }
 @keyframes ct-twinkle { 0%, 100% { opacity: .12; } 50% { opacity: .95; } }
 @keyframes ct-floatup { from { transform: translateY(0); } to { transform: translateY(-70px); } }
@@ -569,6 +591,10 @@ body.ct-fx-glow #ct_personalize input.ct-switch:checked {
 .ct-d-blob { position: absolute; left: 2px; top: 2px; width: 40px; height: 40px; border-radius: 50%; filter: blur(9px); background: color-mix(in srgb, var(--ct-accent) 75%, transparent); animation: ct-drift2 5s ease-in-out infinite alternate; }
 .ct-d-blob2 { left: 26px; top: 12px; background: color-mix(in srgb, var(--ct-glow-2) 65%, transparent); animation-delay: -2s; }
 .ct-d-txt { position: absolute; left: 10px; right: 6px; top: 13px; font-style: italic; font-size: 13px; color: #F3EEDF; font-family: var(--ct-story-font, serif); animation: ct-blurloop 2.6s var(--ct-ease-out) infinite; }
+.ct-d-eye { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; color: var(--ct-accent); }
+.ct-d-gear, .ct-d-pupil { transform-box: fill-box; transform-origin: center; }
+.ct-d-gear { animation: ct-spin 6s linear infinite; }
+.ct-d-pupil { animation: ct-dilate 2s ease-in-out infinite; }
 .ct-d-btn { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 8px; background: var(--ct-accent); animation: ct-glowpulse 2.2s ease-in-out infinite; }
 @keyframes ct-wander { 0% { transform: translate(-8px, -6px); } 25% { transform: translate(32px, 0); } 50% { transform: translate(26px, 16px); } 75% { transform: translate(0, 18px); } 100% { transform: translate(-8px, -6px); } }
 @keyframes ct-sweep { 0% { transform: translateX(-130%); } 60%, 100% { transform: translateX(130%); } }

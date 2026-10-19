@@ -1,0 +1,84 @@
+{
+  "format": "classic-theme@1",
+  "id": "blood-ink",
+  "name": "Blood & Ink",
+  "description": "Blood red, ink black and bone: a specimen archive with a watching eye on Home.",
+  "author": "Daniel",
+  "version": "1.0.0",
+  "layout": "lanterna",
+  "home": "specimen",
+  "preview": {
+    "background": "#000000",
+    "text": "#D1C0A6",
+    "displayFont": "'Syne', 'Arial Black', sans-serif",
+    "colors": [
+      "#B81D23",
+      "#4A1F1F",
+      "#D1C0A6",
+      "#E2474C"
+    ],
+    "orb": false
+  },
+  "variables": {
+    "--SmartThemeBodyColor": "rgb(209, 192, 166)",
+    "--SmartThemeEmColor": "rgb(168, 154, 134)",
+    "--SmartThemeUnderlineColor": "rgb(226, 71, 76)",
+    "--SmartThemeQuoteColor": "rgb(226, 71, 76)",
+    "--SmartThemeBlurTintColor": "rgba(13, 8, 8, 0.98)",
+    "--SmartThemeChatTintColor": "rgba(0, 0, 0, 0.92)",
+    "--SmartThemeUserMesBlurTintColor": "rgba(22, 13, 13, 0.96)",
+    "--SmartThemeBotMesBlurTintColor": "rgba(0, 0, 0, 0.35)",
+    "--SmartThemeShadowColor": "rgba(0, 0, 0, 0.6)",
+    "--SmartThemeBorderColor": "rgba(74, 31, 31, 0.9)",
+    "--SmartThemeCheckboxBgColorR": "184",
+    "--SmartThemeCheckboxBgColorG": "29",
+    "--SmartThemeCheckboxBgColorB": "35",
+    "--mainFontFamily": "'IBM Plex Sans', 'Noto Sans', sans-serif",
+    "--ct-display-font": "'Syne', 'Arial Black', sans-serif",
+    "--ct-mono-font": "'IBM Plex Mono', ui-monospace, monospace",
+    "--ct-glow-2": "#D1C0A6",
+    "--ct-blood": "#B81D23",
+    "--ct-blood-text": "#E2474C",
+    "--ct-brick": "#4A1F1F",
+    "--ct-ink": "#000000",
+    "--ct-bone": "#D1C0A6",
+    "--ct-bone-muted": "#A89A86",
+    "--ct-surface-1": "#0D0808",
+    "--ct-surface-2": "#160D0D",
+    "--ct-line-dark": "#2E1717"
+  },
+  "fonts": [
+    { "family": "Syne", "src": "fonts/syne-latin-700-normal.woff2", "weight": "700", "style": "normal" },
+    { "family": "Syne", "src": "fonts/syne-latin-800-normal.woff2", "weight": "800", "style": "normal" },
+    { "family": "Spectral", "src": "fonts/spectral-latin-400-normal.woff2", "weight": "400", "style": "normal" },
+    { "family": "Spectral", "src": "fonts/spectral-latin-400-italic.woff2", "weight": "400", "style": "italic" },
+    { "family": "Spectral", "src": "fonts/spectral-latin-500-normal.woff2", "weight": "500", "style": "normal" },
+    { "family": "Spectral", "src": "fonts/spectral-latin-500-italic.woff2", "weight": "500", "style": "italic" },
+    { "family": "IBM Plex Sans", "src": "fonts/ibm-plex-sans-latin-400-normal.woff2", "weight": "400", "style": "normal" },
+    { "family": "IBM Plex Sans", "src": "fonts/ibm-plex-sans-latin-500-normal.woff2", "weight": "500", "style": "normal" },
+    { "family": "IBM Plex Sans", "src": "fonts/ibm-plex-sans-latin-600-normal.woff2", "weight": "600", "style": "normal" },
+    { "family": "IBM Plex Mono", "src": "fonts/ibm-plex-mono-latin-400-normal.woff2", "weight": "400", "style": "normal" },
+    { "family": "IBM Plex Mono", "src": "fonts/ibm-plex-mono-latin-500-normal.woff2", "weight": "500", "style": "normal" }
+  ],
+  "stylesheet": "theme.css",
+  "accents": [
+    "#E2474C",
+    "#B81D23",
+    "#D1C0A6",
+    "#C9A86A"
+  ],
+  "storyFonts": [
+    { "label": "Specimen", "value": "'Spectral', Georgia, serif" },
+    { "label": "Clinical", "value": "'IBM Plex Sans', 'Noto Sans', sans-serif" }
+  ],
+  "effects": {
+    "lantern": false,
+    "halo": true,
+    "shine": false,
+    "motes": false,
+    "aura": false,
+    "blur": true,
+    "glow": true,
+    "eye": true
+  }
+}

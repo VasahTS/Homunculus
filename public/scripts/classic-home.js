@@ -44,6 +44,14 @@ const TOOLS = Object.freeze([
 
 const PREVIEW_COUNT = 12;
 
+/* Specimen home (profile field "home": "specimen", e.g. Blood & Ink): body.ct-homestyle-specimen. */
+const SPECIMEN_CHARS = 6;
+const SPECIMEN_RECENT = 5;
+const SPECIMEN_LORE = 5;
+const EYE_GEAR = 'M41.35,30.29 L44.41,30.53 L44.41,33.47 L41.35,33.71 L40.56,36.11 L42.91,38.11 L41.18,40.49 L38.56,38.87 L36.51,40.36 L37.23,43.35 L34.44,44.26 L33.26,41.42 L30.74,41.42 L29.56,44.26 L26.77,43.35 L27.49,40.36 L25.44,38.87 L22.82,40.49 L21.09,38.11 L23.44,36.11 L22.65,33.71 L19.59,33.47 L19.59,30.53 L22.65,30.29 L23.44,27.89 L21.09,25.89 L22.82,23.51 L25.44,25.13 L27.49,23.64 L26.77,20.65 L29.56,19.74 L30.74,22.58 L33.26,22.58 L34.44,19.74 L37.23,20.65 L36.51,23.64 L38.56,25.13 L41.18,23.51 L42.91,25.89 L40.56,27.89 Z';
+const EYE_LID = 'M7,32 Q32,9 57,32 Q32,55 7,32 Z';
+const COUNT_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five'];
+
 const state = {
     open: false,
     query: '',
@@ -52,9 +60,14 @@ const state = {
     showAllPeople: false,
     showAllGroups: false,
     recent: [],
+    recentMax: 6,
+    showAllRecent: false,
     worlds: [],
     activeWorlds: [],
     personas: {},
+    personaDescriptions: {},
+    version: '',
+    toMoment: null,
 };
 
 function escapeHtml(value) {
@@ -321,19 +334,27 @@ async function loadData() {
     tasks.push(fetch('/api/chats/recent', {
         method: 'POST',
         headers: context?.getRequestHeaders?.() ?? { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max: 6 }),
+        body: JSON.stringify({ max: state.recentMax, metadata: isSpecimen() }),
         cache: 'no-cache',
     }).then(response => (response.ok ? response.json() : [])).catch(() => []));
     tasks.push(import('./world-info.js').then(module => ({
         names: Array.isArray(module.world_names) ? [...module.world_names] : [],
         active: Array.isArray(module.selected_world_info) ? [...module.selected_world_info] : [],
     })).catch(() => ({ names: [], active: [] })));
-    tasks.push(import('./power-user.js').then(module => ({ ...(module.power_user?.personas ?? {}) })).catch(() => ({})));
+    tasks.push(import('./power-user.js').then(module => ({
+        names: { ...(module.power_user?.personas ?? {}) },
+        descriptions: { ...(module.power_user?.persona_descriptions ?? {}) },
+    })).catch(() => ({ names: {}, descriptions: {} })));
+    if (!state.toMoment) {
+        tasks.push(import('./utils.js').then(module => { state.toMoment = module.timestampToMoment ?? null; }).catch(() => null));
+        tasks.push(import('../script.js').then(module => { state.version = String(module.displayVersion ?? ''); }).catch(() => null));
+    }
     const [recent, worlds, personas] = await Promise.all(tasks);
     state.recent = Array.isArray(recent) ? recent : [];
     state.worlds = worlds.names;
     state.activeWorlds = worlds.active;
-    state.personas = personas;
+    state.personas = personas.names;
+    state.personaDescriptions = personas.descriptions;
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -353,6 +374,11 @@ function render() {
     const root = document.getElementById('ct-home');
     const context = ctx();
     if (!root || !context) return;
+    root.classList.toggle('ct-home-specimen', isSpecimen());
+    if (isSpecimen()) {
+        renderSpecimen(root, context);
+        return;
+    }
 
     const characters = Array.isArray(context.characters) ? context.characters : [];
     const groups = Array.isArray(context.groups) ? context.groups : [];
@@ -513,6 +539,205 @@ function render() {
 }
 
 /* ------------------------------------------------------------------------------------------- */
+/* Specimen home                                                                                 */
+/* ------------------------------------------------------------------------------------------- */
+
+function isSpecimen() {
+    return document.body.classList.contains('ct-homestyle-specimen');
+}
+
+function eyeSvg(className, variant = 'badge') {
+    if (variant === 'hero') {
+        return `<svg class="${className}" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="${EYE_LID}" fill="none" stroke="var(--ct-brick, #4A1F1F)" stroke-width="0.6"/><path class="ct-eye-gear" d="${EYE_GEAR}" fill="none" stroke="var(--ct-blood, #B81D23)" stroke-width="0.35"/><circle cx="32" cy="32" r="6.2" fill="var(--ct-blood, #B81D23)"/><circle class="ct-eye-pupil" cx="32" cy="32" r="2.6" fill="var(--ct-ink, #000)"/></svg>`;
+    }
+    return `<svg class="${className}" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="2" y="2" width="60" height="60" rx="14" fill="var(--ct-blood, #B81D23)"/><path d="${EYE_LID}" fill="var(--ct-blood, #B81D23)" stroke="var(--ct-ink, #000)" stroke-width="3" stroke-linejoin="round"/><path class="ct-eye-gear" d="${EYE_GEAR}" fill="var(--ct-ink, #000)"/><circle cx="32" cy="32" r="6.2" fill="var(--ct-blood, #B81D23)"/><circle class="ct-eye-pupil" cx="32" cy="32" r="2.6" fill="var(--ct-ink, #000)"/></svg>`;
+}
+
+/** Sidebar logo (Lantern layout + specimen home). Hidden by CSS everywhere else. */
+function ensureRailLogo() {
+    const holder = document.getElementById('top-settings-holder');
+    if (!holder || document.getElementById('ct-rail-logo')) return;
+    const logo = document.createElement('button');
+    logo.type = 'button';
+    logo.id = 'ct-rail-logo';
+    logo.className = 'ct-rail-logo';
+    logo.title = 'Homunculus';
+    logo.setAttribute('aria-label', 'Homunculus: open Home');
+    logo.innerHTML = eyeSvg('ct-rail-logo-svg');
+    logo.addEventListener('click', () => { void openHome(); });
+    holder.prepend(logo);
+}
+
+function toRoman(value) {
+    let n = Math.max(0, Math.floor(value));
+    let out = '';
+    for (const [arabic, roman] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) {
+        while (n >= arabic) { out += roman; n -= arabic; }
+    }
+    return out;
+}
+
+/** "2 H", "3 D", "NOW"… from a chat's last message date. */
+function shortAgo(timestamp) {
+    let time = NaN;
+    try {
+        const moment = state.toMoment?.(timestamp);
+        time = moment?.isValid?.() ? moment.valueOf() : Date.parse(timestamp);
+    } catch {
+        time = Date.parse(timestamp);
+    }
+    if (!Number.isFinite(time)) return '';
+    const minutes = Math.max(0, Math.round((Date.now() - time) / 60000));
+    if (minutes < 1) return 'NOW';
+    if (minutes < 60) return `${minutes} MIN`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} H`;
+    const days = Math.round(hours / 24);
+    if (days < 7) return `${days} D`;
+    const weeks = Math.round(days / 7);
+    if (weeks < 9) return `${weeks} W`;
+    return new Date(time).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+}
+
+function specimenNumber(index) {
+    return `Nº ${String(index + 1).padStart(2, '0')}`;
+}
+
+function specimenCard(context, { character, index }) {
+    const sub = tagNames(context, character.avatar)[0] || character.data?.creator || '';
+    const img = context.getThumbnailUrl?.('avatar', character.avatar) ?? '';
+    return `
+        <button type="button" class="ct-sp-card" data-action="character" data-index="${index}" aria-label="Edit ${escapeHtml(character.name)}">
+            <span class="ct-sp-card-img"><img src="${escapeHtml(img)}" alt="" loading="lazy"><span class="ct-sp-card-n">${specimenNumber(index)}</span></span>
+            <span class="ct-sp-card-cap"><b>${escapeHtml(character.name)}</b>${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</span>
+        </button>`;
+}
+
+function renderSpecimen(root, context) {
+    const characters = Array.isArray(context.characters) ? context.characters : [];
+    const groups = Array.isArray(context.groups) ? context.groups : [];
+    const thumb = (type, file) => context.getThumbnailUrl?.(type, file) ?? '';
+
+    const allRecent = state.recent
+        .map(chat => ({ chat, character: characters.find(item => item.avatar === chat.avatar), group: groups.find(item => item.id === chat.group) }))
+        .filter(item => item.character || item.group);
+    const recent = state.showAllRecent ? allRecent : allRecent.slice(0, SPECIMEN_RECENT);
+    const breathing = Math.min(allRecent.length, SPECIMEN_RECENT);
+
+    const lede = breathing === 0
+        ? 'Nothing is breathing yet. Pick a character and cut something new open.'
+        : breathing === 1
+            ? 'One story is still breathing. Pick it up where you left it, or cut something new open.'
+            : `${COUNT_WORDS[breathing]} stories are still breathing. Pick one up where you left it, or cut something new open.`;
+    const version = (state.version.match(/v\d+(?:\.\d+)*/i)?.[0] ?? '').toUpperCase().replace(/^V/, 'v');
+    const kicker = ['PRIVATE BUILD', version, `${characters.length} SPECIMEN${characters.length === 1 ? '' : 'S'} ON FILE`].filter(Boolean).join(' · ');
+
+    const first = allRecent[0];
+    let continueBlock = '';
+    if (first) {
+        const name = first.character?.name ?? first.group?.name ?? '';
+        const img = first.character ? thumb('avatar', first.character.avatar) : (first.group?.avatar_url || 'img/five.png');
+        const chapters = Array.isArray(first.chat.chat_metadata?.classic_memory?.chapters) ? first.chat.chat_metadata.classic_memory.chapters.length : 0;
+        const ago = shortAgo(first.chat.last_mes);
+        const where = chapters ? `CHAPTER ${toRoman(chapters)}` : `${Number(first.chat.chat_items) || 0} MESSAGES`;
+        const when = ago ? (ago === 'NOW' ? 'LAST REPLY JUST NOW' : `LAST REPLY ${ago} AGO`) : '';
+        continueBlock = `
+            <button type="button" class="ct-sp-continue" data-action="recent" data-index="0">
+                <span class="ct-sp-continue-img"><img src="${escapeHtml(img)}" alt="" width="48" height="48"></span>
+                <span class="ct-sp-continue-text"><b>Continue · ${escapeHtml(name)}</b><small>${escapeHtml([where, when].filter(Boolean).join(' · '))}</small></span>
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>`;
+    }
+
+    const lorebooks = [...state.worlds].sort((a, b) => Number(state.activeWorlds.includes(b)) - Number(state.activeWorlds.includes(a)) || String(a).localeCompare(String(b)));
+    const linkedBy = (name) => characters.filter(character => character?.data?.extensions?.world === name).map(character => character.name);
+    const loreLabel = (name) => {
+        if (state.activeWorlds.includes(name)) return 'ACTIVE';
+        const linked = linkedBy(name);
+        if (linked.length) return `LINKED · ${String(linked[0]).toUpperCase()}${linked.length > 1 ? ` +${linked.length - 1}` : ''}`;
+        return 'LOREBOOK';
+    };
+
+    const personaFile = context.userAvatar;
+    const personaName = state.personas[personaFile] || context.name1 || '';
+    const personaDesc = plainSnippet(state.personaDescriptions[personaFile]?.description ?? '', 70);
+
+    const sortedChars = characters
+        .map((character, index) => ({ character, index }))
+        .filter(({ character }) => character?.avatar)
+        .sort((a, b) => Number(Boolean(b.character.fav)) - Number(Boolean(a.character.fav))
+            || (Number(b.character.date_last_chat) || 0) - (Number(a.character.date_last_chat) || 0)
+            || String(a.character.name).localeCompare(String(b.character.name)))
+        .slice(0, SPECIMEN_CHARS);
+
+    root.innerHTML = `
+        <div class="ct-sp">
+            <section class="ct-sp-hero">
+                ${eyeSvg('ct-hero-eye', 'hero')}
+                <div class="ct-sp-hero-in">
+                    <span class="ct-sp-kicker">${escapeHtml(kicker)}</span>
+                    <h1 class="ct-sp-title">Homun<wbr>culus</h1>
+                    <p class="ct-sp-lede">${escapeHtml(lede)}</p>
+                    <div class="ct-sp-ctas">
+                        ${continueBlock}
+                        <button type="button" class="ct-sp-ghost" data-action="archive">New chat</button>
+                        ${globalThis.HomunculusClassicCardBrowser ? '<button type="button" class="ct-sp-ghost" data-action="tool" data-open="HomunculusClassicCardBrowser"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i>Browse cards</button>' : ''}
+                    </div>
+                </div>
+            </section>
+
+            <div class="ct-sp-cols">
+                <section class="ct-sp-col-main" aria-labelledby="ct_sp_recent">
+                    <div class="ct-sp-head">
+                        <h2 class="ct-sp-h2" id="ct_sp_recent">Recent</h2>
+                        ${allRecent.length > SPECIMEN_RECENT || state.recentMax < 20 ? `<button type="button" class="ct-sp-link" data-action="more-recent">${state.showAllRecent ? 'Fewer chats' : 'All chats'}</button>` : ''}
+                    </div>
+                    ${recent.length ? recent.map(({ chat, character, group }, i) => `
+                        <button type="button" class="ct-sp-row" data-action="recent" data-index="${i}">
+                            <span class="ct-sp-row-n">${String(i + 1).padStart(2, '0')}</span>
+                            <span class="ct-sp-row-name">${escapeHtml(character?.name ?? group?.name)}</span>
+                            <span class="ct-sp-row-line">${escapeHtml(plainSnippet(chat.mes, 140))}</span>
+                            <span class="ct-sp-row-when">${escapeHtml(shortAgo(chat.last_mes))}</span>
+                        </button>`).join('') : '<p class="ct-sp-empty">No chats yet. Open a character to begin.</p>'}
+                </section>
+
+                <div class="ct-sp-col-side">
+                    <section aria-labelledby="ct_sp_lore">
+                        <div class="ct-sp-head">
+                            <h2 class="ct-sp-h2" id="ct_sp_lore">Lorebooks</h2>
+                            ${document.getElementById('WI-SP-button') ? '<button type="button" class="ct-sp-link" data-action="tool" data-drawer="WI-SP-button">All</button>' : ''}
+                        </div>
+                        ${lorebooks.length ? lorebooks.slice(0, SPECIMEN_LORE).map(name => `
+                            <button type="button" class="ct-sp-row ct-sp-lore" data-action="lorebook" data-name="${escapeHtml(name)}">
+                                <span class="ct-sp-lore-name">${escapeHtml(name)}</span>
+                                <span class="ct-sp-row-when">${escapeHtml(loreLabel(name))}</span>
+                            </button>`).join('') : '<p class="ct-sp-empty">No lorebooks yet.</p>'}
+                    </section>
+                    ${personaName ? `
+                    <section class="ct-sp-persona" aria-labelledby="ct_sp_persona">
+                        <h2 class="ct-sp-persona-h" id="ct_sp_persona">YOU ARE PLAYING AS</h2>
+                        <div class="ct-sp-persona-who">
+                            <img src="${escapeHtml(thumb('persona', personaFile))}" alt="" width="52" height="52">
+                            <span><b>${escapeHtml(personaName)}</b>${personaDesc ? `<small>${escapeHtml(personaDesc)}</small>` : ''}</span>
+                        </div>
+                        <button type="button" class="ct-sp-ghost ct-sp-ghost-bone" data-action="persona" data-file="${escapeHtml(personaFile)}">Switch persona</button>
+                    </section>` : ''}
+                </div>
+            </div>
+
+            <section class="ct-sp-chars" aria-labelledby="ct_sp_chars">
+                <div class="ct-sp-head">
+                    <h2 class="ct-sp-h2" id="ct_sp_chars">Characters</h2>
+                    <button type="button" class="ct-sp-link" data-action="archive">Open the archive</button>
+                </div>
+                ${sortedChars.length ? `<div class="ct-sp-grid">${sortedChars.map(item => specimenCard(context, item)).join('')}</div>` : '<p class="ct-sp-empty">No characters yet. Create or import one to get started.</p>'}
+            </section>
+        </div>`;
+
+    root._ctRecent = recent;
+}
+
+/* ------------------------------------------------------------------------------------------- */
 /* Actions                                                                                       */
 /* ------------------------------------------------------------------------------------------- */
 
@@ -572,6 +797,11 @@ async function openGroup(id) {
     openDrawer('rightNavHolder');
 }
 
+function openArchive() {
+    closeHome();
+    openDrawer('rightNavHolder');
+}
+
 function newCharacter() {
     closeHome();
     openDrawer('rightNavHolder');
@@ -590,6 +820,8 @@ function bindHome(root) {
         else if (action === 'group') void openGroup(target.dataset.id);
         else if (action === 'tool') { closeHome(); if (target.dataset.open) globalThis[target.dataset.open]?.open?.(); else openDrawer(target.dataset.drawer); }
         else if (action === 'new-character') newCharacter();
+        else if (action === 'archive') openArchive();
+        else if (action === 'more-recent') void toggleMoreRecent();
         else if (action === 'toggle-chars') { state.showAllChars = !state.showAllChars; render(); }
         else if (action === 'toggle-lore') { state.showAllLore = !state.showAllLore; render(); }
         else if (action === 'toggle-people') { state.showAllPeople = !state.showAllPeople; render(); }
@@ -605,6 +837,15 @@ function bindHome(root) {
         again?.focus();
         if (again && caret !== null) again.setSelectionRange(caret, caret);
     });
+}
+
+async function toggleMoreRecent() {
+    state.showAllRecent = !state.showAllRecent;
+    if (state.showAllRecent && state.recentMax < 20) {
+        state.recentMax = 20;
+        await loadData();
+    }
+    render();
 }
 
 function ensureHomeRoot() {
@@ -657,6 +898,7 @@ export function toggleHome() {
 
 function init() {
     ensureHomeButton();
+    ensureRailLogo();
     decorateRail();
     watchDrawers();
     bindDock();
@@ -698,7 +940,10 @@ function init() {
         if (/** @type {HTMLElement} */ (event.target).closest('.drawer-toggle')) closeHome();
     });
     document.addEventListener('ct:appearance-changed', () => {
-        if (state.open) render();
+        if (state.open) {
+            render();
+            if (isSpecimen()) void loadData().then(() => { if (state.open) render(); });
+        }
         requestAnimationFrame(() => setView(currentView));
     });
 }

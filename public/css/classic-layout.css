@@ -878,6 +878,449 @@ body.ct-fx-glow .ct-home-btn:not(.is-ghost) {
     100% { box-shadow: 0 0 0 0 transparent; }
 }
 
+/* ===================================== Specimen home ===================================== */
+/* Drawn by scripts/classic-home.js when the profile has "home": "specimen" (Blood & Ink).
+   Palette from the profile's variables, with the Blood & Ink values as fallbacks. */
+
+#ct-home.ct-home-specimen {
+    --sp-blood: var(--ct-blood, #B81D23);
+    --sp-blood-text: var(--ct-blood-text, #E2474C);
+    --sp-brick: var(--ct-brick, #4A1F1F);
+    --sp-ink: var(--ct-ink, #000000);
+    --sp-bone: var(--ct-bone, #D1C0A6);
+    --sp-muted: var(--ct-bone-muted, #A89A86);
+    --sp-s1: var(--ct-surface-1, #0D0808);
+    --sp-s2: var(--ct-surface-2, #160D0D);
+    --sp-line: var(--ct-line-dark, #2E1717);
+    --sp-display: var(--ct-display-font, var(--mainFontFamily));
+    --sp-mono: var(--ct-mono-font, ui-monospace, monospace);
+    --sp-story: var(--ct-story-font, Georgia, serif);
+    color: var(--sp-bone);
+    background-color: var(--sp-ink);
+    font-family: var(--mainFontFamily);
+}
+.ct-sp {
+    min-height: 100%;
+}
+.ct-sp button {
+    font: inherit;
+    color: inherit;
+    margin: 0;
+}
+.ct-sp :focus-visible {
+    outline: 2px solid var(--sp-bone);
+    outline-offset: 2px;
+}
+
+/* Hero */
+.ct-sp-hero {
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-height: 460px;
+    padding: 64px 64px 56px;
+    border-bottom: 1px solid var(--sp-line);
+}
+.ct-hero-eye {
+    position: absolute;
+    right: -120px;
+    top: -90px;
+    width: 680px;
+    height: 680px;
+    pointer-events: none;
+}
+.ct-sp-hero-in {
+    position: relative;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+.ct-sp-kicker,
+.ct-sp-row-n,
+.ct-sp-row-when,
+.ct-sp-card-n,
+.ct-sp-persona-h,
+.ct-sp-continue-text small {
+    font-family: var(--sp-mono);
+    font-size: 12px;
+    font-weight: 400;
+}
+.ct-sp-kicker {
+    letter-spacing: .18em;
+    color: var(--sp-blood-text);
+}
+.ct-sp-title {
+    margin: 0;
+    font-family: var(--sp-display);
+    font-weight: 800;
+    font-size: clamp(72px, 7.6vw, 116px);
+    line-height: .88;
+    letter-spacing: -.02em;
+    text-transform: uppercase;
+    color: var(--sp-bone);
+}
+.ct-sp-lede {
+    margin: 0;
+    max-width: 560px;
+    font-family: var(--sp-story);
+    font-size: 22px;
+    line-height: 1.5;
+}
+.ct-sp-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 6px;
+}
+.ct-sp-continue {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-height: 76px;
+    box-sizing: border-box;
+    padding: 14px 22px 14px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--sp-blood);
+    cursor: pointer;
+    text-align: left;
+    transition: filter 200ms ease, box-shadow 200ms ease;
+}
+.ct-sp-continue-img {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--sp-ink);
+}
+.ct-sp-continue-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.ct-sp-continue-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.ct-sp-continue-text b {
+    font-family: var(--sp-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.ct-sp-continue > i {
+    font-size: 20px;
+}
+.ct-sp-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 76px;
+    box-sizing: border-box;
+    padding: 0 20px;
+    border: 1px solid var(--sp-brick);
+    border-radius: 12px;
+    background: transparent;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    cursor: pointer;
+    transition: box-shadow 200ms ease;
+}
+.ct-sp-ghost i {
+    color: var(--sp-blood-text);
+}
+.ct-sp-ghost:hover {
+    box-shadow: inset 0 0 0 1px var(--sp-blood);
+}
+
+/* Columns */
+.ct-sp-cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    padding: 44px 64px 20px;
+}
+.ct-sp-col-main {
+    flex: 2 1 520px;
+    min-width: 0;
+}
+.ct-sp-col-side {
+    flex: 1 1 300px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+.ct-sp-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--sp-blood);
+}
+.ct-sp-h2 {
+    margin: 0;
+    font-family: var(--sp-display);
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--sp-bone);
+}
+.ct-sp-link {
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    font-size: 14px !important;
+    color: var(--sp-blood-text) !important;
+    cursor: pointer;
+}
+.ct-sp-link:hover {
+    color: var(--sp-bone) !important;
+}
+.ct-sp-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    padding: 16px 8px;
+    border: 0;
+    border-bottom: 1px solid var(--sp-line);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 200ms ease;
+}
+.ct-sp-row:hover {
+    background: var(--sp-s2);
+}
+.ct-sp-row-n {
+    flex: none;
+    color: var(--sp-blood-text);
+}
+.ct-sp-row-name {
+    flex: 0 0 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--sp-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.ct-sp-row-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--sp-story);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--sp-muted);
+}
+.ct-sp-row-when {
+    flex: none;
+    color: var(--sp-muted);
+}
+.ct-sp-lore {
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 8px;
+}
+.ct-sp-lore-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+}
+.ct-sp-empty {
+    margin: 18px 8px;
+    color: var(--sp-muted);
+}
+
+/* Persona */
+.ct-sp-persona {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    background: var(--sp-brick);
+}
+.ct-sp-persona-h {
+    margin: 0;
+    letter-spacing: .16em;
+    font-weight: 500;
+    color: var(--sp-bone);
+}
+.ct-sp-persona-who {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.ct-sp-persona-who img {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--sp-ink);
+}
+.ct-sp-persona-who span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.ct-sp-persona-who b {
+    font-family: var(--sp-display);
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+}
+.ct-sp-persona-who small {
+    font-size: 14px;
+}
+.ct-sp-ghost.ct-sp-ghost-bone {
+    align-self: flex-start;
+    min-height: 40px;
+    padding: 0 14px;
+    border-color: var(--sp-bone);
+    border-radius: 8px;
+    font-size: 14px !important;
+}
+
+/* Characters */
+.ct-sp-chars {
+    padding: 24px 64px 56px;
+}
+.ct-sp-chars .ct-sp-head {
+    margin-bottom: 24px;
+}
+.ct-sp-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+.ct-sp-card {
+    flex: 1 1 160px;
+    max-width: 220px;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--sp-line);
+    border-radius: 12px;
+    background: var(--sp-s1);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 250ms ease, box-shadow 250ms ease;
+}
+.ct-sp-card:hover {
+    transform: translateY(-6px);
+}
+.ct-sp-card-img {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 5;
+    background: var(--sp-brick);
+}
+.ct-sp-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.ct-sp-card-n {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, .72);
+    color: var(--sp-bone);
+}
+.ct-sp-card-cap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px 14px;
+}
+.ct-sp-card-cap b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--sp-display);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.ct-sp-card-cap small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--sp-muted);
+}
+
+/* Glow effect: red light on what you can open. */
+body.ct-fx-glow .ct-sp-continue:hover {
+    filter: brightness(1.12);
+    box-shadow: 0 0 36px -6px color-mix(in srgb, var(--sp-blood) 95%, transparent);
+}
+body.ct-fx-glow .ct-sp-card:hover {
+    box-shadow: 0 0 0 1px var(--sp-blood), 0 24px 50px -18px color-mix(in srgb, var(--sp-blood) 75%, transparent);
+}
+body:not(.ct-fx-glow) .ct-sp-continue:hover {
+    filter: brightness(1.1);
+}
+
+/* Sidebar logo: only in the Lantern layout with a specimen home. */
+.ct-rail-logo {
+    display: none;
+}
+@media (min-width: 1000px) {
+    body.ct-layout-lanterna.ct-homestyle-specimen #top-settings-holder > .ct-rail-logo {
+        order: -1;
+        display: block;
+        flex: none;
+        width: 48px;
+        height: 48px;
+        margin: 8px 0 18px;
+        padding: 0;
+        border: 0;
+        border-radius: 12px;
+        background: none;
+        cursor: pointer;
+    }
+    .ct-rail-logo-svg {
+        display: block;
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ct-sp-card,
+    .ct-sp-row,
+    .ct-sp-continue {
+        transition: none;
+    }
+    .ct-sp-card:hover {
+        transform: none;
+    }
+}
+
 /* ===================================== Characters page ===================================== */
 /* scripts/classic-editor.js adds body.ct-char-list / body.ct-char-edit and the editor frame. */
 

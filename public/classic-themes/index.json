@@ -2,8 +2,12 @@
   "generatedBy": "classic-ui/apply-classic.mjs",
   "themes": [
     {
+      "id": "blood-ink",
+      "v": "d9d5ede30b"
+    },
+    {
       "id": "classico",
-      "v": "f6012a4d38"
+      "v": "3de40eade5"
     },
     {
       "id": "lanterna-arcana",

@@ -114,6 +114,7 @@ classic-ui/TEMAS.md. Ideia: …"*. Descreva o clima (cores, época, sensação) 
 | `description` | não | Uma ou duas frases no cartão. |
 | `author`, `version` | não | Só informação. |
 | `layout` | não | Layout sugerido: `"classic"` (barra no topo) ou `"lanterna"` (barra lateral). O usuário pode trocar depois. Se ficar vazio, usa `"classic"`. |
+| `home` | não | Estilo da Home: `"default"` (a Home de sempre) ou `"specimen"` (a Home do Blood & Ink: título gigante, olho, Recent numerado, Lorebooks, persona e 6 personagens). Se ficar vazio, usa `"default"`. |
 | `preview` | não | Como o cartão do tema aparece na lista: cor de fundo, cor do "Aa", fonte do "Aa", até 5 bolinhas de cor e, com `orb: true`, uma lua brilhante com estrelas. |
 | `variables` | não | As cores e fontes do programa (seção 5). |
 | `fonts` | não | Fontes que vêm junto com o tema (seção 6). |
@@ -220,6 +221,7 @@ Os efeitos já existem no programa. O tema **só escolhe quais começam ligados*
 | `aura` | Aurora | Nuvens de cor se movendo atrás do chat |
 | `blur` | Blur-in | A mensagem nova aparece saindo de um desfoque |
 | `glow` | Glow | Contorno luminoso em botões, ícones e caixas marcadas |
+| `eye` | Watching eye | O olho da Home "specimen" gira a engrenagem devagar e a pupila "respira"; o logo da barra lateral gira ao passar o mouse |
 
 Os efeitos usam a cor de destaque (`accents`) e a `--ct-glow-2`. Para um efeito **novo** (por exemplo, folhas
 caindo) é preciso mexer no programa. Peça ao Claude e mostre a seção "Para o Claude".
@@ -287,6 +289,10 @@ Para um layout **novo**: acrescente `{ id, name, desc, available: true }` em `LA
 **Home** (`public/scripts/classic-home.js` + o final de `classic-layout.css`)
 
 Botão de casa (`#ct-home-button`, criado pelo JS dentro do `#top-settings-holder`, fora do bind de `.drawer-toggle` do SillyTavern). Abre `#ct-home`, uma camada fixa (z-index 2900, abaixo das gavetas) que esconde o `#sheld` enquanto está aberta. Os dados vêm de `getContext()` (characters, groups, tags), `world-info.js` (`world_names`, `selected_world_info`), `power-user.js` (`power_user.personas`) e `POST /api/chats/recent`. Os cliques usam as mesmas funções do SillyTavern: `selectCharacterById`, `openCharacterChat`, `openWorldInfoEditor`, `openGroupById`/`openGroupChat`. O efeito "crescer ao passar o mouse" é CSS (`.ct-home-char:hover`, `.ct-home-lorebook:hover`). A animação de entrada usa `animation-fill-mode: backwards`, para não travar o `transform` do hover.
+
+**Home "specimen"** (perfil Blood & Ink, `"home": "specimen"`)
+
+`normalizeProfile` aceita `home` (lista `HOME_STYLES` em `classic-themes.js`) e `resolve` põe `ct-homestyle-<id>` no `<body>`. Com essa classe, `classic-home.js` desenha `renderSpecimen()` em vez da Home normal (mesmas ações: `data-action` recent/character/lorebook/persona/tool, mais `archive` e `more-recent`). Com `metadata: true` no `/api/chats/recent`, o botão Continue mostra o capítulo (`chat_metadata.classic_memory.chapters`). O CSS fica em `classic-layout.css` (bloco "Specimen home", classes `.ct-sp-*`) e lê as cores das variáveis do perfil (`--ct-blood`, `--ct-blood-text`, `--ct-brick`, `--ct-bone`, `--ct-bone-muted`, `--ct-surface-1/2`, `--ct-line-dark`, `--ct-mono-font`), com os valores do Blood & Ink como reserva. O logo da barra lateral (`#ct-rail-logo`, criado por `ensureRailLogo()`) só aparece no layout Lantern com essa Home. O vermelho `#B81D23` é só cor de fundo: como texto em fundo escuro dá 2:1, então texto vermelho usa `--ct-blood-text` (`#E2474C`).
 
 **Testar**
 

@@ -28,8 +28,13 @@ export const EFFECTS = Object.freeze([
     { id: 'aura', name: 'Aurora', desc: 'Very soft clouds of color drift behind the chat.' },
     { id: 'blur', name: 'Blur-in', desc: 'New messages appear out of a light blur.' },
     { id: 'glow', name: 'Glow', desc: 'Buttons, open icons and checked boxes get a luminous outline.' },
+    { id: 'eye', name: 'Watching eye', desc: 'The eye on Home slowly turns its gear and breathes; the sidebar logo turns when you point at it.' },
 ]);
 const EFFECT_IDS = EFFECTS.map(effect => effect.id);
+
+/** Home page styles. "default" is the usual Home; others are drawn by scripts/classic-home.js
+    when the profile asks for them (body.ct-homestyle-<id>). */
+const HOME_STYLES = Object.freeze(['default', 'specimen']);
 
 /** Interface shells. The layout only rearranges SillyTavern's own panels (see css/classic-layout.css). */
 const LAYOUTS = Object.freeze([
@@ -145,6 +150,7 @@ export function normalizeProfile(raw, origin = {}) {
 
     const preview = raw.preview && typeof raw.preview === 'object' ? raw.preview : {};
     const layout = LAYOUTS.some(item => item.id === raw.layout) ? raw.layout : 'classic';
+    const home = HOME_STYLES.includes(raw.home) ? raw.home : 'default';
 
     return {
         format: FORMAT_PREFIX,
@@ -154,6 +160,7 @@ export function normalizeProfile(raw, origin = {}) {
         author: String(raw.author ?? '').slice(0, 60),
         version: String(raw.version ?? '1.0.0').slice(0, 20),
         layout,
+        home,
         preview: {
             background: isSafeColor(preview.background) ? preview.background : '#1b1b1e',
             text: isSafeColor(preview.text) ? preview.text : '#dcdcd2',
@@ -240,7 +247,7 @@ function resolve(profile, prefs, reduceMotion, layout = 'classic') {
     const fontsCss = profile.fonts.map(font => `@font-face{font-family:"${font.family}";src:url("${font.src}") format("woff2");font-weight:${font.weight};font-style:${font.style};font-display:swap;}`).join('\n');
     return {
         id: profile.id,
-        classes: [`ct-layout-${layout}`, `ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...effects.map(effectId => `ct-fx-${effectId}`), ...(reduceMotion ? ['ct-rm'] : [])],
+        classes: [`ct-layout-${layout}`, `ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...effects.map(effectId => `ct-fx-${effectId}`), ...(profile.home !== 'default' ? [`ct-homestyle-${profile.home}`] : []), ...(reduceMotion ? ['ct-rm'] : [])],
         variables,
         fontsCss,
         stylesheet: profile.stylesheet,
@@ -314,7 +321,7 @@ function applyResolved(resolved) {
     if (!body || !resolved) return;
 
     for (const cls of [...body.classList]) {
-        if (/^ct-(layout-|theme-|fx-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
+        if (/^ct-(layout-|theme-|fx-|homestyle-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
     }
     body.classList.add(...resolved.classes);
 
@@ -448,6 +455,7 @@ const DEMOS = {
     aura: '<span class="ct-d-blob"></span><span class="ct-d-blob ct-d-blob2"></span>',
     blur: '<span class="ct-d-txt">“Hello…”</span>',
     glow: '<span class="ct-d-btn"></span>',
+    eye: '<svg class="ct-d-eye" viewBox="0 0 64 64"><path d="M7,32 Q32,9 57,32 Q32,55 7,32 Z" fill="none" stroke="currentColor" stroke-width="3"/><path class="ct-d-gear" d="M44 30.5v3l-3.4.4-.8 2.3 2.2 2.6-1.8 2.4-2.9-1.7-2 1.5.7 3.3-2.8.9-1.3-3.1h-2.6l-1.3 3.1-2.8-.9.7-3.3-2-1.5-2.9 1.7-1.8-2.4 2.2-2.6-.8-2.3-3.4-.4v-3l3.4-.4.8-2.3-2.2-2.6 1.8-2.4 2.9 1.7 2-1.5-.7-3.3 2.8-.9 1.3 3.1h2.6l1.3-3.1 2.8.9-.7 3.3 2 1.5 2.9-1.7 1.8 2.4-2.2 2.6.8 2.3z" fill="currentColor"/><circle cx="32" cy="32" r="6.2" fill="#0B0C10"/><circle class="ct-d-pupil" cx="32" cy="32" r="2.6" fill="currentColor"/></svg>',
 };
 
 function renderPanel() {
@@ -559,6 +567,7 @@ async function exportActive() {
         author: profile.author,
         version: profile.version,
         layout: profile.layout,
+        home: profile.home,
         preview: profile.preview,
         variables: profile.variables,
         fonts: profile.fonts.map(font => ({ ...font, src: font.src.startsWith('/') ? new URL(font.src, location.origin).href : font.src })),

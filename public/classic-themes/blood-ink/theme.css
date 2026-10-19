@@ -1,0 +1,165 @@
+/* Blood & Ink: visual adjustments on top of the layouts.
+   Every rule starts with body.ct-theme-blood-ink so nothing leaks into other profiles.
+   Colors and fonts come from the variables in theme.json (--ct-blood, --ct-bone...).
+   Red #B81D23 is a fill color only: as text on black it is too dark to read, so red text
+   uses --ct-blood-text (#E2474C). */
+
+body.ct-theme-blood-ink {
+    background-color: var(--ct-ink);
+}
+
+body.ct-theme-blood-ink ::selection {
+    background: rgba(184, 29, 35, .45);
+    color: var(--ct-bone);
+}
+
+body.ct-theme-blood-ink * {
+    scrollbar-color: rgba(209, 192, 166, .2) transparent;
+}
+
+/* ---------------------------------------- Story ---------------------------------------- */
+
+body.ct-theme-blood-ink .mes_text {
+    font-family: var(--ct-story-font, var(--mainFontFamily));
+    font-size: calc(var(--mainFontSize) * 1.12);
+    line-height: 1.7;
+}
+body.ct-theme-blood-ink .mes .name_text {
+    font-family: var(--ct-display-font);
+    font-size: 1.05em;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+body.ct-theme-blood-ink .mes :is(.timestamp, .mesIDDisplay, .mes_timer, .tokenCounterDisplay) {
+    font-family: var(--ct-mono-font);
+    letter-spacing: .02em;
+}
+body.ct-theme-blood-ink #chat .mes {
+    border-radius: 12px;
+}
+body.ct-theme-blood-ink #chat .mes[is_user="true"] {
+    border: 1px solid var(--ct-brick);
+}
+body.ct-theme-blood-ink #chat .mes .avatar,
+body.ct-theme-blood-ink #chat .mes .avatar img {
+    border-radius: 8px;
+}
+
+/* Halo, in this theme: a blood ring around the square avatar of the latest reply. */
+body.ct-theme-blood-ink.ct-fx-halo #chat .mes.last_mes:not([is_user="true"]) .mesAvatarWrapper .avatar::before,
+body.ct-theme-blood-ink.ct-fx-halo #chat .mes.last_mes:not([is_user="true"]) .mesAvatarWrapper .avatar::after {
+    inset: -4px;
+    border-radius: 11px;
+    background: conic-gradient(from 0deg, var(--ct-blood), transparent 35%, var(--ct-blood-text) 60%, transparent 85%, var(--ct-blood));
+}
+
+/* ---------------------------------------- Composer ---------------------------------------- */
+
+body.ct-theme-blood-ink #send_form {
+    border: 1px solid var(--ct-brick);
+    border-radius: 14px;
+    background-color: var(--ct-surface-1);
+}
+body.ct-theme-blood-ink #send_textarea {
+    font-family: var(--ct-story-font, var(--mainFontFamily));
+}
+body.ct-theme-blood-ink #send_but {
+    color: var(--ct-bone);
+    background-color: var(--ct-blood);
+    border-radius: 10px;
+    opacity: 1;
+}
+
+/* ---------------------------------------- Surfaces ---------------------------------------- */
+
+body.ct-theme-blood-ink #top-bar {
+    background-color: var(--ct-surface-1);
+    box-shadow: inset 0 -1px 0 var(--ct-line-dark);
+}
+body.ct-theme-blood-ink .drawer-content {
+    background-color: var(--ct-surface-1);
+    border-color: var(--ct-line-dark);
+    border-radius: 14px;
+}
+body.ct-theme-blood-ink .drawer-content h3,
+body.ct-theme-blood-ink #rm_button_selected_ch h2 {
+    font-family: var(--ct-display-font);
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+body.ct-theme-blood-ink .drawer-content h3 {
+    font-size: 1.4em;
+}
+body.ct-theme-blood-ink .drawer-icon.openIcon {
+    color: var(--ct-accent);
+}
+body.ct-theme-blood-ink .menu_button {
+    border-radius: 10px;
+    border-color: var(--ct-brick);
+    background-color: var(--ct-surface-2);
+}
+body.ct-theme-blood-ink .menu_button:hover {
+    box-shadow: inset 0 0 0 1px var(--ct-blood);
+}
+body.ct-theme-blood-ink .text_pole,
+body.ct-theme-blood-ink textarea,
+body.ct-theme-blood-ink select {
+    border-radius: 10px;
+    border-color: var(--ct-brick);
+}
+body.ct-theme-blood-ink .character_select,
+body.ct-theme-blood-ink .group_select {
+    border-radius: 12px;
+}
+body.ct-theme-blood-ink .character_select .ch_name,
+body.ct-theme-blood-ink .group_select .ch_name {
+    font-family: var(--ct-display-font);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+/* ---------------------------------------- Lantern sidebar ---------------------------------------- */
+/* Red block on the page you are on; bone icon and label on top of it. */
+
+@media (min-width: 1000px) {
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder {
+        background-color: var(--ct-surface-1);
+        box-shadow: inset -1px 0 0 var(--ct-line-dark);
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #ct-rail-indicator {
+        left: 9px;
+        width: 72px;
+        height: 58px;
+        border-radius: 10px;
+        background-color: var(--ct-blood);
+        box-shadow: none;
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna.ct-fx-glow #ct-rail-indicator {
+        box-shadow: 0 0 22px -6px rgba(184, 29, 35, .9);
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer > .drawer-toggle,
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer > .ct-home-toggle {
+        width: 72px;
+        height: 58px;
+        margin: 0 auto;
+        border-radius: 10px;
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder .drawer-icon,
+    body.ct-theme-blood-ink.ct-layout-lanterna .ct-rail-label {
+        color: var(--ct-bone-muted);
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active .drawer-icon,
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active .ct-rail-label {
+        color: var(--ct-bone);
+        filter: none;
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active .ct-rail-label {
+        font-weight: 600;
+    }
+    body.ct-theme-blood-ink.ct-layout-lanterna #top-settings-holder > .drawer > :is(.drawer-toggle, .ct-home-toggle):hover {
+        background-color: #1E1111;
+    }
+}

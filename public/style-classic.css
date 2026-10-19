@@ -1,22 +1,22 @@
 @charset "UTF-8";
 
 @import url(css/spacing-system.css);
-@import url(css/classic--animations.css?v=fa8985184a);
-@import url(css/classic--popup.css?v=dc7da7a4ba);
-@import url(css/classic--promptmanager.css?v=082224f20e);
-@import url(css/classic--loader.css?v=d41788f841);
-@import url(css/classic--character-group-overlay.css?v=6b71296c47);
+@import url(css/classic--animations.css?v=147fe50fef);
+@import url(css/classic--popup.css?v=c5ee3c3f49);
+@import url(css/classic--promptmanager.css?v=077c574ede);
+@import url(css/classic--loader.css?v=6413edd0b3);
+@import url(css/classic--character-group-overlay.css?v=5b2159b8d3);
 @import url(css/file-form.css);
-@import url(css/classic--logprobs.css?v=29d54871e9);
+@import url(css/classic--logprobs.css?v=929f432369);
 @import url(css/accounts.css);
-@import url(css/classic--tags.css?v=4fda34915c);
-@import url(css/classic--scrollable-button.css?v=d323fdac72);
-@import url(css/classic--welcome.css?v=da33c17625);
+@import url(css/classic--tags.css?v=2a011daa14);
+@import url(css/classic--scrollable-button.css?v=305fbed45c);
+@import url(css/classic--welcome.css?v=2b19f16eea);
 @import url(css/data-maid.css);
 @import url(css/secrets.css);
-@import url(css/classic--backgrounds.css?v=71b583ac16);
-@import url(css/classic--chat-backups.css?v=43f2845fa3);
-@import url(css/classic--streaming-display.css?v=33bf60b170);
+@import url(css/classic--backgrounds.css?v=13c85cbe1e);
+@import url(css/classic--chat-backups.css?v=8ce8e9e597);
+@import url(css/classic--streaming-display.css?v=9ca6bf3b85);
 
 :root {
     interpolate-size: allow-keywords;
