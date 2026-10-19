@@ -1569,6 +1569,11 @@ export async function printCharacters(fullRefresh = false) {
 }
 
 function entityMatchesCharacterMenuView(entity) {
+    // Classic UI fork: there is no Characters/Groups switch in the classic interface, so the list shows
+    // characters and groups together, as in SillyTavern.
+    if (globalThis.HomunculusClassicUi) {
+        return true;
+    }
     if (characterMenuEntityView === 'groups') {
         return entity.type === 'group' || entity.type === 'tag';
     }
@@ -17203,7 +17208,9 @@ function initCharacterSearch() {
     });
 
     eventSource.on(event_types.APP_READY, () => {
-        const isVisible = accountStorage.getItem(storageKey) === 'true';
+        // Classic UI fork: the search bar is shown unless the user hid it (SillyTavern always shows it).
+        const stored = accountStorage.getItem(storageKey);
+        const isVisible = globalThis.HomunculusClassicUi ? stored !== 'false' : stored === 'true';
         searchForm.toggle(isVisible);
         searchButton.toggleClass('active', isVisible);
     });

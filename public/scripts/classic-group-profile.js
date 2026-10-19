@@ -56,7 +56,15 @@ const strList = value => (Array.isArray(value) ? [...new Set(value.map(String).f
  * @param {any} group
  */
 export function getProfile(group) {
-    const raw = group?.[PROFILE_KEY] && typeof group[PROFILE_KEY] === 'object' ? group[PROFILE_KEY] : {};
+    return normalizeProfile(group?.[PROFILE_KEY]);
+}
+
+/**
+ * A profile object in the full shape (also used for a group that is not created yet).
+ * @param {any} value
+ */
+export function normalizeProfile(value) {
+    const raw = value && typeof value === 'object' ? value : {};
     const agents = raw.agents && typeof raw.agents === 'object' ? raw.agents : {};
     const mode = Object.values(AGENT_MODES).includes(agents.mode) ? agents.mode : AGENT_MODES.KEEP;
     return {
@@ -145,7 +153,17 @@ export function getAgentOverride() {
 export function setAgentChoice(groupId, agentId, enabled, usual = false) {
     const group = findGroup(groupId);
     if (!group || !agentId) return false;
-    const profile = getProfile(group);
+    group[PROFILE_KEY] = applyAgentChoice(getProfile(group), agentId, enabled, usual);
+    void editGroup(group.id, false, false);
+    notify();
+    return true;
+}
+
+/**
+ * The profile with one agent's choice recorded (does not save anything).
+ * @param {ReturnType<typeof normalizeProfile>} profile
+ */
+export function applyAgentChoice(profile, agentId, enabled, usual = false) {
     const on = new Set(profile.agents.on);
     const off = new Set(profile.agents.off);
     on.delete(agentId);
@@ -155,10 +173,13 @@ export function setAgentChoice(groupId, agentId, enabled, usual = false) {
     } else if (enabled !== Boolean(usual)) {
         (enabled ? on : off).add(agentId);
     }
-    group[PROFILE_KEY] = { ...profile, agents: { ...profile.agents, on: [...on], off: [...off] } };
-    void editGroup(group.id, false, false);
-    notify();
-    return true;
+    return { ...profile, agents: { ...profile.agents, on: [...on], off: [...off] } };
+}
+
+/** Groups just made in the Group Studio enter group mode without asking the first time. */
+const enterWithoutAsking = new Set();
+export function skipAskOnce(groupId) {
+    if (groupId) enterWithoutAsking.add(String(groupId));
 }
 
 /** Lorebooks the open group adds to the scan (only ones that exist). */
@@ -395,7 +416,8 @@ async function sync({ force = false } = {}) {
     const profile = getProfile(group);
     const presetChanges = Boolean(profile.preset && presetExists(profile.preset) && profile.preset !== currentPresetName());
     const dirty = presetChanges && isPresetDirty();
-    if (!changes.length || (!shouldAsk(groupId) && !dirty && !force)) {
+    const justCreated = enterWithoutAsking.delete(groupId);
+    if (!changes.length || ((justCreated || !shouldAsk(groupId)) && !dirty && !force)) {
         await enter(group);
         return;
     }
@@ -487,6 +509,8 @@ init();
 
 globalThis.HomunculusGroupProfile = {
     getProfile,
+    normalizeProfile,
+    skipAskOnce,
     saveProfile,
     getAgentOverride,
     setAgentChoice,

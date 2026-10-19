@@ -1266,6 +1266,101 @@ body.ct-fx-reduced .ct-cb-tile { animation: none; }
 }
 .ct-gs-avatars img:first-child { margin-left: 0; }
 .ct-gs-open-chat { flex: none; }
+#ct-group-studio .drawer-icon { font-size: var(--topBarIconSize, 1.4em); }
+.ct-gs-head-actions { display: flex; gap: 8px; flex: none; }
+.ct-gs-shell {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 18px;
+}
+.ct-gs-side {
+    flex: 0 0 250px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+    overflow: auto;
+}
+.ct-gs-new { width: 100%; }
+.ct-gs-group-list { display: flex; flex-direction: column; gap: 4px; }
+.ct-gs-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--cf-surface);
+    color: var(--cf-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.ct-gs-group:hover { border-color: var(--cf-line); }
+.ct-gs-group.is-on { border-color: color-mix(in srgb, var(--cf-accent) 55%, transparent); background: color-mix(in srgb, var(--cf-accent) 10%, transparent); }
+.ct-gs-group-faces { display: flex; flex: none; }
+.ct-gs-group-faces img { width: 28px; height: 28px; margin-left: -8px; border-radius: 50%; border: 2px solid var(--cf-solid); object-fit: cover; }
+.ct-gs-group-faces img:first-child { margin-left: 0; }
+.ct-gs-group-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ct-gs-group-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-gs-group-meta { color: var(--cf-muted); font-size: .8em; }
+.ct-gs-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.ct-gs-footer:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: var(--cf-radius);
+    border: 1px solid color-mix(in srgb, var(--cf-accent) 45%, transparent);
+    background: color-mix(in srgb, var(--cf-accent) 8%, transparent);
+}
+.ct-gs-col { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.ct-gs-member-list, .ct-gs-candidates { display: flex; flex-direction: column; gap: 4px; }
+.ct-gs-candidates { max-height: 280px; overflow: auto; }
+.ct-gs-member, .ct-gs-candidate {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: var(--cf-surface);
+}
+.ct-gs-member.is-muted { opacity: .65; }
+.ct-gs-candidate {
+    width: 100%;
+    margin: 0;
+    border: 1px solid transparent;
+    color: var(--cf-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.ct-gs-candidate:hover { border-color: color-mix(in srgb, var(--cf-accent) 45%, transparent); }
+.ct-gs-avatar { width: 38px; height: 38px; flex: none; border-radius: 50%; object-fit: cover; background: var(--cf-surface-2); }
+.ct-gs-member-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ct-gs-member-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-gs-member-meta { color: rgb(240 163 94); font-size: .8em; }
+.ct-gs-add { flex: none; color: var(--cf-accent); font-size: .88em; font-weight: 600; }
+.ct-gs-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--cf-line);
+    background: var(--cf-surface);
+    color: var(--cf-text);
+    cursor: pointer;
+}
+.ct-gs-icon:hover:not(:disabled) { border-color: color-mix(in srgb, var(--cf-accent) 45%, var(--cf-line)); }
+.ct-gs-icon:disabled { opacity: .35; cursor: default; }
+.ct-gs-icon.is-warn { color: rgb(240 163 94); }
 .ct-gs-body {
     flex: 1;
     min-height: 0;
@@ -1277,7 +1372,7 @@ body.ct-fx-reduced .ct-cb-tile { animation: none; }
     padding-bottom: 12px;
 }
 .ct-gs-card {
-    flex: 1 1 420px;
+    flex: 0 0 auto;
     min-width: 0;
     box-sizing: border-box;
     display: flex;
@@ -1288,7 +1383,6 @@ body.ct-fx-reduced .ct-cb-tile { animation: none; }
     border: 1px solid var(--cf-line);
     background: var(--cf-surface);
 }
-.ct-gs-agents { flex: 1.25 1 480px; }
 .ct-gs-title-row, .ct-gs-field-head { display: flex; align-items: center; gap: 8px; }
 .ct-gs-title { margin: 0; font-size: 1.1em; font-weight: 700; }
 h4.ct-gs-title { font-size: 1em; }
