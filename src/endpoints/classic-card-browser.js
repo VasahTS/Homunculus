@@ -747,14 +747,14 @@ async function getDatacatSession(force = false) {
 }
 
 /** @param {string} path @param {string} [site] pause key; downloads use "datacat:download" */
-async function datacatGet(path, site = 'datacat') {
+async function datacatGet(path, site = 'datacat', maxBytes = JSON_MAX_BYTES) {
     const headers = token => ({ Origin: DATACAT_API, Referer: `${DATACAT_API}/`, 'X-Session-Token': token });
     checkPaused(site);
     try {
-        return await fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, headers: headers(await getDatacatSession()) });
+        return await fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, maxBytes, headers: headers(await getDatacatSession()) });
     } catch (error) {
         if (error?.status !== 401) throw error;
-        return fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, headers: headers(await getDatacatSession(true)) });
+        return fetchJson(`${DATACAT_API}${path}`, { hosts: DATACAT_HOSTS, site, maxBytes, headers: headers(await getDatacatSession(true)) });
     }
 }
 
@@ -769,13 +769,39 @@ router.get('/datacat/recent', handle(async (request) => {
         minTotalTokens: String(int(q.min_tokens, 889, 0, 1_000_000)),
     });
     if (idList(q.tagIds)) params.set('tagIds', idList(q.tagIds));
+    if (idList(q.blockedTagIds)) params.set('blockedTagIds', idList(q.blockedTagIds));
+    if (int(q.max_tokens, 0, 0, 1_000_000) > 0) params.set('maxTotalTokens', String(int(q.max_tokens, 0, 0, 1_000_000)));
     if (str(q.q).trim()) params.set('search', str(q.q).trim());
     return datacatGet(`/api/characters/recent-public?${params}`);
 }));
 
 router.get('/datacat/fresh', handle(async () => datacatGet(`/api/characters/fresh?${new URLSearchParams({ summary: '1', sortBy: 'score', limit24: '80', limitWeek: '0' })}`)));
 
-router.get('/datacat/tags', handle(async () => datacatGet(`/api/tags/faceted?${new URLSearchParams({ mode: 'recent', minTotalTokens: '889' })}`)));
+// DataCat's full tag list is ~9 MB (100k+ tags), above the normal JSON cap. It is fetched with a larger
+// cap, shrunk to [id, name, count] rows sorted by popularity, and kept for an hour.
+const DATACAT_TAGS_MAX_BYTES = 32 * 1024 * 1024;
+const DATACAT_TAGS_TTL = 60 * 60 * 1000;
+let datacatTagCache = { at: 0, rows: /** @type {Array<[number, string, number]>} */ ([]) };
+let datacatTagLoad = null;
+
+router.get('/datacat/tags', handle(async () => {
+    if (!datacatTagCache.rows.length || Date.now() - datacatTagCache.at > DATACAT_TAGS_TTL) {
+        datacatTagLoad ??= (async () => {
+            const data = await datacatGet(`/api/tags/faceted?${new URLSearchParams({ mode: 'recent', minTotalTokens: '889' })}`, 'datacat', DATACAT_TAGS_MAX_BYTES);
+            const list = Array.isArray(data?.tags) ? data.tags : Array.isArray(data) ? data : [];
+            const rows = [];
+            for (const t of list) {
+                const id = Number(t?.id);
+                const name = String(t?.name || t?.slug || '').trim();
+                if (Number.isInteger(id) && name) rows.push([id, name.slice(0, 80), Number(t?.count) || 0]);
+            }
+            rows.sort((a, b) => b[2] - a[2]);
+            datacatTagCache = { at: Date.now(), rows };
+        })().finally(() => { datacatTagLoad = null; });
+        await datacatTagLoad;
+    }
+    return { rows: datacatTagCache.rows };
+}));
 
 router.get('/datacat/character/:id', handle(async (request) => datacatGet(`/api/characters/${encodeURIComponent(String(request.params.id || ''))}`)));
 

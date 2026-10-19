@@ -173,18 +173,16 @@ async function loadDatacatTags() {
     if (datacatTags.loaded) return;
     datacatTags.loading ??= (async () => {
         try {
+            // [id, name, count] rows, most used first (the server shrinks DataCat's ~9 MB list).
             const data = await api('/datacat/tags');
-            const rows = Array.isArray(data?.tags) ? data.tags : Array.isArray(data?.facets) ? data.facets : Array.isArray(data) ? data : [];
-            const sortable = [];
-            for (const t of rows) {
-                const id = Number(t?.id ?? t?.tag_id ?? t?.tagId);
-                const name = String(t?.name || t?.slug || '');
-                if (!Number.isFinite(id) || !name) continue;
-                datacatTags.byName.set(name.toLowerCase(), id);
+            const rows = Array.isArray(data?.rows) ? data.rows : [];
+            for (const [id, name] of rows) {
+                if (!Number.isInteger(id) || typeof name !== 'string' || !name) continue;
+                if (!datacatTags.byName.has(name.toLowerCase())) datacatTags.byName.set(name.toLowerCase(), id);
                 datacatTags.byId.set(id, name);
-                sortable.push({ name, count: Number(t?.count) || 0 });
             }
-            datacatTags.top = sortable.sort((a, b) => b.count - a.count).slice(0, 60).map(t => t.name);
+            // Like Marinara: the list shows the 150 most used tags; typing searches all of them.
+            datacatTags.top = rows.slice(0, 150).map(row => row[1]).filter(Boolean);
             datacatTags.loaded = true;
         } finally {
             datacatTags.loading = null;
@@ -427,10 +425,14 @@ const SOURCES = {
         defaultSort: 'relevance',
         nsfw: 'always',
         pageSize: 80,
+        filters: ['tokens'],
         async search(p) {
             await loadDatacatTags().catch(() => null);
-            const tagIds = p.include.map(t => datacatTags.byName.get(t.toLowerCase())).filter(id => typeof id === 'number');
-            const useFresh = p.sort === 'fresh' && !tagIds.length && !p.query.trim();
+            const toIds = names => names.map(t => datacatTags.byName.get(t.toLowerCase())).filter(id => typeof id === 'number');
+            const tagIds = toIds(p.include);
+            const blockedIds = toIds(p.exclude);
+            const tokens = p.filters.minTokens || p.filters.maxTokens;
+            const useFresh = p.sort === 'fresh' && !tagIds.length && !blockedIds.length && !tokens && !p.query.trim();
             let rows = [];
             let total = null;
             let hasMore = false;
@@ -442,6 +444,9 @@ const SOURCES = {
             } else {
                 const params = new URLSearchParams({ offset: String((p.page - 1) * 80) });
                 if (tagIds.length) params.set('tagIds', tagIds.join(','));
+                if (blockedIds.length) params.set('blockedTagIds', blockedIds.join(','));
+                if (p.filters.minTokens) params.set('min_tokens', String(p.filters.minTokens));
+                if (p.filters.maxTokens) params.set('max_tokens', String(p.filters.maxTokens));
                 if (p.query.trim()) params.set('q', p.query.trim());
                 const data = await api(`/datacat/recent?${params}`);
                 rows = Array.isArray(data?.characters) ? data.characters : [];
@@ -1291,7 +1296,11 @@ function tagNames() {
     const pool = [...state.include, ...state.exclude, ...(source.suggestedTags ?? []), ...[...state.seenTags.keys()]];
     if (state.source === 'datacat') pool.push(...datacatTags.top);
     const typed = state.tagInput.trim().toLowerCase();
-    if (typed && state.source === 'datacat') pool.push(...datacatTags.byId.values());
+    if (typed && state.source === 'datacat') {
+        for (const name of datacatTags.byId.values()) {
+            if (name.toLowerCase().includes(typed)) pool.push(name);
+        }
+    }
     const seen = new Map();
     for (const name of pool) {
         const clean = String(name ?? '').trim();
