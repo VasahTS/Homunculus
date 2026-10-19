@@ -6,11 +6,9 @@ import {
     doNewChat,
     event_types,
     eventSource,
-    getCharacters,
     getCurrentChatId,
     getRequestHeaders,
     getThumbnailUrl,
-    is_send_press,
     main_api,
     newAssistantChat,
     openCharacterChat,
@@ -23,7 +21,7 @@ import {
     system_avatar,
     this_chid,
 } from '../script.js';
-import { deleteGroupChatByName, getGroupAvatar, groups, is_group_generating, openGroupById, openGroupChat } from './group-chats.js';
+import { deleteGroupChatByName, getGroupAvatar, groups, openGroupById, openGroupChat } from './group-chats.js';
 import { deleteExtension, enableExtension, extension_settings, findExtension, getExtensionType, installExtension } from './extensions.js';
 import { t } from './i18n.js';
 import { getPresetManager } from './preset-manager.js';
@@ -41,9 +39,6 @@ const tutorialStatusKey = 'WelcomePage_TutorialStatus';
 const tutorialIndexKey = 'WelcomePage_TutorialIndex';
 const welcomeDeckViewKey = 'WelcomePage_DeckView';
 const welcomePanelModeKey = 'WelcomePage_PanelMode';
-const DEFAULT_BUNDLED_ASSISTANT_ID = 'guide';
-const bundledAssistantNahidaAvatarKey = 'bundledAssistantNahidaAvatar';
-const DEFAULT_NEUTRAL_ASSISTANT_NAME = 'Assistant';
 
 const AGENT_MESSAGE_EXTRA_KEY = 'inChatAgents';
 const AGENT_PROMPT_TRANSFORM_HISTORY_KEY = 'inChatAgentTransformHistory';
@@ -160,12 +155,10 @@ const WELCOME_TUTORIAL_STEPS = Object.freeze([
     {
         title: 'Customize your workspace',
         body: 'Congrats, you\'re done! If you wish to delve into all the functionality and customization that Homunculus can offer, please explore our UI from the top bar. A good starting point is Homunculus\'s vast extension ecosystem. For more information: check out the UI Handbook tab!',
-        hint: 'The world of AI creative writing is vast and seemingly neverending. We recommend asking our built-in assistants for more help if you\'re confused!',
+        hint: 'The world of AI creative writing is vast and seemingly neverending. Take your time and explore one menu at a time.',
         actions: Object.freeze([
             Object.freeze({ label: 'Open UI Handbook', type: 'open-deck-view', value: 'basics' }),
             Object.freeze({ label: 'Open Extensions', type: 'open-tab', value: 'right:extensions' }),
-            Object.freeze({ label: 'Open Assistant', type: 'open-assistant', assistantId: 'guide' }),
-            Object.freeze({ label: 'Open Assistant Nahida', type: 'open-assistant', assistantId: 'nahida' }),
         ]),
     },
 ]);
@@ -194,7 +187,7 @@ const WELCOME_GUIDE_CARDS = Object.freeze([
     },
     {
         title: 'Characters Menu',
-        body: 'Open the Characters button in the top bar when you want to access characters, edit personas, or create character cards. We have a few characters bundled for you to give you an idea of how to create them!',
+        body: 'Open the Characters button in the top bar when you want to access characters, edit personas, or create character cards. Seraphina comes bundled to give you an idea of how to create them!',
         icon: 'fa-solid fa-id-card',
         actions: Object.freeze([
             Object.freeze({ label: 'Open the Characters menu', type: 'open-characters-menu' }),
@@ -212,11 +205,11 @@ const WELCOME_GUIDE_CARDS = Object.freeze([
     },
     {
         title: 'Quick-access Buttons',
-        body: 'We have a few quick access buttons for your convenience in the home screen. Temporary Chat opens a quick burner chat. Open Assistant brings up one of our built-in assistants. Import Characters lets you bring in a character of your choosing.',
+        body: 'We have a few quick access buttons for your convenience in the home screen. Temporary Chat opens a quick burner chat. Open Assistant opens the character you set as your Welcome Page Assistant (character menu › Set / Unset as Welcome Page Assistant). Import Characters lets you bring in a character of your choosing.',
         icon: 'fa-hand-pointer',
         actions: Object.freeze([
             Object.freeze({ label: 'Temporary Chat', type: 'open-temporary-chat' }),
-            Object.freeze({ label: 'Open Assistant', type: 'open-assistant', assistantId: 'guide' }),
+            Object.freeze({ label: 'Open Assistant', type: 'open-assistant' }),
             Object.freeze({ label: 'Import Characters', type: 'open-import-characters' }),
         ]),
     },
@@ -231,68 +224,6 @@ const WELCOME_GUIDE_CARDS = Object.freeze([
     },
 ]);
 
-const WELCOME_BUNDLED_ASSISTANTS = Object.freeze([
-    Object.freeze({
-        id: 'guide',
-        avatarStorageKey: assistantAvatarKey,
-        identityStorageKey: 'bundledAssistantGuideAvatar',
-        deletedStorageKey: 'bundledAssistantGuideDeleted',
-        defaultAvatar: 'default_SillyBunnyGuide.png',
-        fileName: 'default_SillyBunnyGuide',
-        portrait: 'img/sillybunny-guide-assistant-portrait.png',
-        portraitAlt: 'Pixel-art bunny guide portrait',
-        characterName: DEFAULT_NEUTRAL_ASSISTANT_NAME,
-        title: 'Bunny Guide',
-        body: 'Our bundled bunny assistant. It can explain what an LLM is, what providers and models mean, how Homunculus differs from stock SillyTavern, and where presets, personas, and world info reside in the context of your RP or story.',
-        credit: 'Created by purachina.',
-        creator: 'purachina',
-        creatorNotes: 'Automatically created bundled Bunny Guide character. Feel free to edit.',
-        description: 'A calm built-in bunny assistant for explaining Homunculus, SillyTavern, model providers, presets, personas, and related basics in plain English.',
-        personality: 'Patient, beginner-friendly, calm, and practical.',
-        scenario: 'You are the built-in Bunny Guide for Homunculus. Help the user understand the interface, APIs, presets, prompt settings, personas, and world info in plain, approachable language.',
-        firstMessage: 'Hi. I\'m the Bunny Guide. If anything in Homunculus feels confusing, ask in plain English and I\'ll walk through it with you step by step.',
-        questions: Object.freeze([
-            'What is an LLM, in plain English?',
-            'What is a character card?',
-            'What does a preset actually change?',
-            'How is Homunculus different from base SillyTavern?',
-        ]),
-        actionLabel: 'Open Bunny Guide',
-        actionIcon: 'fa-user-graduate',
-        cardIcon: 'fa-user-graduate',
-    }),
-    Object.freeze({
-        id: 'nahida',
-        avatarStorageKey: bundledAssistantNahidaAvatarKey,
-        identityStorageKey: 'bundledAssistantNahidaIdentityAvatar',
-        deletedStorageKey: 'bundledAssistantNahidaDeleted',
-        defaultAvatar: 'default_AssistantNahida.png',
-        fileName: 'default_AssistantNahida',
-        cardAsset: 'img/assistant-nahida-portrait.png',
-        portrait: 'img/assistant-nahida-portrait.png',
-        portraitAlt: 'Assistant Nahida portrait',
-        characterName: 'Assistant Nahida',
-        title: 'Assistant Nahida',
-        body: 'Assistant Nahida is one of our bundled assistants: with a gentle, metaphor-laden demeanour for all kinds of queries. She has the same capabilities as our Bunny Assistant, but with a more philosophical lens.',
-        credit: 'Created by Geechan.',
-        creator: 'Geechan',
-        creatorNotes: 'Bundled with Homunculus. Created by Geechan. Feel free to edit.',
-        description: 'Assistant Nahida is one of our bundled Homunculus helpers. She can help explain prompts, token budgeting, presets, context setup, and workflow choices in calm, beginner-friendly language.',
-        personality: 'Patient, observant, encouraging, thoughtful, and concise.',
-        scenario: 'You are Assistant Nahida, a bundled helper for Homunculus. Guide the user through prompts, token budgeting, presets, reasoning settings, context size, and general workflow questions with calm clarity.',
-        firstMessage: 'Hello. I\'m Assistant Nahida, a bundled helper made by Geechan. If you want, we can sort out prompts, presets, context size, or any confusing settings together.',
-        questions: Object.freeze([
-            'Can you help me make sense of my current system prompt?',
-            'What should I tune first: model, preset, or prompt settings?',
-            'Do large language models feel emotions?',
-            'Are larger parameter models better for roleplaying?',
-        ]),
-        actionLabel: 'Open Assistant Nahida',
-        actionIcon: 'fa-leaf',
-        cardIcon: 'fa-book-open',
-    }),
-]);
-
 const WELCOME_DECK_VIEWS = Object.freeze([
     {
         id: 'tour',
@@ -305,12 +236,6 @@ const WELCOME_DECK_VIEWS = Object.freeze([
         title: 'UI Handbook',
         summary: 'A plain-English guide on our graphical shell.',
         icon: 'fa-compass-drafting',
-    },
-    {
-        id: 'guide',
-        title: 'Bundled Assistants',
-        summary: 'Two bundled helpers for plain-English setup help.',
-        icon: 'fa-user-graduate',
     },
     {
         id: 'starter',
@@ -538,159 +463,26 @@ class PinnedChatsManager {
     }
 }
 
-function getBundledAssistantConfig(assistantId = DEFAULT_BUNDLED_ASSISTANT_ID) {
-    return WELCOME_BUNDLED_ASSISTANTS.find(item => item.id === assistantId) ?? WELCOME_BUNDLED_ASSISTANTS[0];
-}
-
-function isBundledAssistantMarkedDeleted(config) {
-    return accountStorage.getItem(config.deletedStorageKey) === 'true';
-}
-
-function clearBundledAssistantDeleted(config) {
-    accountStorage.removeItem(config.deletedStorageKey);
-}
-
-function markBundledAssistantDeleted(config, deletedAvatar) {
-    accountStorage.setItem(config.deletedStorageKey, 'true');
-    const storedAvatar = accountStorage.getItem(config.avatarStorageKey);
-    if (!storedAvatar || storedAvatar === deletedAvatar) {
-        accountStorage.removeItem(config.avatarStorageKey);
-    }
-    const identityAvatar = accountStorage.getItem(config.identityStorageKey);
-    if (!identityAvatar || identityAvatar === deletedAvatar) {
-        accountStorage.removeItem(config.identityStorageKey);
-    }
-}
-
-function getBundledAssistantIdentityAvatar(config) {
-    return accountStorage.getItem(config.identityStorageKey) || config.defaultAvatar;
-}
-
-function setBundledAssistantIdentityAvatar(config, avatar) {
-    if (!avatar || avatar === config.defaultAvatar) {
-        accountStorage.removeItem(config.identityStorageKey);
-    } else {
-        accountStorage.setItem(config.identityStorageKey, avatar);
-    }
-
-    clearBundledAssistantDeleted(config);
-}
-
-function hasBundledAssistantFingerprint(config, character) {
-    const creator = typeof character?.creator === 'string' ? character.creator.toLowerCase() : '';
-    const creatorNotes = typeof character?.creator_notes === 'string' ? character.creator_notes.toLowerCase() : '';
-    const name = typeof character?.name === 'string' ? character.name.toLowerCase() : '';
-    const tags = Array.isArray(character?.tags) ? character.tags.map(tag => String(tag).toLowerCase()) : [];
-
-    return creatorNotes.includes('bundled')
-        || creatorNotes.includes(config.title.toLowerCase())
-        || (creator === String(config.creator).toLowerCase() && name === String(config.characterName).toLowerCase())
-        || (creator === String(config.creator).toLowerCase() && name === config.title.toLowerCase())
-        || tags.includes('bundled');
-}
-
-function isBundledAssistantCharacter(config, character) {
-    const avatar = typeof character?.avatar === 'string' ? character.avatar : '';
-    if (!avatar) {
-        return false;
-    }
-
-    const identityAvatar = getBundledAssistantIdentityAvatar(config);
-    const storedAvatar = accountStorage.getItem(config.avatarStorageKey);
-    return avatar === config.defaultAvatar
-        || avatar === identityAvatar
-        || (avatar === storedAvatar && hasBundledAssistantFingerprint(config, character));
-}
-
-function setBundledAssistantStoredAvatar(config, avatar) {
-    if (!avatar || avatar === config.defaultAvatar) {
-        accountStorage.removeItem(config.avatarStorageKey);
-        return;
-    }
-
-    accountStorage.setItem(config.avatarStorageKey, avatar);
-}
-
-function getBundledAssistantAvatar(config = getBundledAssistantConfig()) {
-    const assistantAvatar = accountStorage.getItem(config.avatarStorageKey);
-    if (assistantAvatar === null) {
-        return config.defaultAvatar;
-    }
-
-    const character = characters.find(x => x.avatar === assistantAvatar);
-    if (character === undefined) {
-        accountStorage.removeItem(config.avatarStorageKey);
-        return config.defaultAvatar;
-    }
-
-    return assistantAvatar;
-}
-
+// Homunculus: no assistants come bundled (the SillyBunny Bunny Guide and Assistant Nahida were
+// removed). Like SillyTavern, the Welcome Page Assistant is any character the user picks with
+// "Set / Unset as Welcome Page Assistant"; until then there is no assistant.
 export function getPermanentAssistantAvatar() {
-    return getBundledAssistantAvatar(getBundledAssistantConfig(DEFAULT_BUNDLED_ASSISTANT_ID));
+    return accountStorage.getItem(assistantAvatarKey) || '';
 }
 
 /**
- * Finds the permanent assistant character in the loaded character list.
- * Falls back to the default assistant avatar if a custom assistant pointer became stale.
- * @param {string} avatar Assistant avatar name
- * @returns {number} Character ID or -1 if not found
+ * Finds the user's Welcome Page Assistant in the loaded character list.
+ * @returns {{avatar: string, characterId: number} | null}
  */
-function findBundledAssistantCharacterId(config, avatar = getBundledAssistantAvatar(config)) {
-    const requestedCharacterId = characters.findIndex(x => x.avatar === avatar);
-    if (requestedCharacterId >= 0) {
-        return requestedCharacterId;
-    }
-
-    if (avatar !== config.defaultAvatar) {
-        const defaultCharacterId = characters.findIndex(x => x.avatar === config.defaultAvatar);
-        if (defaultCharacterId >= 0) {
-            accountStorage.removeItem(config.avatarStorageKey);
-            return defaultCharacterId;
-        }
-    }
-
-    return -1;
-}
-
-/**
- * Resolves the configured assistant to a loaded character, creating it on demand when needed.
- * @param {object} [options]
- * @param {boolean} [options.tryCreate=true] Whether a missing assistant should be created automatically.
- * @param {boolean} [options.created=false] Whether the current resolution came from a fresh create flow.
- * @param {boolean} [options.forceCreate=false] Whether to create even if the bundled assistant was deleted.
- * @returns {Promise<{avatar: string, characterId: number, created: boolean} | null>}
- */
-async function ensureBundledAssistantCharacter(config, { tryCreate = true, created = false, forceCreate = false } = {}) {
-    const avatar = getBundledAssistantAvatar(config);
-    const characterId = findBundledAssistantCharacterId(config, avatar);
-
-    if (characterId !== -1) {
-        if (avatar === config.defaultAvatar || avatar === getBundledAssistantIdentityAvatar(config)) {
-            clearBundledAssistantDeleted(config);
-        }
-        return { avatar, characterId, created };
-    }
-
-    if (!tryCreate) {
-        console.error(`Character not found for avatar ID: ${avatar}. Cannot create.`);
+function findPermanentAssistant() {
+    const avatar = getPermanentAssistantAvatar();
+    const characterId = avatar ? characters.findIndex(x => x.avatar === avatar) : -1;
+    if (characterId === -1) {
+        toastr.info(t`No Welcome Page Assistant is set. Open a character's menu and choose "Set / Unset as Welcome Page Assistant".`);
         return null;
     }
 
-    if (isBundledAssistantMarkedDeleted(config) && !forceCreate) {
-        console.info(`Bundled assistant "${config.id}" was deleted by the user. Skipping automatic recreation.`);
-        return null;
-    }
-
-    try {
-        console.log(`Character not found for avatar ID: ${avatar}. Creating new bundled assistant.`, config.id);
-        await createBundledAssistant(config);
-        return ensureBundledAssistantCharacter(config, { tryCreate: false, created: true, forceCreate });
-    } catch (error) {
-        console.error(`Error creating bundled assistant "${config.id}":`, error);
-        toastr.error(t`Failed to create ${config.characterName}. See console for details.`);
-        return null;
-    }
+    return { avatar, characterId };
 }
 
 function isWelcomeDeckView(view) {
@@ -758,22 +550,6 @@ function buildGuideCards() {
     return WELCOME_GUIDE_CARDS.map(card => ({
         ...card,
         actions: card.actions.map(action => ({ ...action })),
-    }));
-}
-
-function buildBundledAssistantCards() {
-    return WELCOME_BUNDLED_ASSISTANTS.map((assistant) => ({
-        id: assistant.id,
-        title: assistant.title,
-        body: assistant.body,
-        credit: assistant.credit,
-        portrait: assistant.portrait,
-        portraitAlt: assistant.portraitAlt,
-        actionLabel: assistant.actionLabel,
-        actionIcon: assistant.actionIcon,
-        cardIcon: assistant.cardIcon,
-        questions: [...assistant.questions],
-        hasQuestions: assistant.questions.length > 0,
     }));
 }
 
@@ -1091,13 +867,11 @@ function buildWelcomeTemplateData(chats) {
         deckTabs: buildDeckTabs(activeDeckView),
         deckTourActive: activeDeckView === 'tour',
         deckBasicsActive: activeDeckView === 'basics',
-        deckGuideActive: activeDeckView === 'guide',
         deckStarterActive: activeDeckView === 'starter',
         tutorialExpanded: tutorialStatus !== 'completed',
         tutorialIndex,
         tutorialSteps: buildTutorialSteps(tutorialIndex),
         guideCards: buildGuideCards(),
-        bundledAssistants: buildBundledAssistantCards(),
         starterPackItems: buildStarterPackItems(),
     };
 }
@@ -1589,7 +1363,6 @@ function dismissTutorial(panel, status) {
 async function handleWelcomeAction(button, sendTextArea) {
     const action = button.dataset.action || '';
     const value = button.dataset.actionValue || '';
-    const assistantId = button.dataset.assistantId || DEFAULT_BUNDLED_ASSISTANT_ID;
     const welcomePanel = button.closest('.welcomePanel') || document.querySelector('.welcomePanel');
     const tutorialPanel = button.closest('.welcomeTourPanel') || document.querySelector('.welcomeTourPanel');
 
@@ -1621,12 +1394,12 @@ async function handleWelcomeAction(button, sendTextArea) {
             break;
         case 'assistant-prompt':
             focusSendTextarea(sendTextArea);
-            await openBundledAssistantCard(assistantId);
+            await openPermanentAssistantCard();
             prefillSendTextarea(sendTextArea, value, { skipIOSFocus: true });
             break;
         case 'open-assistant':
             focusSendTextarea(sendTextArea);
-            await openBundledAssistantCard(assistantId);
+            await openPermanentAssistantCard();
             focusSendTextarea(sendTextArea, { skipIOS: true });
             break;
         case 'open-temporary-chat':
@@ -2533,133 +2306,31 @@ async function getRecentChats() {
     return finalizeRecentChats(mergedChats);
 }
 
-export async function openPermanentAssistantChat({ tryCreate = true, created = false } = {}) {
+export async function openPermanentAssistantChat() {
     try {
-        const assistantConfig = getBundledAssistantConfig(DEFAULT_BUNDLED_ASSISTANT_ID);
-        const assistant = await ensureBundledAssistantCharacter(assistantConfig, { tryCreate, created, forceCreate: tryCreate });
+        const assistant = findPermanentAssistant();
         if (!assistant) {
             return;
         }
 
         await refreshCharacterAvatarCache(assistant.avatar);
         await selectCharacterById(assistant.characterId);
-        if (!assistant.created) {
-            await doNewChat({ deleteCurrentChat: false });
-        }
-        console.log(`Opened bundled assistant chat for ${assistantConfig.characterName}.`, getCurrentChatId());
+        await doNewChat({ deleteCurrentChat: false });
+        console.log('Opened Welcome Page Assistant chat.', getCurrentChatId());
     } catch (error) {
         console.error('Error opening permanent assistant chat:', error);
         toastr.error(t`Failed to open permanent assistant chat. See console for details.`);
     }
 }
 
-async function createBundledAssistant(config) {
-    if (is_group_generating || is_send_press) {
-        throw new Error(t`Cannot create while generating.`);
-    }
-
-    if (config.cardAsset) {
-        const formData = new FormData();
-        formData.append('file_type', 'png');
-        formData.append('preserved_name', config.fileName);
-
-        const cardResponse = await fetch(config.cardAsset, { cache: 'no-store' });
-        if (!cardResponse.ok) {
-            throw new Error(`Failed to fetch bundled assistant card for "${config.id}".`);
-        }
-
-        const cardBlob = await cardResponse.blob();
-        formData.append('avatar', cardBlob, config.defaultAvatar);
-
-        const importResult = await fetch('/api/characters/import', {
-            method: 'POST',
-            headers: getRequestHeaders({ omitContentType: true }),
-            body: formData,
-            cache: 'no-cache',
-        });
-
-        if (!importResult.ok) {
-            throw new Error(t`Import request did not succeed.`);
-        }
-
-        const importPayload = await importResult.json();
-        if (importPayload?.error) {
-            throw new Error(`Assistant card import failed for "${config.id}".`);
-        }
-
-        const importedAvatar = typeof importPayload?.file_name === 'string' && importPayload.file_name.trim()
-            ? `${importPayload.file_name.trim()}.png`
-            : config.defaultAvatar;
-
-        await getCharacters();
-        const createdCharacterId = findBundledAssistantCharacterId(config, importedAvatar);
-
-        if (createdCharacterId === -1) {
-            throw new Error(`Assistant character ${importedAvatar} was not registered after import.`);
-        }
-
-        const resolvedAvatar = characters[createdCharacterId]?.avatar;
-        setBundledAssistantStoredAvatar(config, resolvedAvatar || '');
-        setBundledAssistantIdentityAvatar(config, resolvedAvatar || config.defaultAvatar);
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('ch_name', config.characterName);
-    formData.append('file_name', config.fileName);
-    formData.append('creator_notes', config.creatorNotes);
-    formData.append('description', config.description);
-    formData.append('personality', config.personality);
-    formData.append('scenario', config.scenario);
-    formData.append('first_mes', config.firstMessage);
-    formData.append('creator', config.creator);
-    formData.append('tags', [...(config.chips ?? []), 'assistant', 'bundled'].join(', '));
-
-    try {
-        const avatarResponse = await fetch(config.portrait);
-        const avatarBlob = await avatarResponse.blob();
-        formData.append('avatar', avatarBlob, config.defaultAvatar);
-    } catch (error) {
-        console.warn(`Error fetching bundled assistant portrait for "${config.id}". Fallback image will be used.`, error);
-    }
-
-    const fetchResult = await fetch('/api/characters/create', {
-        method: 'POST',
-        headers: getRequestHeaders({ omitContentType: true }),
-        body: formData,
-        cache: 'no-cache',
-    });
-
-    if (!fetchResult.ok) {
-        throw new Error(t`Creation request did not succeed.`);
-    }
-
-    const createdAvatar = (await fetchResult.text()).trim() || config.defaultAvatar;
-    await getCharacters();
-    const createdCharacterId = findBundledAssistantCharacterId(config, createdAvatar);
-
-    if (createdCharacterId === -1) {
-        throw new Error(`Assistant character ${createdAvatar} was not registered after creation.`);
-    }
-
-    const resolvedAvatar = characters[createdCharacterId]?.avatar;
-    setBundledAssistantStoredAvatar(config, resolvedAvatar || '');
-    setBundledAssistantIdentityAvatar(config, resolvedAvatar || config.defaultAvatar);
-}
-
-async function openBundledAssistantCard(assistantId = DEFAULT_BUNDLED_ASSISTANT_ID) {
-    const assistantConfig = getBundledAssistantConfig(assistantId);
-    const assistant = await ensureBundledAssistantCharacter(assistantConfig, { forceCreate: true });
+export async function openPermanentAssistantCard() {
+    const assistant = findPermanentAssistant();
     if (!assistant) {
         return;
     }
 
     await refreshCharacterAvatarCache(assistant.avatar);
     await selectCharacterById(assistant.characterId);
-}
-
-export async function openPermanentAssistantCard() {
-    await openBundledAssistantCard(DEFAULT_BUNDLED_ASSISTANT_ID);
 }
 
 /**
@@ -2678,13 +2349,9 @@ export function assignCharacterAsAssistant(characterId) {
 
     const currentAssistantAvatar = getPermanentAssistantAvatar();
     if (currentAssistantAvatar === character.avatar) {
-        if (character.avatar === getBundledAssistantConfig(DEFAULT_BUNDLED_ASSISTANT_ID).defaultAvatar) {
-            toastr.info(t`${character.name} is a system assistant. Choose another character.`);
-            return;
-        }
-
         toastr.info(t`${character.name} is no longer your assistant.`);
         accountStorage.removeItem(assistantAvatarKey);
+        printCharactersDebounced();
         return;
     }
 
@@ -2696,12 +2363,7 @@ export function assignCharacterAsAssistant(characterId) {
 export function initWelcomeScreen() {
     PinnedChatsManager.init();
 
-    // Ensure all bundled assistants exist in the character list on startup
     eventSource.on(event_types.APP_READY, async () => {
-        for (const assistant of WELCOME_BUNDLED_ASSISTANTS) {
-            await ensureBundledAssistantCharacter(assistant, { tryCreate: true });
-        }
-
         if (getCurrentChatId() === undefined && chat.length === 0) {
             await openWelcomeScreen({ force: true });
         }
@@ -2717,25 +2379,15 @@ export function initWelcomeScreen() {
     });
 
     eventSource.on(event_types.CHARACTER_RENAMED, (oldAvatar, newAvatar) => {
-        for (const assistant of WELCOME_BUNDLED_ASSISTANTS) {
-            const storedAvatar = accountStorage.getItem(assistant.avatarStorageKey);
-            const identityAvatar = getBundledAssistantIdentityAvatar(assistant);
-            if (identityAvatar === oldAvatar || assistant.defaultAvatar === oldAvatar) {
-                setBundledAssistantIdentityAvatar(assistant, newAvatar);
-            }
-
-            if (storedAvatar === oldAvatar || (!storedAvatar && assistant.defaultAvatar === oldAvatar)) {
-                setBundledAssistantStoredAvatar(assistant, newAvatar);
-            }
+        if (accountStorage.getItem(assistantAvatarKey) === oldAvatar) {
+            accountStorage.setItem(assistantAvatarKey, newAvatar);
         }
     });
 
     eventSource.on(event_types.CHARACTER_DELETED, (event) => {
-        const deletedCharacter = event?.character;
-        for (const assistant of WELCOME_BUNDLED_ASSISTANTS) {
-            if (isBundledAssistantCharacter(assistant, deletedCharacter)) {
-                markBundledAssistantDeleted(assistant, deletedCharacter?.avatar || '');
-            }
+        const deletedAvatar = event?.character?.avatar;
+        if (deletedAvatar && accountStorage.getItem(assistantAvatarKey) === deletedAvatar) {
+            accountStorage.removeItem(assistantAvatarKey);
         }
     });
 

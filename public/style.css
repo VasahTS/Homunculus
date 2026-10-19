@@ -1659,7 +1659,7 @@ body.hideAllSwipeButtons :is(.swipe_left, .swipe_right),
     box-shadow: 0 0 5px var(--black50a);
 }
 
-img[src*="sillybunny-pixel-logo"] {
+img[src*="homunculus-logo"] {
     object-fit: contain;
 }
 

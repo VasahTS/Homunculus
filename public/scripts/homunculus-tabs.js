@@ -205,13 +205,13 @@ const SB_FRONTEND_ICONS = Object.freeze([
         id: 'pixel',
         label: 'Pixel',
         description: 'Classic square icon.',
-        src: 'img/sillybunny-pixel-logo-og.png',
+        src: 'img/homunculus-logo.png',
     },
     {
         id: 'badge',
         label: 'Badge',
         description: 'Clean badge icon.',
-        src: 'img/sillybunny-badge.png',
+        src: 'img/homunculus-logo.png',
     },
 ]);
 const SB_ACCOUNT_STORAGE_READY_MARKER = '__migrated';

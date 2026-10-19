@@ -30,7 +30,6 @@ Com `git clone`, o `Start.bat` atualiza sozinho a partir deste repositório ao a
 - Arquivos próprios do Homunculus: `public/scripts/classic-*.js`, `public/css/classic*.css`, `public/classic-themes/`, `src/endpoints/classic-card-browser.js` e `classic-ui/`.
 - `classic-ui/apply-classic.mjs` liga essas peças no `public/index.html` e em alguns scripts; pode ser rodado de novo sem estragar nada.
 - `classic-ui/TEMAS.md` explica como criar perfis visuais.
-- O README original do SillyBunny está em `README-SillyBunny.md`.
 
 ## Créditos e licença
 

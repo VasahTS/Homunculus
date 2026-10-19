@@ -43,20 +43,6 @@
                         <span>Open the character menu to directly interact with your character cards in roleplay or conversation modes.</span>
                     </span>
                 </button>
-                <button class="menu_button menu_button_icon welcomeActionCard welcomeAssistantButton welcomeActionButton" data-action="open-assistant" data-assistant-id="guide">
-                    <i class="fa-solid fa-user-graduate"></i>
-                    <span class="welcomeActionMeta">
-                        <strong>Open Assistant</strong>
-                        <span>Chat with our built-in assistant for LLM setup, Homunculus tips/tricks, and plain-English queries.</span>
-                    </span>
-                </button>
-                <button class="menu_button menu_button_icon welcomeActionCard welcomeAssistantButton welcomeActionButton" data-action="open-assistant" data-assistant-id="nahida">
-                    <i class="fa-solid fa-leaf"></i>
-                    <span class="welcomeActionMeta">
-                        <strong>Open Assistant Nahida</strong>
-                        <span>Chat with Assistant Nahida, our alternative assistant, for a more gentle and philosophical lens!</span>
-                    </span>
-                </button>
                 <button class="menu_button menu_button_icon welcomeActionCard welcomeActionButton" data-action="open-tab" data-action-value="left:agents">
                     <i class="fa-solid fa-robot"></i>
                     <span class="welcomeActionMeta">
@@ -139,10 +125,6 @@
                         <h3>Homunculus in five easy steps</h3>
                         <p>If you're unsure what to do or how to get started, go through these five steps to get acquainted with our program.</p>
                     </div>
-                    <div class="welcomeGuideMascot">
-                        <img src="img/sillybunny-guide-bunny.png" alt="Pixel-art bunny guide" class="welcomeGuideMascotImage" width="256" height="256" loading="lazy" decoding="async">
-                        <div class="welcomeGuideBubble">Don't worry; we all start somewhere!</div>
-                    </div>
                 </div>
 
                 <div class="welcomeTourProgress" role="group" aria-label="Tutorial steps">
@@ -213,51 +195,6 @@
                                     </button>
                                 {{/each}}
                             </div>
-                        </article>
-                    {{/each}}
-                </div>
-            </div>
-
-            <div id="welcome-deck-panel-guide" class="welcomeDeckPanel welcomeAssistantGuidePanel{{#if deckGuideActive}} is-active{{/if}}" role="tabpanel" aria-labelledby="welcome-deck-tab-guide"{{#unless deckGuideActive}} hidden aria-hidden="true"{{/unless}} data-deck-panel="guide">
-                <div class="welcomeGuideHeader">
-                    <div class="welcomeGuideTitleBlock">
-                        <div class="welcomeHeroEyebrow">Bundled Assistants</div>
-                        <h3>Bunny Assistant + Assistant Nahida</h3>
-                        <p>We've bundled two assistants to help you out with further questions. Our Bunny Assistant covers plain-English queries, while Assistant Nahida (made by Geechan) answers queries layered with gentle wisdom and analogies.</p>
-                    </div>
-                </div>
-                <div class="welcomeBundledAssistantGrid">
-                    {{#each bundledAssistants}}
-                        <article class="welcomeGuideCard welcomeBundledAssistantCard">
-                            <div class="welcomeBundledAssistantHeader">
-                                <div class="welcomeAssistantGuideMedia">
-                                    <img src="{{portrait}}" alt="{{portraitAlt}}" class="welcomeAssistantGuideImage" width="256" height="256" loading="lazy" decoding="async">
-                                </div>
-                                <div class="welcomeBundledAssistantCopy">
-                                    <div class="welcomeGuideCardHeader">
-                                        <i class="fa-solid {{cardIcon}}"></i>
-                                        <strong>{{title}}</strong>
-                                    </div>
-                                    <p>{{body}}</p>
-                                    <span class="welcomeBundledAssistantCredit">{{credit}}</span>
-                                </div>
-                            </div>
-                            <div class="welcomePromptActions">
-                                <button class="menu_button menu_button_icon welcomeAssistantButton welcomeActionButton" data-action="open-assistant" data-assistant-id="{{id}}">
-                                    <i class="fa-solid {{actionIcon}}"></i>
-                                    <span>{{actionLabel}}</span>
-                                </button>
-                            </div>
-                            {{#if hasQuestions}}
-                                <div class="welcomeChipRow welcomeBundledAssistantQuestions">
-                                    {{#each questions}}
-                                        <button class="menu_button menu_button_icon welcomeQuestionChip welcomeActionButton" data-action="assistant-prompt" data-assistant-id="{{../id}}" data-action-value="{{this}}">
-                                            <i class="fa-solid fa-comment-medical"></i>
-                                            <span>{{this}}</span>
-                                        </button>
-                                    {{/each}}
-                                </div>
-                            {{/if}}
                         </article>
                     {{/each}}
                 </div>
