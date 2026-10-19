@@ -378,6 +378,10 @@
 body.ct-home-open #sheld {
     visibility: hidden;
 }
+/* Locked panels stay open underneath; hide them fully so no edge of them shows above Home / the Card Browser. */
+body:is(.ct-home-open, .ct-cb-open) #top-settings-holder .drawer-content.pinnedOpen {
+    visibility: hidden;
+}
 body.ct-home-open #ct-fx-layer,
 body.ct-cb-open #ct-fx-layer {
     z-index: 3011;

@@ -680,6 +680,19 @@ function init() {
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && state.open && !document.querySelector('.popup[open], dialog[open]')) closeHome();
     });
+    // Classic layout: a locked (pinned) panel stays open behind Home / the Card Browser. Clicking its icon
+    // there should bring it back, but SillyTavern's click would close it, so leave the page instead.
+    document.addEventListener('click', (event) => {
+        const toggle = /** @type {HTMLElement} */ (event.target)?.closest?.('#top-settings-holder > .drawer > .drawer-toggle');
+        if (!toggle || isLanternActive()) return;
+        const content = toggle.parentElement?.querySelector(':scope > .drawer-content');
+        const browserOpen = document.body.classList.contains('ct-cb-open');
+        if (!content?.classList.contains('pinnedOpen') || !isOpenContent(content) || !(state.open || browserOpen)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (browserOpen) globalThis.SillyBunnyClassicCardBrowser?.close?.();
+        closeHome();
+    }, true);
     // Opening any drawer from the top bar / sidebar while Home is up closes Home.
     document.getElementById('top-settings-holder')?.addEventListener('click', (event) => {
         if (/** @type {HTMLElement} */ (event.target).closest('.drawer-toggle')) closeHome();
