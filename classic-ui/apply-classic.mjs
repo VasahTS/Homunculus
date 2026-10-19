@@ -87,6 +87,15 @@ if (!hasFlag) {
     replace('head anchor', /([ \t]*)(<meta charset="utf-8">)/, '$1$2\n$1<script>globalThis.HomunculusClassicUi = true; /* Classic UI fork */</script>');
 }
 
+// 9c. Group and macro styles: Homunculus defers its own rm-groups.css/macros.css from script.js (patched
+// below to skip them); the classic interface links the SillyTavern-styled copies up front instead.
+for (const sheet of ['rm-groups', 'macros']) {
+    if (!html.includes(`css/classic--${sheet}.css`)) {
+        replace(`world-info anchor (${sheet})`, new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/classic--world-info\\.css${V}">)`),
+            `$1<link rel="stylesheet" type="text/css" href="css/classic--${sheet}.css">\n$1$2`);
+    }
+}
+
 // 9. Visual profiles ("temas"), effects and the Personalização drawer (scripts/classic-themes.js).
 // Checked one by one so installs that already have the classic interface also receive it.
 // 9a. Stylesheets and scripts of the visual layer, each added once, in this order.
@@ -201,6 +210,22 @@ const scriptPatches = [
         applied: 'globalThis.HomunculusClassicUi ? WELCOME_PANEL_MODES.compact',
     },
 ];
+
+// Homunculus loads rm-groups.css and macros.css a moment after startup. In the classic interface the
+// SillyTavern-styled copies are linked in index.html instead (step 9c), so the deferred loader skips them.
+scriptPatches.push({
+    file: 'public/script.js',
+    label: 'skip deferred group/macro stylesheets',
+    find: /^([ \t]*)for \(const stylesheet of DEFERRED_STARTUP_STYLESHEETS\) \{$/m,
+    replace: '$1for (const stylesheet of DEFERRED_STARTUP_STYLESHEETS.filter(s => !(globalThis.HomunculusClassicUi && CLASSIC_LINKED_STYLESHEETS.has(s.href)))) { // Classic UI fork: classic copies are linked in index.html',
+    applied: 'CLASSIC_LINKED_STYLESHEETS.has(s.href)',
+}, {
+    file: 'public/script.js',
+    label: 'classic linked stylesheets list',
+    find: /^(const DEFERRED_STARTUP_STYLESHEETS = Object\.freeze\(\[)$/m,
+    replace: "const CLASSIC_LINKED_STYLESHEETS = new Set(['css/rm-groups.css', 'css/macros.css']); // Classic UI fork: see apply-classic.mjs step 9c\n$1",
+    applied: 'const CLASSIC_LINKED_STYLESHEETS',
+});
 
 // Card Browser: server routes that search the card sites (src/endpoints/classic-card-browser.js).
 // Searching from the server avoids third-party CORS proxies: requests go straight to each site.

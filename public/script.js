@@ -380,6 +380,7 @@ import {
 } from './scripts/card-script-detection.js';
 import { configureCardScriptRuntime, initCardScriptRuntime } from './scripts/card-script-runtime.js';
 
+const CLASSIC_LINKED_STYLESHEETS = new Set(['css/rm-groups.css', 'css/macros.css']); // Classic UI fork: see apply-classic.mjs step 9c
 const DEFERRED_STARTUP_STYLESHEETS = Object.freeze([
     { href: 'css/bright.min.css', id: 'deferred-highlight-theme-css' },
     { href: 'css/cropper.min.css', id: 'deferred-cropper-css' },
@@ -1092,7 +1093,7 @@ function registerHomunculusServiceWorker() {
 
 function scheduleDeferredStartupStylesheets() {
     const loadStylesheets = () => {
-        for (const stylesheet of DEFERRED_STARTUP_STYLESHEETS) {
+        for (const stylesheet of DEFERRED_STARTUP_STYLESHEETS.filter(s => !(globalThis.HomunculusClassicUi && CLASSIC_LINKED_STYLESHEETS.has(s.href)))) { // Classic UI fork: classic copies are linked in index.html
             loadStylesheetAsync(stylesheet.href, { id: stylesheet.id }).catch(error => {
                 console.warn('Failed to load deferred stylesheet:', stylesheet.href, error);
             });
