@@ -460,8 +460,11 @@ function renderBar() {
     if (!chat) return;
     let bar = document.getElementById('ct-group-mode-bar');
     const group = selected_group ? findGroup(selected_group) : null;
-    const hasProfile = group && !profileIsEmpty(getProfile(group));
-    if (!hasProfile) {
+    const hasProfile = Boolean(group && !profileIsEmpty(getProfile(group)));
+    const campaignApi = globalThis.HomunculusGroupCampaign;
+    const campaign = group && campaignApi ? campaignApi.getCampaign(group) : null;
+    const hasCampaign = Boolean(campaign && campaignApi.hasCampaignTools(campaign));
+    if (!hasProfile && !hasCampaign) {
         bar?.remove();
         return;
     }
@@ -474,18 +477,28 @@ function renderBar() {
             if (action === 'edit') globalThis.HomunculusGroupStudio?.open?.(selected_group);
             if (action === 'leave') void leaveHere();
             if (action === 'enter') void enterHere();
+            if (action === 'world') void globalThis.HomunculusGroupCampaign?.openWorldPanel?.();
+            if (action === 'npcs') void globalThis.HomunculusGroupCampaign?.reviewPendingNpcs?.();
+            if (action === 'find-npcs') void globalThis.HomunculusGroupCampaign?.scanLastReply?.();
         });
     }
-    const active = isActive(group.id);
+    const active = hasProfile && isActive(group.id);
     bar.classList.toggle('is-active', active);
+    const pending = hasCampaign ? campaignApi.getPendingNpcs().length : 0;
+    const campaignButtons = !hasCampaign ? '' : [
+        campaign.mode === 'narrated' ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
+        campaign.world.enabled ? '<button type="button" class="menu_button ct-gm-toggle" data-gm-action="world"><i class="fa-solid fa-earth-europe"></i> World</button>' : '',
+        campaign.npc.mode !== 'off' ? `<button type="button" class="menu_button ct-gm-toggle${pending ? ' is-attention' : ''}" data-gm-action="${pending ? 'npcs' : 'find-npcs'}" title="${pending ? 'Keep or ignore the NPCs found' : 'Look for new named NPCs in the last reply'}"><i class="fa-solid fa-user-plus"></i> ${pending ? `NPCs (${pending})` : 'Find NPCs'}</button>` : '',
+    ].join('');
     bar.innerHTML = `
-        <span class="ct-gm-badge">${active ? 'GROUP MODE' : 'GROUP MODE OFF'}</span>
+        <span class="ct-gm-badge">${hasProfile ? (active ? 'GROUP MODE' : 'GROUP MODE OFF') : 'CAMPAIGN'}</span>
         <span class="ct-gm-name"></span>
         <span class="ct-gm-summary"></span>
-        <button type="button" class="ct-gm-link" data-gm-action="edit">Edit profile</button>
-        <button type="button" class="menu_button ct-gm-toggle" data-gm-action="${active ? 'leave' : 'enter'}">${active ? 'Leave group mode' : 'Enter group mode'}</button>`;
+        ${campaignButtons}
+        <button type="button" class="ct-gm-link" data-gm-action="edit">Group Studio</button>
+        ${hasProfile ? `<button type="button" class="menu_button ct-gm-toggle" data-gm-action="${active ? 'leave' : 'enter'}">${active ? 'Leave group mode' : 'Enter group mode'}</button>` : ''}`;
     bar.querySelector('.ct-gm-name').textContent = group.name;
-    bar.querySelector('.ct-gm-summary').textContent = active ? summary(group) : 'Your own settings are in use in this chat.';
+    bar.querySelector('.ct-gm-summary').textContent = !hasProfile ? '' : active ? summary(group) : 'Your own settings are in use in this chat.';
 }
 
 // ───────────────────────── Start ─────────────────────────
@@ -497,6 +510,7 @@ function init() {
         setTimeout(() => void queueTask(() => sync()), 0);
     });
     eventSource.on(event_types.GROUP_UPDATED, () => renderBar());
+    document.addEventListener('homunculus:group-campaign-changed', () => renderBar());
     // APP_READY also fires for listeners added after it happened.
     eventSource.on(event_types.APP_READY, () => {
         if (ready) return;
@@ -508,6 +522,7 @@ function init() {
 init();
 
 globalThis.HomunculusGroupProfile = {
+    refreshBar: () => renderBar(),
     getProfile,
     normalizeProfile,
     skipAskOnce,

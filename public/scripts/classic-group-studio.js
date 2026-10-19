@@ -30,6 +30,22 @@ import {
     shouldAsk,
     skipAskOnce,
 } from './classic-group-profile.js';
+import {
+    CAST_STATES,
+    INJECT,
+    NPC_MODES,
+    WORLD_MODULES,
+    castMembers,
+    connectionProfiles,
+    createBuiltinNarrator,
+    defaultSheet,
+    editCastSheet,
+    getCampaign,
+    narratorAvatar,
+    normalizeCampaign,
+    saveCampaign,
+    updateBuiltinNarrator,
+} from './classic-group-campaign.js';
 
 const VIEW_ID = 'ct-group-studio';
 
@@ -67,6 +83,39 @@ const HELP = {
 <li><b>Allow self responses</b>: a character may reply right after itself.</li>
 </ul>`,
 };
+
+HELP.mode = `<ul>
+<li><b>Ensemble</b>: a normal group chat. Each character replies in turn, with their own card.</li>
+<li><b>Narrated</b>: one <b>narrator</b> replies and voices everyone. The other members are the <b>cast</b>: they never reply on their own, and their sheets are given to the narrator instead of their whole cards.</li>
+</ul>
+<p>You can still make a cast member speak by hand with the member bar under the chat.</p>`;
+HELP.narrator = `<p>Who tells the story.</p>
+<ul>
+<li><b>Use one of my characters</b>: pick a narrator card you already have.</li>
+<li><b>Built-in narrator</b>: write how the narrator should tell the story. The Studio keeps a small card for it (named "Narrator (group name)") so you don't have to make one.</li>
+</ul>`;
+HELP.cast = `<ul>
+<li><b>In scene</b>: the whole sheet goes to the AI.</li>
+<li><b>Offscreen</b>: only one line goes, so the narrator knows they exist.</li>
+<li><b>Off</b>: nothing is sent.</li>
+</ul>
+<p><b>Sheet</b>: a clean version of the card without instructions, scenario or first message. Without one, the card's description and personality are used. The card itself is never changed.</p>`;
+HELP.placement = `<p>On: the cast sheets go into the prompt by themselves.</p>
+<p>Off: they only go where your preset writes <code>{{cast}}</code>, so you can place them yourself. The world state works the same way with <code>{{worldState}}</code>.</p>`;
+HELP.npc = `<p>Remembers named NPCs that show up in the story, so they come back the same way later.</p>
+<ul>
+<li>After each reply, a separate AI call reads only that reply. It notes someone only if they have a proper name and actually did or said something ("the innkeeper" doesn't count).</li>
+<li><b>Ask me</b>: what it finds waits in "NPCs" above the chat; you keep or ignore each one. <b>Automatic</b>: they are added right away.</li>
+<li>Each NPC becomes an entry in the campaign's NPC lorebook, keyed by name, so it only goes to the AI when the name comes up.</li>
+</ul>
+<p>The narrator is never told to look for NPCs. A cheap, fast connection profile is enough.</p>`;
+HELP.world = `<p>Keeps track of the world, only with the parts you switch on.</p>
+<ul>
+<li>After every few replies, a separate AI call updates it. Time is counted by the app (minutes / hours / days).</li>
+<li>It is saved in the message it came from, so swipes, deleting a message, regenerating and branches keep the right world.</li>
+<li>For each part, choose when it goes into the prompt: <b>Always</b>, <b>When relevant</b> (only when the latest messages talk about it) or <b>Panel only</b> (never sent, just for you).</li>
+<li>See and edit it with "World" above the chat.</li>
+</ul>`;
 
 const STRATEGIES = [[0, 'Natural order'], [1, 'List order'], [3, 'Pooled order'], [2, 'Manual']];
 const GEN_MODES = [[0, 'Swap: only the speaker\'s card'], [1, 'Join: every member\'s card'], [2, 'Join, include muted members']];
@@ -151,6 +200,7 @@ function emptyDraft() {
         members: [],
         disabled: [],
         profile: normalizeProfile(null),
+        campaign: normalizeCampaign(null),
         behavior: { activation_strategy: 0, generation_mode: 0, allow_self_responses: false },
     };
 }
@@ -181,6 +231,7 @@ function target() {
             members: Array.isArray(g.members) ? g.members : [],
             disabled: Array.isArray(g.disabled_members) ? g.disabled_members : [],
             profile: getProfile(g),
+            campaign: getCampaign(g),
             behavior: {
                 activation_strategy: Number(g.activation_strategy ?? 0),
                 generation_mode: Number(g.generation_mode ?? 0),
@@ -239,6 +290,84 @@ function setProfile(patch) {
         return;
     }
     void saveProfile(g.id, patch);
+}
+
+async function setCampaign(patch) {
+    const g = group();
+    if (!g) {
+        const current = state.draft.campaign;
+        state.draft.campaign = normalizeCampaign({
+            ...current,
+            ...patch,
+            narrator: { ...current.narrator, ...(patch.narrator ?? {}) },
+            npc: { ...current.npc, ...(patch.npc ?? {}) },
+            world: { ...current.world, ...(patch.world ?? {}) },
+        });
+        render();
+        return;
+    }
+    await saveCampaign(g.id, patch);
+    render();
+}
+
+/** Switches Ensemble / Narrated. Narrated sends only the narrator's card (Swap), so the old choice is kept. */
+async function setMode(mode) {
+    const t = target();
+    if (t.campaign.mode === mode) return;
+    const g = group();
+    if (g) {
+        if (mode === 'narrated') {
+            await saveCampaign(g.id, { mode, previousGenerationMode: Number(g.generation_mode ?? 0) });
+            g.generation_mode = 0;
+        } else {
+            g.generation_mode = t.campaign.previousGenerationMode ?? Number(g.generation_mode ?? 0);
+            await saveCampaign(g.id, { mode, previousGenerationMode: null });
+        }
+        await editGroup(g.id, true, false);
+        render();
+        return;
+    }
+    state.draft.behavior.generation_mode = 0;
+    await setCampaign({ mode });
+}
+
+/** Picks the narrator. The old narrator leaves the group; the new one goes first in the members. */
+async function setNarrator(patch) {
+    const t = target();
+    const before = narratorAvatar(t.campaign);
+    const next = normalizeCampaign({ ...t.campaign, narrator: { ...t.campaign.narrator, ...patch } });
+    const after = narratorAvatar(next);
+    let members = t.members.filter(avatar => avatar !== before || avatar === after);
+    if (after) members = [after, ...members.filter(avatar => avatar !== after)];
+    const g = group();
+    if (g) {
+        await saveCampaign(g.id, { narrator: next.narrator });
+    } else {
+        state.draft.campaign = next;
+    }
+    await setMembers(members, t.disabled);
+}
+
+async function saveBuiltinStyle(style) {
+    const t = target();
+    const g = group();
+    if (!g) {
+        state.draft.campaign = normalizeCampaign({ ...t.campaign, narrator: { ...t.campaign.narrator, style } });
+        return;
+    }
+    try {
+        let avatar = t.campaign.narrator.builtinAvatar;
+        if (avatar && characters.some(character => character.avatar === avatar)) {
+            await updateBuiltinNarrator(avatar, style);
+            await saveCampaign(g.id, { narrator: { style } });
+        } else {
+            avatar = await createBuiltinNarrator(g.name, style);
+            await setNarrator({ type: 'builtin', style, builtinAvatar: avatar });
+        }
+        toastr.success('Narrator saved.');
+    } catch (error) {
+        toastr.error(String(error?.message ?? error), 'Narrator');
+    }
 }
 
 function chooseAgent(agentId, enabled, usual) {
@@ -353,6 +482,26 @@ function renderGroupCard(t) {
     name.addEventListener(t.isNew ? 'input' : 'change', () => void setName(name.value));
     section.append(field('Name', '', name));
 
+    const modes = el('div', 'ct-gs-segment');
+    modes.setAttribute('role', 'group');
+    modes.setAttribute('aria-label', 'Group mode');
+    for (const [mode, label] of [['ensemble', 'Ensemble'], ['narrated', 'Narrated']]) {
+        const isOn = t.campaign.mode === mode;
+        const b = button(isOn ? 'is-on' : '', label, '', () => void setMode(mode));
+        b.setAttribute('aria-pressed', String(isOn));
+        modes.append(b);
+    }
+    const modeHead = el('div', 'ct-gs-field-head');
+    modeHead.append(el('span', 'ct-gs-label', 'Mode'), helpButton('Mode', HELP.mode));
+    section.append(modeHead, modes, el('p', 'ct-gs-note', t.campaign.mode === 'narrated'
+        ? 'One narrator replies and voices everyone. The other members are the cast.'
+        : 'Each character replies in turn, like a normal group chat.'));
+
+    if (t.campaign.mode === 'narrated') {
+        renderNarrated(section, t);
+        return section;
+    }
+
     section.append(titleRow('h4', `Members (${t.members.length})`, HELP.members));
     const members = el('div', 'ct-gs-member-list');
     t.members.forEach((avatar, index) => {
@@ -384,8 +533,13 @@ function renderGroupCard(t) {
     if (!t.members.length) members.append(el('p', 'ct-gs-note', 'No members yet. Add characters below.'));
     section.append(members);
 
+    appendCharacterPicker(section, t);
+    return section;
+}
+
+function appendCharacterPicker(section, t) {
     const addHead = el('div', 'ct-gs-field-head');
-    addHead.append(el('label', 'ct-gs-label', 'Add characters'), helpButton('Add characters', HELP.add));
+    addHead.append(el('label', 'ct-gs-label', t.campaign.mode === 'narrated' ? 'Add to the cast' : 'Add characters'), helpButton('Add characters', HELP.add));
     const search = el('input', 'text_pole ct-gs-search');
     search.id = 'ct-gs-char-search';
     search.type = 'search';
@@ -402,6 +556,7 @@ function renderGroupCard(t) {
             .sort((a, b) => String(a.name).localeCompare(String(b.name)));
         for (const character of pool.slice(0, 40)) {
             const row = button('ct-gs-candidate', '', `Add ${character.name}`, () => {
+                state.charSearch = '';
                 void setMembers([...t.members, character.avatar], t.disabled);
             });
             row.append(avatarImg(character.avatar), el('span', 'ct-gs-member-name', character.name), el('span', 'ct-gs-add', '+ Add'));
@@ -416,6 +571,207 @@ function renderGroupCard(t) {
     });
     section.append(addHead, search, results);
     fill();
+}
+
+function renderNarrated(section, t) {
+    const campaign = t.campaign;
+    const narrator = narratorAvatar(campaign);
+
+    section.append(titleRow('h4', 'Narrator', HELP.narrator));
+    const pickCard = el('label', `ct-gs-choice${campaign.narrator.type === 'card' ? ' is-on' : ''}`);
+    const cardRadio = el('input');
+    cardRadio.type = 'radio';
+    cardRadio.name = 'ct-gs-narrator';
+    cardRadio.checked = campaign.narrator.type === 'card';
+    cardRadio.addEventListener('change', () => void setNarrator({ type: 'card' }));
+    const cardBody = el('span', 'ct-gs-choice-body');
+    cardBody.append(el('span', 'ct-gs-label', 'Use one of my characters'));
+    const cardSelect = el('select', 'text_pole');
+    cardSelect.id = 'ct-gs-narrator-card';
+    cardSelect.append(option('', 'Pick a character…', !campaign.narrator.avatar));
+    for (const character of [...characters].sort((a, b) => String(a.name).localeCompare(String(b.name)))) {
+        cardSelect.append(option(character.avatar, character.name, character.avatar === campaign.narrator.avatar));
+    }
+    cardSelect.disabled = campaign.narrator.type !== 'card';
+    cardSelect.addEventListener('change', () => void setNarrator({ type: 'card', avatar: cardSelect.value }));
+    cardBody.append(cardSelect);
+    pickCard.append(cardRadio, cardBody);
+
+    const pickBuiltin = el('label', `ct-gs-choice${campaign.narrator.type === 'builtin' ? ' is-on' : ''}`);
+    const builtinRadio = el('input');
+    builtinRadio.type = 'radio';
+    builtinRadio.name = 'ct-gs-narrator';
+    builtinRadio.checked = campaign.narrator.type === 'builtin';
+    builtinRadio.addEventListener('change', () => void setNarrator({ type: 'builtin' }));
+    const builtinBody = el('span', 'ct-gs-choice-body');
+    builtinBody.append(el('span', 'ct-gs-label', 'Built-in narrator'), el('span', 'ct-gs-note', 'No card needed. Write how the narrator should tell the story.'));
+    const style = el('textarea', 'text_pole');
+    style.id = 'ct-gs-narrator-style';
+    style.rows = 4;
+    style.placeholder = 'e.g. Third person, past tense. Voice every character and NPC. Keep the world moving.';
+    style.value = campaign.narrator.style;
+    style.disabled = campaign.narrator.type !== 'builtin';
+    style.addEventListener('change', () => void saveBuiltinStyle(style.value));
+    builtinBody.append(style);
+    pickBuiltin.append(builtinRadio, builtinBody);
+    section.append(pickCard, pickBuiltin);
+    if (!narrator) {
+        section.append(el('p', 'ct-gs-warn', campaign.narrator.type === 'builtin'
+            ? (t.isNew ? 'The narrator card is made when you create the group.' : 'Write the style and click outside the box to make the narrator.')
+            : 'Pick the character who narrates. Until then, the group replies like Ensemble.'));
+    }
+
+    const placement = el('label', 'ct-gs-check');
+    const placementBox = el('input');
+    placementBox.type = 'checkbox';
+    placementBox.checked = campaign.castPlacement === 'prompt';
+    placementBox.addEventListener('change', () => void setCampaign({ castPlacement: placementBox.checked ? 'prompt' : 'macro' }));
+    placement.append(placementBox, el('span', '', 'Put the cast in the prompt automatically'));
+    const placementRow = el('div', 'ct-gs-field-head');
+    placementRow.append(placement, helpButton('Cast in the prompt', HELP.placement));
+    section.append(placementRow);
+
+    const cast = t.isNew ? t.members.filter(avatar => avatar !== narrator) : castMembers(group(), campaign);
+    section.append(titleRow('h4', `Cast (${cast.length})`, HELP.cast));
+    const list = el('div', 'ct-gs-member-list');
+    for (const avatar of cast) {
+        const entry = campaign.cast[avatar] ?? { state: CAST_STATES.SCENE, sheet: '', line: '' };
+        const who = characterName(avatar);
+        const row = el('div', `ct-gs-member ct-gs-cast${entry.state === CAST_STATES.OFF ? ' is-muted' : ''}`);
+        const text = el('span', 'ct-gs-member-text');
+        text.append(el('span', 'ct-gs-member-name', who));
+        text.append(el('span', entry.sheet ? 'ct-gs-sheet-ok' : 'ct-gs-sheet-none', entry.sheet ? 'Sheet ready' : (defaultSheet(avatar) ? 'Using card fields' : 'Empty card')));
+        const states = el('div', 'ct-gs-segment ct-gs-segment-small');
+        states.setAttribute('role', 'group');
+        states.setAttribute('aria-label', `Cast state for ${who}`);
+        for (const [value, label] of [[CAST_STATES.SCENE, 'In scene'], [CAST_STATES.OFFSCREEN, 'Offscreen'], [CAST_STATES.OFF, 'Off']]) {
+            const isOn = entry.state === value;
+            const b = button(isOn ? 'is-on' : '', label, '', () => void setCampaign({ cast: { ...campaign.cast, [avatar]: { ...entry, state: value } } }));
+            b.setAttribute('aria-pressed', String(isOn));
+            states.append(b);
+        }
+        const sheet = button('menu_button ct-gs-btn', entry.sheet ? 'Edit sheet' : 'Make sheet', `Cast sheet for ${who}`, async () => {
+            const result = await editCastSheet(avatar, entry);
+            if (result) await setCampaign({ cast: { ...campaign.cast, [avatar]: { ...entry, ...result } } });
+        });
+        const remove = button('ct-gs-icon', '<i class="fa-solid fa-xmark"></i>', `Remove ${who}`, () => {
+            void setMembers(t.members.filter(x => x !== avatar), t.disabled);
+        });
+        row.append(avatarImg(avatar), text, states, sheet, remove);
+        list.append(row);
+    }
+    if (!cast.length) list.append(el('p', 'ct-gs-note', 'No cast yet. Add characters below.'));
+    section.append(list);
+    appendCharacterPicker(section, t);
+}
+
+function profileSelect(id, value, onChange) {
+    const select = el('select', 'text_pole');
+    select.id = id;
+    select.append(option('', 'Current connection', !value));
+    for (const profile of connectionProfiles()) select.append(option(profile.id, profile.name, profile.id === value));
+    select.addEventListener('change', () => onChange(select.value));
+    return select;
+}
+
+function renderCampaignCard(t) {
+    const campaign = t.campaign;
+    const section = el('section', 'ct-gs-card');
+    section.append(titleRow('h3', 'Campaign tools', ''));
+    section.append(el('p', 'ct-gs-intro', 'Optional helpers that work in Ensemble and Narrated groups. Each one uses its own AI call after a reply.'));
+
+    // NPC Registry
+    section.append(titleRow('h4', 'NPC Registry', HELP.npc));
+    const npcModes = el('div', 'ct-gs-segment');
+    npcModes.setAttribute('role', 'group');
+    npcModes.setAttribute('aria-label', 'NPC Registry');
+    for (const [mode, label] of [[NPC_MODES.OFF, 'Off'], [NPC_MODES.ASK, 'Ask me'], [NPC_MODES.AUTO, 'Automatic']]) {
+        const isOn = campaign.npc.mode === mode;
+        const b = button(isOn ? 'is-on' : '', label, '', () => void setCampaign({ npc: { mode } }));
+        b.setAttribute('aria-pressed', String(isOn));
+        npcModes.append(b);
+    }
+    section.append(npcModes);
+    if (campaign.npc.mode !== NPC_MODES.OFF) {
+        const book = el('select', 'text_pole');
+        book.id = 'ct-gs-npc-book';
+        const groupName = (t.name || 'Group').trim();
+        book.append(option('', `Make one for me ("${groupName} - NPCs")`, !campaign.npc.lorebook));
+        for (const name of [...(world_names ?? [])].sort((a, b) => a.localeCompare(b))) book.append(option(name, name, name === campaign.npc.lorebook));
+        book.addEventListener('change', () => void setCampaign({ npc: { lorebook: book.value } }));
+        section.append(field('NPC lorebook', '', book, 'Only used while this group\'s chat is open.'));
+        section.append(field('Connection profile', '', profileSelect('ct-gs-npc-profile', campaign.npc.profileId, value => void setCampaign({ npc: { profileId: value } })), 'A cheap, fast model is enough.'));
+    }
+
+    // World state
+    const worldHead = el('div', 'ct-gs-title-row');
+    const worldToggle = el('label', 'ct-gs-check');
+    const worldBox = el('input');
+    worldBox.type = 'checkbox';
+    worldBox.checked = campaign.world.enabled;
+    worldBox.addEventListener('change', () => void setCampaign({ world: { enabled: worldBox.checked } }));
+    worldToggle.append(worldBox, el('span', 'ct-gs-title', 'World state'));
+    worldHead.append(worldToggle, helpButton('World state', HELP.world));
+    section.append(worldHead);
+    if (!campaign.world.enabled) return section;
+
+    section.append(field('Connection profile', '', profileSelect('ct-gs-world-profile', campaign.world.profileId, value => void setCampaign({ world: { profileId: value } })), 'A cheap, fast model is enough.'));
+    const every = el('input', 'text_pole ct-gs-number');
+    every.id = 'ct-gs-world-every';
+    every.type = 'number';
+    every.min = '1';
+    every.max = '20';
+    every.value = String(campaign.world.every);
+    every.addEventListener('change', () => void setCampaign({ world: { every: Number(every.value) } }));
+    section.append(field('Update every … replies', '', every));
+
+    const injectSelect = (value, onChange, label) => {
+        const select = el('select', 'text_pole ct-gs-inject');
+        select.setAttribute('aria-label', `When ${label} goes into the prompt`);
+        for (const [v, text] of [[INJECT.ALWAYS, 'Always'], [INJECT.RELEVANT, 'When relevant'], [INJECT.PANEL, 'Panel only']]) select.append(option(v, text, v === value));
+        select.addEventListener('change', () => onChange(select.value));
+        return select;
+    };
+    const modules = el('div', 'ct-gs-modules');
+    for (const module of WORLD_MODULES) {
+        const saved = campaign.world.modules[module.id];
+        const row = el('div', `ct-gs-module${saved.on ? ' is-on' : ''}`);
+        const toggle = el('label', 'ct-gs-check');
+        const box = el('input');
+        box.type = 'checkbox';
+        box.checked = saved.on;
+        box.addEventListener('change', () => void setCampaign({ world: { modules: { ...campaign.world.modules, [module.id]: { ...saved, on: box.checked } } } }));
+        toggle.append(box, el('span', '', module.label));
+        row.append(toggle);
+        if (saved.on) row.append(injectSelect(saved.inject, value => void setCampaign({ world: { modules: { ...campaign.world.modules, [module.id]: { ...saved, inject: value } } } }), module.label));
+        modules.append(row);
+    }
+    campaign.world.custom.forEach((custom, index) => {
+        const row = el('div', 'ct-gs-module is-on');
+        row.append(el('span', 'ct-gs-module-name', custom.name));
+        row.append(injectSelect(custom.inject, value => {
+            const next = campaign.world.custom.map((item, i) => (i === index ? { ...item, inject: value } : item));
+            void setCampaign({ world: { custom: next } });
+        }, custom.name));
+        row.append(button('ct-gs-icon', '<i class="fa-solid fa-xmark"></i>', `Remove ${custom.name}`, () => void setCampaign({ world: { custom: campaign.world.custom.filter((_, i) => i !== index) } })));
+        modules.append(row);
+    });
+    section.append(modules);
+    const addRow = el('div', 'ct-gs-add-row');
+    const customName = el('input', 'text_pole');
+    customName.id = 'ct-gs-world-custom';
+    customName.type = 'text';
+    customName.placeholder = 'Your own field, e.g. Corruption level';
+    const addCustom = () => {
+        const name = customName.value.trim();
+        if (!name || campaign.world.custom.some(item => item.name.toLowerCase() === name.toLowerCase())) return;
+        void setCampaign({ world: { custom: [...campaign.world.custom, { name, inject: INJECT.ALWAYS }] } });
+    };
+    customName.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') addCustom();
+    });
+    addRow.append(customName, button('menu_button ct-gs-btn', '+ Add field', '', addCustom));
+    section.append(addRow);
     return section;
 }
 
@@ -564,6 +920,10 @@ function renderAgentsCard(t) {
 function renderBehaviorCard(t) {
     const section = el('section', 'ct-gs-card');
     section.append(titleRow('h3', 'Behavior', HELP.behavior));
+    if (t.campaign.mode === 'narrated') {
+        section.append(el('p', 'ct-gs-note', 'Narrated: the narrator replies to every message, and only the narrator\'s card is sent (the cast goes in as sheets). To make a cast member speak anyway, use the member bar under the chat.'));
+        return section;
+    }
     const strategy = el('select', 'text_pole');
     strategy.id = 'ct-gs-strategy';
     for (const [value, label] of STRATEGIES) strategy.append(option(value, label, value === t.behavior.activation_strategy));
@@ -592,7 +952,8 @@ function renderFooter(t) {
     footer.append(el('span', 'ct-gs-note', t.members.length ? 'Ready. The chat opens as soon as the group is made.' : 'Add at least one character to make the group.'));
     const createButton = button('ct-cb-btn is-primary', '<i class="fa-solid fa-check"></i><span>Create group and open chat</span>', '', () => void createGroupNow());
     createButton.id = 'ct-gs-create';
-    createButton.disabled = !t.members.length || state.creating;
+    const builtinNeeded = t.campaign.mode === 'narrated' && t.campaign.narrator.type === 'builtin';
+    createButton.disabled = (!t.members.length && !builtinNeeded) || state.creating;
     footer.append(createButton);
 }
 
@@ -611,7 +972,7 @@ function render() {
     const focusedId = document.activeElement?.id;
     body.replaceChildren();
     const left = el('div', 'ct-gs-col');
-    left.append(renderGroupCard(t), renderBehaviorCard(t));
+    left.append(renderGroupCard(t), renderBehaviorCard(t), renderCampaignCard(t));
     const right = el('div', 'ct-gs-col');
     right.append(renderProfileCard(t, state.groupId), renderAgentsCard(t));
     body.append(left, right);
@@ -624,10 +985,17 @@ function render() {
 
 async function createGroupNow() {
     const t = target();
-    if (!t.isNew || !t.members.length || state.creating) return;
+    if (!t.isNew || state.creating) return;
+    const builtinNeeded = t.campaign.mode === 'narrated' && t.campaign.narrator.type === 'builtin' && !t.campaign.narrator.builtinAvatar;
+    if (!t.members.length && !builtinNeeded) return;
     state.creating = true;
     renderFooter(t);
     try {
+        if (builtinNeeded) {
+            const avatar = await createBuiltinNarrator(t.name.trim() || 'group', t.campaign.narrator.style);
+            t.campaign = normalizeCampaign({ ...t.campaign, narrator: { ...t.campaign.narrator, builtinAvatar: avatar } });
+            t.members = [avatar, ...t.members];
+        }
         const names = t.members.map(characterName).join(', ');
         const chatName = humanizedDateTime();
         const response = await fetch('/api/groups/create', {
@@ -656,6 +1024,7 @@ async function createGroupNow() {
         const made = findGroup(data.id);
         if (made) {
             made.homunculus_profile = t.profile;
+            made.homunculus_campaign = t.campaign;
             await editGroup(made.id, true, false);
         }
         skipAskOnce(data.id);
@@ -808,6 +1177,9 @@ function init() {
     addPanelButton();
     takeOverCreateButton();
     document.addEventListener(PROFILE_CHANGED_EVENT, () => {
+        if (state.open) render();
+    });
+    document.addEventListener('homunculus:group-campaign-changed', () => {
         if (state.open) render();
     });
     eventSource.on(event_types.GROUP_UPDATED, () => {

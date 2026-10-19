@@ -322,7 +322,8 @@ function buildGroupGreetingMessage(avatarId) {
 }
 
 function getGroupGreetingMember(group, preferredAvatar = '') {
-    const members = getGroupEnabledMembers(group);
+    // Homunculus: a Narrated group (scripts/classic-group-campaign.js) only greets with its narrator.
+    const members = globalThis.HomunculusGroupCampaign?.getGreetingMembers?.(group, getGroupEnabledMembers(group)) ?? getGroupEnabledMembers(group);
     const orderedMembers = members.includes(preferredAvatar)
         ? [preferredAvatar, ...members.filter(avatarId => avatarId !== preferredAvatar)]
         : members;
@@ -1627,6 +1628,14 @@ async function generateGroupWrapper(byAutoMode, type = null, params = {}) {
             activatedMembers = activatePooledOrder(enabledMembers, lastMessage, isUserInput);
         } else if (activationStrategy === group_activation_strategy.MANUAL && !isUserInput) {
             activatedMembers = shuffle(enabledMembers).slice(0, 1).map(x => characters.findIndex(y => y.avatar === x)).filter(x => x !== -1);
+        }
+
+        // Homunculus: in a Narrated group (scripts/classic-group-campaign.js) only the narrator replies on
+        // its own; a speaker picked by hand (force_chid/force_chids) still wins.
+        const forcedSpeaker = Boolean(params && (Array.isArray(params.force_chids) || typeof params.force_chid == 'number'));
+        const narratorChid = globalThis.HomunculusGroupCampaign?.getNarratorChid?.(group, { type, forced: forcedSpeaker }) ?? -1;
+        if (narratorChid !== -1) {
+            activatedMembers = [narratorChid];
         }
 
         const canUseMultiSpeakerTurn = (params && Array.isArray(params.force_chids)) || (isWholeGroupAddress && isUserInput);
