@@ -48,7 +48,7 @@ describe('chat recovery endpoint fallbacks', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-recovery-endpoints-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-recovery-endpoints-'));
         directories = {
             backups: path.join(tempRoot, 'backups'),
             chats: path.join(tempRoot, 'chats'),

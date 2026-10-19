@@ -27,7 +27,7 @@ const CORE_EXTENSIONS = new Set([
     'vectors',
     'in-chat-agents',
     'sillybunny-debugger',
-    // SillyBunny: ship Chats Archive as a built-in core extension.
+    // Homunculus: ship Chats Archive as a built-in core extension.
     'sillybunny-chats-archive',
 ]);
 const BUNDLED_THIRD_PARTY_EXTENSIONS = new Set([
@@ -153,7 +153,7 @@ async function ensureExtensionRepo(extensionPath, isGlobal = false) {
         return false;
     }
 
-    const snapshotPath = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-ext-'));
+    const snapshotPath = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-ext-'));
 
     try {
         copyDirectoryContents(extensionPath, snapshotPath);
@@ -167,13 +167,13 @@ async function ensureExtensionRepo(extensionPath, isGlobal = false) {
         await git.checkout(['-B', defaultBranch, `origin/${defaultBranch}`]);
 
         copyDirectoryContents(snapshotPath, extensionPath);
-        await git.raw(['config', 'user.name', 'SillyBunny']);
-        await git.raw(['config', 'user.email', 'sillybunny@local']);
+        await git.raw(['config', 'user.name', 'Homunculus']);
+        await git.raw(['config', 'user.email', 'homunculus@local']);
         await git.add('.');
 
         const status = await git.status();
         if (status.files.length > 0) {
-            await git.commit('SillyBunny bundled adjustments');
+            await git.commit('Homunculus bundled adjustments');
         }
 
         console.info(`Bootstrapped bundled extension repo at ${extensionPath} from ${repoUrl}`);
@@ -204,7 +204,7 @@ export function rejectBundledThirdPartyExtension(extensionName, response, action
         return false;
     }
 
-    response.status(400).send(`Bad Request: ${extensionName} is bundled with SillyBunny and cannot be ${action} through the extension updater.`);
+    response.status(400).send(`Bad Request: ${extensionName} is bundled with Homunculus and cannot be ${action} through the extension updater.`);
     return true;
 }
 
@@ -236,7 +236,7 @@ async function checkIfRepoIsUpToDate(extensionPath) {
     }
 
     // Only treat the repo as outdated when the remote has commits we do not have yet.
-    // Bundled extensions can legitimately be ahead of upstream because SillyBunny patches them locally.
+    // Bundled extensions can legitimately be ahead of upstream because Homunculus patches them locally.
     const [, behindRaw = '0'] = (await git.raw(['rev-list', '--left-right', '--count', `HEAD...${trackingBranch}`]))
         .trim()
         .split(/\s+/);
@@ -395,7 +395,7 @@ router.post('/update', async (request, response) => {
 
         if (!gitStatus.isClean() && autoStash) {
             try {
-                await git.stash(['push', '-m', `SillyBunny auto-stash before extension update (${extensionName})`]);
+                await git.stash(['push', '-m', `Homunculus auto-stash before extension update (${extensionName})`]);
                 stashed = true;
                 console.info(`Local changes stashed before updating extension at ${extensionPath}`);
             } catch (stashError) {
@@ -699,7 +699,7 @@ router.post('/sync', async (request, response) => {
             return response.status(400).send(`Bad Request: ${extensionNameSanitized} sync source must be ${syncConfig.repo}.`);
         }
 
-        const metadataPath = path.join(os.tmpdir(), `sillybunny-${extensionNameSanitized}-${Date.now()}.env`);
+        const metadataPath = path.join(os.tmpdir(), `homunculus-${extensionNameSanitized}-${Date.now()}.env`);
         try {
             const { stdout, stderr } = await execFileAsync('bash', [syncConfig.script, '--metadata-file', metadataPath], {
                 cwd: process.cwd(),

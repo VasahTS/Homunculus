@@ -648,7 +648,7 @@ export class ChatCompletionService {
             throw new Error('Invalid preset: must be an object');
         }
 
-        // SillyBunny: migrate each layer before merging so overrides cannot erase unrelated restrictions.
+        // Homunculus: migrate each layer before merging so overrides cannot erase unrelated restrictions.
         preset = { ...preset };
         migrateNanoGptProviderSettings(preset);
         overridePreset = { ...overridePreset };
@@ -662,7 +662,7 @@ export class ChatCompletionService {
 
         // Convert from preset to ChatCompletionSettings
         const settings = structuredClone(oai_settings);
-        // SillyBunny: a preset without a tier predates paid-tier opt-in.
+        // Homunculus: a preset without a tier predates paid-tier opt-in.
         settings.nanogpt_service_tier = preset.nanogpt_service_tier ?? '';
         settings.openrouter_service_tier = preset.openrouter_service_tier ?? '';
         for (const [key, value] of Object.entries(preset)) {
@@ -755,7 +755,7 @@ export class ChatCompletionService {
         const shouldUseConnectionProfileField = (field) => connectionProfileRequestFields.includes(field);
         normalizeChatCompletionBooleanFields(overridePayload);
 
-        // SillyBunny: Connection Profile requests can carry reasoning/image behavior without mutating global UI settings.
+        // Homunculus: Connection Profile requests can carry reasoning/image behavior without mutating global UI settings.
         if (overridePayload.include_reasoning !== undefined) {
             settings.show_thoughts = coerceRequestBoolean(overridePayload.include_reasoning);
             if (!settings.show_thoughts) {
@@ -800,7 +800,7 @@ export class ChatCompletionService {
         const data = await createGenerationParameters(settings, overridePayload.model, 'quiet', overridePayload.messages);
         const payload = data.generate_data;
 
-        // SillyBunny: profile overrides must retain the provider's message constraints and expanded custom fields.
+        // Homunculus: profile overrides must retain the provider's message constraints and expanded custom fields.
         overridePayload.messages = payload.messages;
         if (settings.chat_completion_source === chat_completion_sources.CUSTOM) {
             for (const field of ['custom_include_body', 'custom_exclude_body', 'custom_include_headers']) {

@@ -5,11 +5,11 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readRepoFile = (...segments) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
-const tabsSource = readRepoFile('public', 'scripts', 'sillybunny-tabs.js');
-const tabsCss = readRepoFile('public', 'css', 'sillybunny-tabs.css');
-const mobileShellCss = readRepoFile('public', 'css', 'sillybunny-mobile-shell.css');
-const paperThemeCss = readRepoFile('public', 'css', 'sillybunny-paper-theme.css');
-const settingsTabsSource = readRepoFile('public', 'scripts', 'sillybunny-settings-tabs.js');
+const tabsSource = readRepoFile('public', 'scripts', 'homunculus-tabs.js');
+const tabsCss = readRepoFile('public', 'css', 'homunculus-tabs.css');
+const mobileShellCss = readRepoFile('public', 'css', 'homunculus-mobile-shell.css');
+const paperThemeCss = readRepoFile('public', 'css', 'homunculus-paper-theme.css');
+const settingsTabsSource = readRepoFile('public', 'scripts', 'homunculus-settings-tabs.js');
 
 describe('top-bar extension slot wiring', () => {
     test('connects the adoption module to the shell lifecycle', () => {

@@ -98,16 +98,16 @@ if (( ahead > 0 )); then
 fi
 
 if (( behind == 0 )); then
-    echo "SillyBunny is already up to date."
+    echo "Homunculus is already up to date."
     exit 0
 fi
 
 before_rev="$(git rev-parse --short HEAD)"
 
-echo "Updating SillyBunny..."
+echo "Updating Homunculus..."
 if ! git pull --ff-only; then
     finish_early "git pull --ff-only failed."
 fi
 
 after_rev="$(git rev-parse --short HEAD)"
-echo "Updated SillyBunny from $before_rev to $after_rev."
+echo "Updated Homunculus from $before_rev to $after_rev."

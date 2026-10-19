@@ -69,7 +69,7 @@ describe('Chat Archive endpoint', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-archive-endpoint-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-archive-endpoint-'));
         directories = {
             root: tempRoot,
             avatars: path.join(tempRoot, 'avatars'),
@@ -202,7 +202,7 @@ describe('Chat Archive endpoint', () => {
 
     test('rejects an opened file handle that does not match the validated in-root path', async () => {
         const inRootPath = path.join(directories.chats, 'root-chat.jsonl');
-        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-archive-race-'));
+        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-archive-race-'));
         const outsidePath = path.join(outsideRoot, 'outside.jsonl');
         fs.writeFileSync(outsidePath, jsonl('outside replacement', 4));
         const originalOpen = fs.promises.open.bind(fs.promises);
@@ -223,7 +223,7 @@ describe('Chat Archive endpoint', () => {
 
     test('rejects an opened identity mismatch when procfs descriptor paths are unavailable', async () => {
         const inRootPath = path.join(directories.chats, 'root-chat.jsonl');
-        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-archive-fallback-'));
+        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-archive-fallback-'));
         const outsidePath = path.join(outsideRoot, 'outside.jsonl');
         fs.writeFileSync(outsidePath, jsonl('fallback replacement', 3));
         const originalOpen = fs.promises.open.bind(fs.promises);
@@ -250,7 +250,7 @@ describe('Chat Archive endpoint', () => {
     });
 
     test('rejects symlinks that resolve outside the canonical archive root', async () => {
-        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-archive-symlink-'));
+        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-archive-symlink-'));
         const outsidePath = path.join(outsideRoot, 'outside.jsonl');
         const linkedPath = path.join(directories.chats, 'outside-link.jsonl');
         fs.writeFileSync(outsidePath, jsonl('outside symlink', 1));
@@ -502,7 +502,7 @@ describe('Chat Archive endpoint', () => {
         expect((await postJson('/api/chats/archive/release', { cursor: firstPage.cursor })).status).toBe(204);
         expect(ArchiveInventoryService.INVENTORIES.has(firstPage.cursor)).toBe(false);
 
-        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-chat-archive-outside-'));
+        const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-chat-archive-outside-'));
         try {
             const outsidePath = path.join(outsideRoot, 'outside.jsonl');
             fs.writeFileSync(outsidePath, jsonl('outside', 1));

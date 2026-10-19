@@ -19,7 +19,7 @@ afterEach(() => {
 
 describeDirectoryFsync('tryWriteFileSync durable writes', () => {
     test('flushes the parent directory after committing a durable write', () => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-durable-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-durable-'));
         const filePath = path.join(tempRoot, 'metadata.json');
         const fsyncSync = fs.fsyncSync.bind(fs);
         let directoryFlushed = false;
@@ -36,7 +36,7 @@ describeDirectoryFsync('tryWriteFileSync durable writes', () => {
     });
 
     test('accepts filesystems that do not support directory fsync', () => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-durable-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-durable-'));
         const filePath = path.join(tempRoot, 'metadata.json');
         const fsyncSync = fs.fsyncSync.bind(fs);
         jest.spyOn(fs, 'fsyncSync').mockImplementation((fileDescriptor) => {

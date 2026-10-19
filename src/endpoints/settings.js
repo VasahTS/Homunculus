@@ -267,7 +267,7 @@ router.post('/save', function (request, response) {
             ? JSON.parse(fs.readFileSync(pathToSettings, 'utf8'))
             : {};
 
-        // SillyBunny: prevent one open device or tab from overwriting newer settings from another.
+        // Homunculus: prevent one open device or tab from overwriting newer settings from another.
         const preparedSave = prepareSettingsSave(request.body, currentSettings);
         if (!preparedSave.ok) {
             return response.status(409).send({

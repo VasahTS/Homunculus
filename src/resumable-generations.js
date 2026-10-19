@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import express from 'express';
 
 /**
- * SillyBunny: generation replies that outlive the client connection.
+ * Homunculus: generation replies that outlive the client connection.
  *
  * A generation request tagged with the X-Generation-Id header is registered here. Everything the
  * handler writes to the Express response is also kept in memory, and the disconnect handling in

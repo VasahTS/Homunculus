@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "sillybunny",
+      "name": "homunculus",
       "dependencies": {
         "@adobe/css-tools": "^4.4.4",
         "@agnai/sentencepiece-js": "^1.1.1",

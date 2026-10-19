@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 
 function getFunctionSource(name) {
     const marker = `function ${name}(`;

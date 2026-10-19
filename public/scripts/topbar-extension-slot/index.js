@@ -5,9 +5,9 @@ export const TOPBAR_ADOPTION_ATTRIBUTE = 'data-sb-topbar-adopt';
 export const TOPBAR_ADOPTED_MARKER_ATTRIBUTE = 'data-sb-topbar-adopted';
 
 /**
- * The nine upstream drawers that live in #top-settings-holder. SillyBunny relocates or
+ * The nine upstream drawers that live in #top-settings-holder. Homunculus relocates or
  * ghost-hides each of them, so they must never be treated as third-party markup. The same
- * nine ids are enumerated in the hide/inert rules in sillybunny-tabs.css; keep both in sync.
+ * nine ids are enumerated in the hide/inert rules in homunculus-tabs.css; keep both in sync.
  */
 export const TOPBAR_NATIVE_DRAWER_IDS = Object.freeze([
     'ai-config-button',
@@ -44,7 +44,7 @@ export const TOPBAR_ADOPTION_EXCLUDED_CLASSES = Object.freeze([
 export const TOPBAR_ADOPTION_SKIP_REASON = Object.freeze({
     NOT_ELEMENT: 'not-element',
     NATIVE_DRAWER: 'native-drawer',
-    SILLYBUNNY_OWNED: 'sillybunny-owned',
+    HOMUNCULUS_OWNED: 'homunculus-owned',
     OPTED_OUT: 'opted-out',
     EXCLUDED_TAG: 'excluded-tag',
     EXCLUDED_CLASS: 'excluded-class',
@@ -69,14 +69,14 @@ export function isNativeTopbarDrawerId(id) {
 
 /**
  * Decides whether a node found in #top-bar or #top-settings-holder should be adopted into
- * the SillyBunny top bar's extension slot.
+ * the Homunculus top bar's extension slot.
  * @param {object} descriptor Descriptor produced by describeTopbarNode().
  * @param {boolean} [descriptor.isElement=false] Whether the node is an Element.
  * @param {string} [descriptor.id=''] Element id.
  * @param {string} [descriptor.tagName=''] Uppercase tag name.
  * @param {string|string[]} [descriptor.classNames=[]] Class list.
  * @param {string|null} [descriptor.adoptAttribute=null] Value of data-sb-topbar-adopt.
- * @param {boolean} [descriptor.isSillyBunnyOwned=false] Whether SillyBunny created the node.
+ * @param {boolean} [descriptor.isHomunculusOwned=false] Whether Homunculus created the node.
  * @returns {{shouldAdopt: boolean, reason: string}} Verdict and, when skipped, why.
  */
 export function resolveTopbarNodeAdoption({
@@ -85,7 +85,7 @@ export function resolveTopbarNodeAdoption({
     tagName = '',
     classNames = [],
     adoptAttribute = null,
-    isSillyBunnyOwned = false,
+    isHomunculusOwned = false,
 } = {}) {
     if (!isElement) {
         return { shouldAdopt: false, reason: TOPBAR_ADOPTION_SKIP_REASON.NOT_ELEMENT };
@@ -103,8 +103,8 @@ export function resolveTopbarNodeAdoption({
         return { shouldAdopt: false, reason: TOPBAR_ADOPTION_SKIP_REASON.NATIVE_DRAWER };
     }
 
-    if (isSillyBunnyOwned) {
-        return { shouldAdopt: false, reason: TOPBAR_ADOPTION_SKIP_REASON.SILLYBUNNY_OWNED };
+    if (isHomunculusOwned) {
+        return { shouldAdopt: false, reason: TOPBAR_ADOPTION_SKIP_REASON.HOMUNCULUS_OWNED };
     }
 
     // An explicit opt-in overrides only the heuristic exclusions below; an extension cannot

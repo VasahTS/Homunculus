@@ -103,7 +103,7 @@ export function importRisuSprites(directories, data) {
 
             const filename = label + '.png';
             const pathToFile = path.join(spritesPath, sanitize(filename));
-            // SillyBunny: Bun before 1.4 ignores fs.writeSync string encodings, so decode before the atomic write.
+            // Homunculus: Bun before 1.4 ignores fs.writeSync string encodings, so decode before the atomic write.
             writeFileAtomicSync(pathToFile, Buffer.from(String(fileBase64), 'base64'));
         }
 

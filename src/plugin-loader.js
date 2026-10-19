@@ -244,7 +244,7 @@ function logMissingDependencyHint(error, pluginDirectoryPath) {
 
     console.error(color.yellow(`Server plugin dependency '${missingDependency}' was not found.`));
     console.error(color.yellow(`Install the plugin's dependencies, then restart: cd "${pluginDirectoryPath}" && npm install`));
-    console.error(color.yellow('If you use Bun, run bun install in the same plugin directory instead. Stop SillyBunny first if your package manager reports that node_modules is busy.'));
+    console.error(color.yellow('If you use Bun, run bun install in the same plugin directory instead. Stop Homunculus first if your package manager reports that node_modules is busy.'));
 }
 
 /**

@@ -6,7 +6,7 @@ test.describe('sample', () => {
         await page.waitForFunction('document.getElementById("preloader") === null', { timeout: 0 });
     });
 
-    test('should be titled "SillyBunny"', async ({ page }) => {
-        await expect(page).toHaveTitle('SillyBunny');
+    test('should be titled "Homunculus"', async ({ page }) => {
+        await expect(page).toHaveTitle('Homunculus');
     });
 });

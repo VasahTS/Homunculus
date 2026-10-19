@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mobileStylesCss = readFileSync(path.join(repoRoot, 'public', 'css', 'mobile-styles.css'), 'utf8').replace(/\r\n/g, '\n');
-const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-mobile-shell.css'), 'utf8').replace(/\r\n/g, '\n');
+const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-mobile-shell.css'), 'utf8').replace(/\r\n/g, '\n');
 const worldInfoCss = readFileSync(path.join(repoRoot, 'public', 'css', 'world-info.css'), 'utf8').replace(/\r\n/g, '\n');
 
 function getRuleBodies(cssSource, selector) {

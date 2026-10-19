@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const scriptSource = fs.readFileSync(path.join(repoRoot, 'public', 'script.js'), 'utf8');
 const personasSource = fs.readFileSync(path.join(repoRoot, 'public', 'scripts', 'personas.js'), 'utf8');
-const tabsSource = fs.readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const tabsSource = fs.readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 
 function getFunctionSource(source, name) {
     const match = source.match(new RegExp(`(?:export )?(?:async )?function ${name}\\([\\s\\S]*?\\n\\}`));

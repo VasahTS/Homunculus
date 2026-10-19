@@ -511,4 +511,4 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicQuickConnect = { open, close };
+globalThis.HomunculusClassicQuickConnect = { open, close };

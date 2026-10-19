@@ -56,14 +56,14 @@ function createScrollMeasurementPage(scroller) {
 
 function withLongTaskObserver(Observer, callback) {
     const previousObserver = globalThis.PerformanceObserver;
-    const previousMetrics = globalThis.__sillyBunnyLongTaskMetrics;
+    const previousMetrics = globalThis.__homunculusLongTaskMetrics;
     try {
         globalThis.PerformanceObserver = Observer;
         installLongTaskObserver();
-        callback(globalThis.__sillyBunnyLongTaskMetrics);
+        callback(globalThis.__homunculusLongTaskMetrics);
     } finally {
         globalThis.PerformanceObserver = previousObserver;
-        globalThis.__sillyBunnyLongTaskMetrics = previousMetrics;
+        globalThis.__homunculusLongTaskMetrics = previousMetrics;
     }
 }
 

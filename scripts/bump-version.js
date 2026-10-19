@@ -18,15 +18,15 @@ const VERSION_CAPTURE = '(\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?)';
 export const VERSION_SOURCES = [
     {
         file: 'public/script.js',
-        pattern: new RegExp(`const SILLYBUNNY_UI_VERSION = 'SillyBunny v${VERSION_CAPTURE}';`),
+        pattern: new RegExp(`const HOMUNCULUS_UI_VERSION = 'SillyBunny v${VERSION_CAPTURE}';`),
     },
     {
         file: 'public/script.js',
-        pattern: new RegExp(`export let CLIENT_VERSION = 'SillyBunny:v${VERSION_CAPTURE}';`),
+        pattern: new RegExp(`export let CLIENT_VERSION = 'Homunculus:v${VERSION_CAPTURE}';`),
     },
     {
         file: 'src/endpoints/horde.js',
-        pattern: new RegExp(`return version\\?\\.agent \\|\\| 'SillyBunny:${VERSION_CAPTURE}';`),
+        pattern: new RegExp(`return version\\?\\.agent \\|\\| 'Homunculus:${VERSION_CAPTURE}';`),
     },
 ];
 
@@ -34,7 +34,7 @@ function printHelp() {
     console.log(`Usage: node scripts/bump-version.js <version> [--dry-run]
        node scripts/bump-version.js --check
 
-Sets the SillyBunny version in package.json, package-lock.json, and every hardcoded copy.
+Sets the Homunculus version in package.json, package-lock.json, and every hardcoded copy.
 
 Options:
   --check    Exit non-zero if any copy differs from package.json.

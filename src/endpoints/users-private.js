@@ -19,7 +19,7 @@ import { ENTITY_LAST_CHAT_FILE, importEntityLastChat } from '../entity-last-chat
 
 import { getIpAddress, retryAfter } from '../express-common.js';
 
-// SillyBunny divergence: private user export/import keeps fork-owned account data and metadata compatible across releases.
+// Homunculus divergence: private user export/import keeps fork-owned account data and metadata compatible across releases.
 const RESET_POINTS = getConfigValue('rateLimiting.accountsResetMaxAttempts', 5, 'number');
 const PREFER_REAL_IP_HEADER = getConfigValue('rateLimiting.preferRealIpHeader', false, 'boolean');
 const RESET_CACHE = new Cache(5 * 60 * 1000);
@@ -323,7 +323,7 @@ async function inspectExtensionDirectory(extensionPath, extensionName) {
     };
 
     if (!(await pathExists(manifestPath))) {
-        details.warnings.push('Missing manifest.json. SillyBunny cannot discover this extension until it is restored.');
+        details.warnings.push('Missing manifest.json. Homunculus cannot discover this extension until it is restored.');
         return details;
     }
 
@@ -444,7 +444,7 @@ async function syncThirdPartyExtensions(sourceRoot, targetExtensionsRoot) {
     const targetExtensionsRealPath = await getStableRealPath(targetExtensionsRoot);
 
     if (sourceExtensionsRealPath === targetExtensionsRealPath) {
-        throw new Error('That extensions folder already belongs to the current SillyBunny account.');
+        throw new Error('That extensions folder already belongs to the current Homunculus account.');
     }
 
     if (!(await pathExists(sourceExtensionsRoot))) {
@@ -845,7 +845,7 @@ router.post('/import-sillytavern/folder', async (request, response) => {
         const targetRoot = path.resolve(request.user.directories.root);
 
         if (path.resolve(sourceRoot) === targetRoot) {
-            return response.status(400).json({ error: 'That folder is already the current SillyBunny account.' });
+            return response.status(400).json({ error: 'That folder is already the current Homunculus account.' });
         }
 
         recoverFileWritesInDirectorySync(request.user.directories.characters);
@@ -869,7 +869,7 @@ router.post('/import-sillytavern/extensions', async (request, response) => {
         const targetRoot = path.resolve(request.user.directories.root);
 
         if (path.resolve(sourceRoot) === targetRoot) {
-            return response.status(400).json({ error: 'That folder is already the current SillyBunny account.' });
+            return response.status(400).json({ error: 'That folder is already the current Homunculus account.' });
         }
 
         const syncReport = await syncThirdPartyExtensions(sourceRoot, path.resolve(request.user.directories.extensions));

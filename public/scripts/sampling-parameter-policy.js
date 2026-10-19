@@ -932,7 +932,7 @@ export function applySamplingParameterPolicy(payload, requestContext) {
         if (decision.action === 'omit') {
             deleteOwnPath(payload, wirePath);
             if (parameterId === 'typical_p' && ctx.backend === 'text') {
-                // SillyBunny: text backends also consume the legacy flat alias.
+                // Homunculus: text backends also consume the legacy flat alias.
                 deleteOwnPath(payload, ['typical']);
             }
             decisions.push(decision);

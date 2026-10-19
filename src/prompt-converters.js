@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-// SillyBunny divergence: the effort vocabulary moved to its own leaf module so the
+// Homunculus divergence: the effort vocabulary moved to its own leaf module so the
 // chat-completions backend can normalize incoming values against the same source of truth.
 import { REASONING_EFFORT, toWireReasoningEffort } from './reasoning-effort.js';
 import { getConfigValue, tryParse } from './util.js';
@@ -75,7 +75,7 @@ export const KIMI_K3_STOCK_REASONING = 'I have finished thinking and now continu
 
 /**
  * Fills the reasoning slot of a trailing partial assistant message for Kimi K3.
- * SillyBunny divergence: K3 must reason before it replies, so a partial message that prefills
+ * Homunculus divergence: K3 must reason before it replies, so a partial message that prefills
  * only `content` makes the model reason live and it can then stop without any reply tokens.
  * A leading <think> block is moved into `reasoning_content` (kimi-k3-jb behavior); a plain
  * prefill gets a stock `reasoning_content` so the model continues the reply directly.
@@ -1169,7 +1169,7 @@ export function cachingSystemPromptForOpenRouter(messages, ttl = undefined) {
 export function calculateClaudeBudgetTokens(maxTokens, reasoningEffort, stream, isAdaptiveModel) {
     // Adaptive thinking for Opus 4.6+: return effort string (like Gemini 3)
     if (isAdaptiveModel) {
-        // SillyBunny divergence: the picked effort is forwarded as-is rather than folded onto the
+        // Homunculus divergence: the picked effort is forwarded as-is rather than folded onto the
         // rungs a given adaptive model is known to list, so a refusal is reported, not hidden.
         if (!reasoningEffort || [REASONING_EFFORT.auto, REASONING_EFFORT.none].includes(reasoningEffort)) {
             return null;
@@ -1306,7 +1306,7 @@ export function calculateGoogleBudgetTokens(maxTokens, reasoningEffort, model) {
         return budgetTokens;
     }
 
-    // SillyBunny divergence: Gemini 3 takes a thinking level rather than a token budget, and the
+    // Homunculus divergence: Gemini 3 takes a thinking level rather than a token budget, and the
     // picked rung is forwarded as-is for both Pro and Flash instead of being folded onto the
     // shorter list each one documents, so a refusal is reported rather than hidden.
     function getGemini3ThinkingLevel() {

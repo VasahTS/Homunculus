@@ -82,7 +82,7 @@ function renderAlternativeTokensView() {
     renderTopLogprobs();
 
     const { messageLogprobs, continueFrom } = getActiveMessageLogprobData() || {};
-    // SillyBunny: honor platform smooth-streaming bypasses so token
+    // Homunculus: honor platform smooth-streaming bypasses so token
     // probability UI state matches the stream renderer's effective mode.
     const usingSmoothStreaming = isStreamingEnabled() && isSmoothStreamingEffectivelyEnabled({
         smoothStreaming: power_user.smooth_streaming,

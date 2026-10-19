@@ -39,7 +39,7 @@ import { ElectronHubTtsProvider } from './electronhub.js';
 import { ChutesTtsProvider } from './chutes.js';
 import { VolcengineTtsProvider } from './volcengine.js';
 import { applyLocale, t } from '/scripts/i18n.js';
-import { registerExtensionCapability } from '../../sillybunny-conversation/extension-capabilities.js';
+import { registerExtensionCapability } from '../../homunculus-conversation/extension-capabilities.js';
 
 const UPDATE_INTERVAL = 1000;
 const wrapper = new ModuleWorkerWrapper(moduleWorker);
@@ -868,7 +868,7 @@ function parseMessageSegments(text) {
     return segments;
 }
 
-// SillyBunny: filter action blocks before quote extraction so quoted actions remain excluded from dialogue-only narration.
+// Homunculus: filter action blocks before quote extraction so quoted actions remain excluded from dialogue-only narration.
 function filterTtsAsterisks(text, { narrateDialoguesOnly = false, passAsterisks = false } = {}) {
     if (passAsterisks) {
         return text;
@@ -879,7 +879,7 @@ function filterTtsAsterisks(text, { narrateDialoguesOnly = false, passAsterisks 
         : text.replaceAll('*', '').trim();
 }
 
-// SillyBunny: discard semantic blocks before quote extraction without dropping dialogue wrapped in presentation tags.
+// Homunculus: discard semantic blocks before quote extraction without dropping dialogue wrapped in presentation tags.
 function stripTtsTaggedBlocks(text, { preserveFormatting = false } = {}) {
     const formattingTags = new Set([
         'b', 'big', 'em', 'font', 'i', 'mark', 's', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'u',
@@ -985,7 +985,7 @@ async function processTtsQueue() {
         passAsterisks: extension_settings.tts.pass_asterisks,
     });
 
-    // SillyBunny: Strip tag markup before quote extraction so wrappers preserve dialogue without narrating attributes.
+    // Homunculus: Strip tag markup before quote extraction so wrappers preserve dialogue without narrating attributes.
     if (extension_settings.tts.narrate_quoted_only) {
         const partJoiner = (ttsProvider?.separator || ' ... ');
         if (extension_settings.tts.skip_tags) {

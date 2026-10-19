@@ -9,7 +9,7 @@
 // classic-ui/apply-classic.mjs regenerates). Profiles imported from the drawer are stored in the
 // user's settings (extension_settings.classicThemes.custom). See classic-ui/TEMAS.md.
 //
-// Nothing here changes how SillyBunny works: with the "Classic" profile (the default) no
+// Nothing here changes how Homunculus works: with the "Classic" profile (the default) no
 // variables, stylesheets or effects are applied, so the page looks exactly as before.
 
 const THEMES_BASE = 'classic-themes/';
@@ -732,4 +732,4 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicThemes = { EFFECTS, LAYOUTS, normalizeProfile, profiles, applyActive };
+globalThis.HomunculusClassicThemes = { EFFECTS, LAYOUTS, normalizeProfile, profiles, applyActive };

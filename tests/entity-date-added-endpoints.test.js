@@ -44,7 +44,7 @@ describe('entity date added endpoints', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-date-added-endpoints-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-date-added-endpoints-'));
         directories = {
             root: tempRoot,
             backups: path.join(tempRoot, 'backups'),

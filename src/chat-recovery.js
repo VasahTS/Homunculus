@@ -432,7 +432,7 @@ function storeValidSnapshot(target, parsed) {
     const { latestPath, tombstonePath } = getChatRecoveryPaths(target);
     const release = acquireRecoveryStateLock(target);
     try {
-        // SillyBunny: every chat load refreshes this snapshot, so an unchanged one would mean a disk
+        // Homunculus: every chat load refreshes this snapshot, so an unchanged one would mean a disk
         // write on each open. Only the redundant write is dropped; clearing the tombstone and pruning
         // still run, because skipping those would leave a recoverable chat looking deleted.
         if (!isStoredSnapshotCurrent(latestPath, parsed.data)) {

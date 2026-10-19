@@ -123,7 +123,7 @@ export const PRESET_CONTENT_TYPES = Object.freeze([
     CONTENT_TYPES.REASONING,
 ]);
 
-// SillyBunny divergence: remove superseded bundled preset files from user data
+// Homunculus divergence: remove superseded bundled preset files from user data
 // during the existing default content update pass, without adding new metadata.
 const OBSOLETE_CONTENT_ITEMS = Object.freeze([
     { filename: 'presets/openai/Geechan - Universal Roleplay (Chat Completions) (v5.0).json', type: CONTENT_TYPES.OPENAI_PRESET },
@@ -134,7 +134,7 @@ const OBSOLETE_CONTENT_ITEMS = Object.freeze([
     { filename: 'presets/sysprompt/Geechan - Universal Roleplay (NSFW Simplified) (V5.0).json', type: CONTENT_TYPES.SYSPROMPT },
 ]);
 
-// SillyBunny divergence: reconcile only the bundled Memory Sharding quick reply
+// Homunculus divergence: reconcile only the bundled Memory Sharding quick reply
 // during the existing default content pass. Hash-gating keeps user-authored or
 // edited files untouched, repeated runs stay idempotent, and staleHashes is a
 // migration ledger for future bundled prompt updates.
@@ -1013,7 +1013,7 @@ async function downloadChubCharacter(id) {
     return { buffer, fileName, fileType };
 }
 
-// SillyBunny divergence: support Botbooru's SillyTavern import URLs as external character imports.
+// Homunculus divergence: support Botbooru's SillyTavern import URLs as external character imports.
 
 /**
  * @typedef {Object} BotbooruParsedUrl

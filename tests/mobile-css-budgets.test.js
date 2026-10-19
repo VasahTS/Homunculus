@@ -29,29 +29,29 @@ function getMediaQueryPxValues(cssSource) {
 // test landed. Lower them as cleanup PRs land; never raise them without a
 // review note explaining the regression.
 //
-// sillybunny-mobile-shell.css raised 664 -> 665: one display:none !important
+// homunculus-mobile-shell.css raised 664 -> 665: one display:none !important
 // added to unconditionally hide the unused STscript play/pause/stop controls
 // (.stscript_btn) in the mobile composer, overriding the display:flex !important
 // that mobile-styles.css added in #533.
-// sillybunny-mobile-shell.css raised 665 -> 677: phone-only edge-to-edge
+// homunculus-mobile-shell.css raised 665 -> 677: phone-only edge-to-edge
 // composer and safe-area overrides need to beat upstream mobile padding and
 // border rules without affecting desktop.
-// sillybunny-mobile-shell.css raised 677 -> 685: the unified composer surface
+// homunculus-mobile-shell.css raised 677 -> 685: the unified composer surface
 // and input state styling need to override upstream mobile composer rules.
-// sillybunny-paper-theme.css starts at 55: the phone-only paper texture and
+// homunculus-paper-theme.css starts at 55: the phone-only paper texture and
 // chrome adjustment sheet is budgeted from introduction.
-// sillybunny-theme.css raised 158 -> 161: the mobile character list needs to
+// homunculus-theme.css raised 158 -> 161: the mobile character list needs to
 // override upstream !important avatar alignment rules for missing avatars.
-// sillybunny-tabs.css raised 386 -> 389: the favourites bar fix re-shows the
+// homunculus-tabs.css raised 386 -> 389: the favourites bar fix re-shows the
 // bar on the character tabs with display:flex !important and
 // visibility:visible !important to beat the JS inline hide, and pins
 // #HotSwapWrapper padding:0 !important against the base flex-container rules.
 const FORK_SHEET_IMPORTANT_BUDGETS = Object.freeze({
-    'sillybunny-mobile-shell.css': 685,
-    'sillybunny-paper-theme.css': 55,
-    'sillybunny-tabs.css': 389,
-    'sillybunny-chat-styles.css': 225,
-    'sillybunny-theme.css': 161,
+    'homunculus-mobile-shell.css': 685,
+    'homunculus-paper-theme.css': 55,
+    'homunculus-tabs.css': 389,
+    'homunculus-chat-styles.css': 225,
+    'homunculus-theme.css': 161,
 });
 
 const FORK_DISTINCT_BREAKPOINT_BUDGET = 18;
@@ -85,7 +85,7 @@ describe('mobile css ratchet budgets', () => {
 });
 
 describe('paper texture regression guards', () => {
-    const paperThemeCss = forkSheetSources['sillybunny-paper-theme.css'];
+    const paperThemeCss = forkSheetSources['homunculus-paper-theme.css'];
 
     test('keeps the base ambient body pseudo-element available', () => {
         expect(paperThemeCss).not.toMatch(/body::before\s*\{/);
@@ -118,7 +118,7 @@ describe('index.html mobile stylesheet gates', () => {
     }
 
     test('mobile sheets keep their (max-width: 768px) media gates', () => {
-        for (const href of ['css/mobile-styles.css', 'css/sillybunny-paper-theme.css', 'css/sillybunny-mobile-shell.css']) {
+        for (const href of ['css/mobile-styles.css', 'css/homunculus-paper-theme.css', 'css/homunculus-mobile-shell.css']) {
             const tag = findStylesheetTag(href);
 
             expect(tag).toBeDefined();
@@ -130,10 +130,10 @@ describe('index.html mobile stylesheet gates', () => {
         const loadOrder = [
             'style.css',
             'css/mobile-styles.css',
-            'css/sillybunny-theme.css',
-            'css/sillybunny-paper-theme.css',
-            'css/sillybunny-tabs.css',
-            'css/sillybunny-mobile-shell.css',
+            'css/homunculus-theme.css',
+            'css/homunculus-paper-theme.css',
+            'css/homunculus-tabs.css',
+            'css/homunculus-mobile-shell.css',
             'css/user.css',
         ].map(href => {
             const tag = findStylesheetTag(href);

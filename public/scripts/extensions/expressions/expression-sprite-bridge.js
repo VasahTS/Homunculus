@@ -1,12 +1,12 @@
 /**
  * Non-blocking bridge from the Expressions extension to Quick Image Gen.
  *
- * SillyBunny divergence: QIG is vendored from an upstream repo, so this file lives
+ * Homunculus divergence: QIG is vendored from an upstream repo, so this file lives
  * outside `quick-image-gen/` and discovers its activated runtime capability.
  * This avoids loading a disabled or second URL identity of the QIG entrypoint.
  */
 
-import { getExtensionCapability } from '../../sillybunny-conversation/extension-capabilities.js';
+import { getExtensionCapability } from '../../homunculus-conversation/extension-capabilities.js';
 
 const SPINNER_ID = 'expression-agent-spinner';
 const EXPRESSION_SPRITE_FRAMING = {

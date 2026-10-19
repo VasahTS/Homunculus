@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const scriptSource = readFileSync(path.join(repoRoot, 'public', 'script.js'), 'utf8');
-const serverToolsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-server-tools.js'), 'utf8');
+const serverToolsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-server-tools.js'), 'utf8');
 const imageMetadataSource = readFileSync(path.join(repoRoot, 'src', 'endpoints', 'image-metadata.js'), 'utf8');
 const serverAdminSource = readFileSync(path.join(repoRoot, 'src', 'endpoints', 'server-admin.js'), 'utf8');
 const thumbnailsSource = readFileSync(path.join(repoRoot, 'src', 'endpoints', 'thumbnails.js'), 'utf8');

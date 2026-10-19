@@ -29,7 +29,7 @@ describe('startup module graph', () => {
         ];
         expect(entrypoints).toContain('script.js');
         const eager = collectStaticModules(entrypoints);
-        for (const deferred of ['sillybunny-server-tools.js', 'sillybunny-settings-tabs.js', 'data-maid-dialog.js']) {
+        for (const deferred of ['homunculus-server-tools.js', 'homunculus-settings-tabs.js', 'data-maid-dialog.js']) {
             expect(eager.has(path.join(publicRoot, 'scripts', deferred))).toBe(false);
         }
         // Live provider exports remain available to third-party extensions at startup.

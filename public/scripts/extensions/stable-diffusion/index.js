@@ -63,8 +63,8 @@ import { oai_settings } from '../../openai.js';
 import { power_user } from '/scripts/power-user.js';
 import { MacrosParser } from '/scripts/macros.js';
 import { ActionLoaderHandle, loader } from '/scripts/action-loader.js';
-// SillyBunny: expose the configured provider without borrowing the active roleplay chat.
-import { registerExtensionCapability } from '../../sillybunny-conversation/extension-capabilities.js';
+// Homunculus: expose the configured provider without borrowing the active roleplay chat.
+import { registerExtensionCapability } from '../../homunculus-conversation/extension-capabilities.js';
 
 export { MODULE_NAME };
 
@@ -2383,7 +2383,7 @@ async function loadDrawthingsModels() {
 }
 
 async function loadOpenAiModels() {
-    // SillyBunny: omit DALL-E 2 and 3 after their OpenAI API retirement.
+    // Homunculus: omit DALL-E 2 and 3 after their OpenAI API retirement.
     return [
         { value: 'gpt-image-2', text: 'gpt-image-2' },
         { value: 'gpt-image-2-2026-04-21', text: 'gpt-image-2-2026-04-21' },
@@ -3095,7 +3095,7 @@ async function generatePicture(initiator, args, trigger, message, callback) {
     return imagePath;
 }
 
-// SillyBunny: Conversation prompts and character scope are already resolved by the caller.
+// Homunculus: Conversation prompts and character scope are already resolved by the caller.
 async function generateScopedImage(prompt, negative = '', { avatar = '', character = null, signal } = {}) {
     signal?.throwIfAborted();
     if (!isValidState()) {
@@ -3342,7 +3342,7 @@ async function sendGenerationRequest(generationType, prompt, additionalNegativeP
         ? extension_settings.sd.negative_prompt
         : combinePrefixes(extension_settings.sd.negative_prompt, getCharacterNegativePrefix());
 
-    // SillyBunny: keep Conversation prefixes and macros scoped to its speaker.
+    // Homunculus: keep Conversation prefixes and macros scoped to its speaker.
     const macroOptions = scopedContext ? { name2Override: characterName, replaceCharacterCard: false } : undefined;
     if (scopedContext) {
         const key = String(scopedContext.avatar || scopedContext.character?.avatar || '').replace(/\.[^/.]+$/, '');
@@ -3457,7 +3457,7 @@ async function sendGenerationRequest(generationType, prompt, additionalNegativeP
         return;
     }
 
-    // SillyBunny: Conversation callers own their target guard and cancellation.
+    // Homunculus: Conversation callers own their target guard and cancellation.
     if (scopedContext) signal?.throwIfAborted();
     if (!scopedContext && currentChatId !== getCurrentChatId()) {
         console.warn('Chat changed, aborting SD result saving');

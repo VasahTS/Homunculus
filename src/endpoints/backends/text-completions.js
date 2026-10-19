@@ -81,7 +81,7 @@ async function parseOllamaStream(jsonStream, request, response, onDisconnect = n
 
         const resumableGeneration = getResumableGeneration(request);
         if (resumableGeneration) {
-            // SillyBunny: a resumable generation finishes without the client; only an explicit cancel stops it.
+            // Homunculus: a resumable generation finishes without the client; only an explicit cancel stops it.
             resumableGeneration.onCancel(closeStream);
         } else {
             request.socket.on('close', closeStream);
@@ -329,7 +329,7 @@ function getSafeCompletionErrorStatus(status) {
     return Number.isInteger(parsed) && parsed >= 400 && parsed < 500 ? parsed : 502;
 }
 
-// SillyBunny divergence: export the existing handler so Conversation REST can reuse upstream text-generation flow without duplicating provider glue.
+// Homunculus divergence: export the existing handler so Conversation REST can reuse upstream text-generation flow without duplicating provider glue.
 export async function handleTextCompletionsGenerate(request, response) {
     if (!request.body) return response.sendStatus(400);
 
@@ -345,7 +345,7 @@ export async function handleTextCompletionsGenerate(request, response) {
         const controller = new AbortController();
         abortOnRequestClose(request, controller, response, {
             onAbort: async () => {
-                // SillyBunny: KoboldCpp needs its own upstream abort endpoint; other backends use the shared fetch abort/stream destroy path.
+                // Homunculus: KoboldCpp needs its own upstream abort endpoint; other backends use the shared fetch abort/stream destroy path.
                 if (request.body.api_type !== TEXTGEN_TYPES.KOBOLDCPP || response.writableEnded) {
                     return;
                 }
@@ -422,7 +422,7 @@ export async function handleTextCompletionsGenerate(request, response) {
         }
 
         if (request.body.api_type === TEXTGEN_TYPES.OPENROUTER) {
-            // SillyBunny: validate before the OpenRouter whitelist and upstream request.
+            // Homunculus: validate before the OpenRouter whitelist and upstream request.
             if (request.body.service_tier !== undefined && !['auto', 'default', 'flex', 'priority'].includes(request.body.service_tier)) {
                 return response.status(400).json({ error: true, field: 'service_tier' });
             }

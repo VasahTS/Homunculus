@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
 
-const deferredScripts = ['sillybunny-server-tools.js', 'sillybunny-settings-tabs.js', 'data-maid-dialog.js'];
+const deferredScripts = ['homunculus-server-tools.js', 'homunculus-settings-tabs.js', 'data-maid-dialog.js'];
 test.use({ serviceWorkers: 'block' });
 
 async function openApp(page) {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.SillyTavern?.getContext?.()?.eventSource?.autoFireLastArgs?.has('app_ready'), null, { timeout: 60000 });
-    await page.waitForFunction(() => typeof window.SillyBunnyShell?.openTab === 'function');
+    await page.waitForFunction(() => typeof window.HomunculusShell?.openTab === 'function');
 }
 
 async function saveFirstUseScreenshot(page, viewport) {
-    const directory = process.env.SILLYBUNNY_STARTUP_SCREENSHOT_DIR;
+    const directory = process.env.HOMUNCULUS_STARTUP_SCREENSHOT_DIR;
     if (!directory) return;
     await page.evaluate(() => {
         for (const key of ['Theme Colors', 'Auto-swipe', 'Auto-Continue']) {
@@ -41,7 +41,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
             await expect(page.locator('#sb-theme-card')).toHaveCount(0);
             await expect(page.locator('#sb-sampling-openai')).toHaveCount(0);
             const before = await page.evaluate(() => ({
-                theme: window.SillyBunnyShell.getTheme(),
+                theme: window.HomunculusShell.getTheme(),
                 temperature: document.getElementById('temp_openai').value,
                 source: document.getElementById('chat_completion_source').value,
             }));
@@ -50,25 +50,25 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
                     document.querySelector(`[data-i18n="${key}"]`).textContent = 'Übersetzte Überschrift';
                 }
             });
-            await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'settings'));
+            await page.evaluate(() => window.HomunculusShell.openTab('right', 'settings'));
             await expect(page.locator('#sb-settings-tabs')).toBeVisible();
             await expect(page.locator('#sb-theme-card')).toHaveCount(1);
             for (const drawerId of ['sb-theme-colors-drawer', 'sb-auto-swipe-drawer', 'sb-auto-continue-drawer']) {
                 await expect(page.locator(`#${drawerId}`)).toHaveCount(1);
             }
             await saveFirstUseScreenshot(page, viewport);
-            await page.evaluate(() => window.SillyBunnyShell.openTab('left', 'sampling'));
+            await page.evaluate(() => window.HomunculusShell.openTab('left', 'sampling'));
             await expect(page.locator('[data-sb-panel="sampling"] [data-sb-sampling-control]')).not.toHaveCount(0);
             const after = await page.evaluate(() => ({
-                theme: window.SillyBunnyShell.getTheme(),
+                theme: window.HomunculusShell.getTheme(),
                 temperature: document.getElementById('temp_openai').value,
                 source: document.getElementById('chat_completion_source').value,
             }));
             expect(after).toEqual(before);
             await expect(page.locator('#temp_openai')).toHaveCount(1);
-            await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'settings'));
+            await page.evaluate(() => window.HomunculusShell.openTab('right', 'settings'));
             await expect(page.locator('#sb-settings-tabs')).toHaveCount(1);
-            expect(requestedScripts).not.toContain('/scripts/sillybunny-server-tools.js');
+            expect(requestedScripts).not.toContain('/scripts/homunculus-server-tools.js');
         });
 
         test('search finds unopened server controls without starting server requests', async ({ page }) => {
@@ -78,7 +78,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
             });
             await openApp(page);
             adminRequests.length = 0;
-            await page.evaluate(() => window.SillyBunnyShell.openGlobalSearch());
+            await page.evaluate(() => window.HomunculusShell.openGlobalSearch());
             const search = page.locator('#sb-universal-search input');
             await search.fill('Thumbnail Quality');
             await expect(page.locator('.sb-search-result')).not.toHaveCount(0);
@@ -94,13 +94,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
 
 test('failed optional import can be retried without reloading the app', async ({ page }) => {
     let attempts = 0;
-    await page.route('**/sillybunny-server-tools.js*', async route => {
+    await page.route('**/homunculus-server-tools.js*', async route => {
         attempts += 1;
         if (attempts === 1) await route.abort('failed');
         else await route.continue();
     });
     await openApp(page);
-    await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'server'));
+    await page.evaluate(() => window.HomunculusShell.openTab('right', 'server'));
     const panel = page.locator('[data-sb-panel="server"]');
     await panel.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect(panel.locator('.sb-server-column')).toHaveCount(1);
@@ -109,17 +109,17 @@ test('failed optional import can be retried without reloading the app', async ({
 
 test('failed settings import can be retried by reopening the panel', async ({ page }) => {
     let attempts = 0;
-    await page.route('**/sillybunny-settings-tabs.js*', async route => {
+    await page.route('**/homunculus-settings-tabs.js*', async route => {
         attempts += 1;
         if (attempts === 1) await route.abort('failed');
         else await route.continue();
     });
     await openApp(page);
-    await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'settings'));
+    await page.evaluate(() => window.HomunculusShell.openTab('right', 'settings'));
     await expect(page.locator('.toast-error')).toBeVisible();
     await expect(page.locator('#sb-settings-tabs')).toHaveCount(0);
-    await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'extensions'));
-    await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'settings'));
+    await page.evaluate(() => window.HomunculusShell.openTab('right', 'extensions'));
+    await page.evaluate(() => window.HomunculusShell.openTab('right', 'settings'));
     await expect(page.locator('#sb-settings-tabs')).toBeVisible();
     expect(attempts).toBe(2);
 });
@@ -150,15 +150,15 @@ test('a delayed custom quick action preserves later navigation', async ({ page }
     });
     let releaseImport;
     const importGate = new Promise(resolve => { releaseImport = resolve; });
-    await page.route('**/sillybunny-server-tools.js*', async route => {
+    await page.route('**/homunculus-server-tools.js*', async route => {
         await importGate;
         await route.continue();
     });
     await openApp(page);
-    const importStarted = page.waitForRequest('**/sillybunny-server-tools.js');
+    const importStarted = page.waitForRequest('**/homunculus-server-tools.js');
     await page.locator('#sb-mobile-nav button[aria-label="Open Delayed server"]').evaluate(button => button.click());
     await importStarted;
-    await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'extensions'));
+    await page.evaluate(() => window.HomunculusShell.openTab('right', 'extensions'));
     releaseImport();
     await expect(page.locator('[data-sb-panel="server"] .sb-server-column')).toHaveCount(1);
     await expect(page.locator('[data-sb-panel="extensions"]')).toHaveAttribute('aria-hidden', 'false');

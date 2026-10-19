@@ -6,7 +6,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const readSource = (...parts) => readFileSync(path.join(repoRoot, ...parts), 'utf8').replace(/\r\n/g, '\n');
 
 describe('core message transparency wiring', () => {
-    const chatStylesSource = readSource('public', 'css', 'sillybunny-chat-styles.css');
+    const chatStylesSource = readSource('public', 'css', 'homunculus-chat-styles.css');
     const backgroundsSource = readSource('public', 'css', 'backgrounds.css');
     const styleSource = readSource('public', 'style.css');
     const powerUserSource = readSource('public', 'scripts', 'power-user.js');
@@ -18,15 +18,15 @@ describe('core message transparency wiring', () => {
         readSource('public', 'css', 'mobile-styles.css'),
         readSource('public', 'css', 'popup.css'),
         readSource('public', 'css', 'select2-overrides.css'),
-        readSource('public', 'css', 'sillybunny-chat-styles.css'),
-        readSource('public', 'css', 'sillybunny-theme.css'),
+        readSource('public', 'css', 'homunculus-chat-styles.css'),
+        readSource('public', 'css', 'homunculus-theme.css'),
         readSource('public', 'scripts', 'extensions', 'quick-reply', 'style.css'),
         readSource('public', 'scripts', 'extensions', 'stable-diffusion', 'style.css'),
     ].join('\n');
 
     test('loads the native chat stylesheet during chat-display setup so default chat styles get core transparency', () => {
-        expect(indexSource).not.toContain('id="sillybunny-native-chat-styles"');
-        expect(powerUserSource).toContain("const NATIVE_CHAT_STYLE_STYLESHEET_HREF = 'css/sillybunny-chat-styles.css?v=20260606a';");
+        expect(indexSource).not.toContain('id="homunculus-native-chat-styles"');
+        expect(powerUserSource).toContain("const NATIVE_CHAT_STYLE_STYLESHEET_HREF = 'css/homunculus-chat-styles.css?v=20260606a';");
         expect(powerUserSource).toContain('ensureNativeChatStyleStylesheet();');
     });
 

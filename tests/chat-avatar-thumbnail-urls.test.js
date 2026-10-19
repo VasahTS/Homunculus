@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicRoot = path.join(repoRoot, 'public');
 const scriptSource = fs.readFileSync(path.join(publicRoot, 'script.js'), 'utf8');
-const tabsSource = fs.readFileSync(path.join(publicRoot, 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const tabsSource = fs.readFileSync(path.join(publicRoot, 'scripts', 'homunculus-tabs.js'), 'utf8');
 
 const IGNORED_DIRECTORIES = new Set(['lib', 'third-party', 'node_modules']);
 
@@ -70,7 +70,7 @@ describe('chat avatar thumbnail urls', () => {
         expect(builders).toEqual([path.join('public', 'script.js')]);
     });
 
-    test('sillybunny-tabs.js reuses the shared parser instead of a local copy', () => {
+    test('homunculus-tabs.js reuses the shared parser instead of a local copy', () => {
         expect(tabsSource).toContain('parseAvatarSource,');
         expect(tabsSource).toContain('getThumbnailUrl,');
         expect(tabsSource).toMatch(/import \{[^}]*parseAvatarSource[^}]*\} from '\.\.\/script\.js';/);

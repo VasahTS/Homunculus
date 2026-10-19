@@ -24,7 +24,7 @@ describe('upstream server compatibility', () => {
     const previousDataRoot = global.DATA_ROOT;
 
     beforeAll(async () => {
-        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-server-parity-'));
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-server-parity-'));
         global.DATA_ROOT = tempDir;
         const defaults = fs.readFileSync(fileURLToPath(new URL('../default/config.yaml', import.meta.url)), 'utf8');
         const configPath = path.join(tempDir, 'config.yaml');

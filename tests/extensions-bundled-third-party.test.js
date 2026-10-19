@@ -25,7 +25,7 @@ describe('bundled third-party extensions', () => {
 
         expect(rejectBundledThirdPartyExtension('ChatCompletionTabs', response, 'deleted')).toBe(true);
         expect(response.status).toHaveBeenCalledWith(400);
-        expect(response.send).toHaveBeenCalledWith(expect.stringContaining('ChatCompletionTabs is bundled with SillyBunny'));
+        expect(response.send).toHaveBeenCalledWith(expect.stringContaining('ChatCompletionTabs is bundled with Homunculus'));
     });
 
     test('rejects case-variant updater mutations for bundled third-party extensions', () => {
@@ -36,6 +36,6 @@ describe('bundled third-party extensions', () => {
 
         expect(rejectBundledThirdPartyExtension('chatcompletiontabs', response, 'deleted')).toBe(true);
         expect(response.status).toHaveBeenCalledWith(400);
-        expect(response.send).toHaveBeenCalledWith(expect.stringContaining('chatcompletiontabs is bundled with SillyBunny'));
+        expect(response.send).toHaveBeenCalledWith(expect.stringContaining('chatcompletiontabs is bundled with Homunculus'));
     });
 });

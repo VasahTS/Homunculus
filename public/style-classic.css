@@ -6464,7 +6464,7 @@ body:not(.movingUI) .drawer-content.maximized {
     }
 }
 
-/* ===== Classic UI fork: SillyBunny-only rules from style.css (auto-extracted, see tools/css-merge.mjs) ===== */
+/* ===== Classic UI fork: Homunculus-only rules from style.css (auto-extracted, see tools/css-merge.mjs) ===== */
 :root {
     --SmartThemeBackdropFilter: none;
     --SmartThemeBackdropFilter2x: none;
@@ -6594,7 +6594,7 @@ body.sb-theme-blur {
 }
 
 .alternate_greeting .alternate_greeting_header.title_restorable {
-    /* SillyBunny: keep Alternate Greeting actions above the textarea instead of inheriting title_restorable's row layout. */
+    /* Homunculus: keep Alternate Greeting actions above the textarea instead of inheriting title_restorable's row layout. */
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;

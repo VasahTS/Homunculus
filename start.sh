@@ -5,6 +5,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 cd "$SCRIPT_DIR"
 
+# Homunculus: these settings used to be named SILLYBUNNY_*; keep the old names working.
+for _legacy_var in AUTO_UPDATE USE_NODE USE_BUN BUN_SMOL TERMUX_RUNTIME; do
+    eval "if [ -z \"\${HOMUNCULUS_${_legacy_var}+x}\" ] && [ -n \"\${SILLYBUNNY_${_legacy_var}+x}\" ]; then export HOMUNCULUS_${_legacy_var}=\"\${SILLYBUNNY_${_legacy_var}}\"; fi"
+done
+unset _legacy_var
+
 is_truthy() {
     local value
     value="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
@@ -40,18 +46,18 @@ is_termux_shared_storage_repo() {
 
 prefer_node_runtime() {
     # Forced via environment variable
-    if is_truthy "${SILLYBUNNY_USE_NODE:-}"; then
+    if is_truthy "${HOMUNCULUS_USE_NODE:-}"; then
         return 0
     fi
 
     # Forced Bun override for users who accept the ARM/macOS CPU tradeoff
-    if is_truthy "${SILLYBUNNY_USE_BUN:-}"; then
+    if is_truthy "${HOMUNCULUS_USE_BUN:-}"; then
         return 1
     fi
 
     # Termux always prefers Node unless overridden
     if is_termux; then
-        case "${SILLYBUNNY_TERMUX_RUNTIME:-auto}" in
+        case "${HOMUNCULUS_TERMUX_RUNTIME:-auto}" in
             bun) return 1 ;;
             *) return 0 ;;
         esac
@@ -158,14 +164,14 @@ done
 if (( ! self_update_only )) && is_termux_shared_storage_repo; then
     echo "[Homunculus] Termux installs must stay in your Termux home, not Android shared storage." >&2
     echo "[Homunculus] Android blocks the node_modules links Bun and npm need under paths like /storage/emulated/0." >&2
-    echo "[Homunculus] Reclone into '$HOME/SillyBunny', then rerun this launcher. Use 'termux-setup-storage' only to grant file access." >&2
+    echo "[Homunculus] Reclone into '$HOME/Homunculus', then rerun this launcher. Use 'termux-setup-storage' only to grant file access." >&2
     exit 1
 fi
 
 auto_update_enabled=0
 if (( self_update_requested )); then
     auto_update_enabled=1
-elif (( ! skip_auto_update )) && is_truthy "${SILLYBUNNY_AUTO_UPDATE:-1}"; then
+elif (( ! skip_auto_update )) && is_truthy "${HOMUNCULUS_AUTO_UPDATE:-1}"; then
     auto_update_enabled=1
 fi
 
@@ -315,14 +321,14 @@ fi
 
 "$PACKAGE_MANAGER_CMD" run init
 
-if is_truthy "${SILLYBUNNY_BUN_SMOL:-}" && [[ "$runtime_kind" == node ]]; then
-    echo "[Homunculus] SILLYBUNNY_BUN_SMOL is set, but this host resolved to Node.js — --smol is a Bun flag and will be ignored."
+if is_truthy "${HOMUNCULUS_BUN_SMOL:-}" && [[ "$runtime_kind" == node ]]; then
+    echo "[Homunculus] HOMUNCULUS_BUN_SMOL is set, but this host resolved to Node.js — --smol is a Bun flag and will be ignored."
     echo "[Homunculus] For Bun with --smol, use ./start-bun.sh (Termux: bash start-termux-bun.sh)."
 fi
 
-echo "Entering SillyBunny..."
+echo "Entering Homunculus..."
 export NODE_NO_WARNINGS=1
-export SILLYBUNNY_LAUNCHER=1
+export HOMUNCULUS_LAUNCHER=1
 
 restart_exit_code=75
 server_restart_count=0
@@ -330,7 +336,7 @@ server_restart_count=0
 run_server() {
     if [[ "$runtime_kind" == node ]]; then
         "$RUNTIME_CMD" --no-warnings server.js "$@"
-    elif is_truthy "${SILLYBUNNY_BUN_SMOL:-}"; then
+    elif is_truthy "${HOMUNCULUS_BUN_SMOL:-}"; then
         # Bun grows the JSC heap freely while RAM looks plentiful, so on small
         # hosts RSS sawtooths by more than a gigabyte between collections.
         # --smol trades throughput for much more aggressive GC, matching the
@@ -343,7 +349,7 @@ run_server() {
 
 while true; do
     if (( server_restart_count > 0 )); then
-        export SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH=1
+        export HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH=1
     fi
 
     if (( ${#server_args[@]} )); then
@@ -362,7 +368,7 @@ while true; do
 
     if (( server_exit_code == restart_exit_code )); then
         ((server_restart_count += 1))
-        echo "Restarting SillyBunny..."
+        echo "Restarting Homunculus..."
         continue
     fi
 

@@ -10,7 +10,7 @@ import path from 'node:path';
 import { SETTINGS_FILE } from '../constants.js';
 import { getSettingsVersion, prepareSettingsSave } from '../settings-version.js';
 import { tryWriteFileSync } from '../util.js';
-import { CONVERSATION_STORE_KEY } from '../../public/scripts/sillybunny-conversation/constants.js';
+import { CONVERSATION_STORE_KEY } from '../../public/scripts/homunculus-conversation/constants.js';
 import {
     getObject,
     getOwnRecord,

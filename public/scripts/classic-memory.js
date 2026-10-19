@@ -826,7 +826,7 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicMemory = {
+globalThis.HomunculusClassicMemory = {
     open() {
         const toggle = /** @type {HTMLElement|null} */ (document.querySelector('#ct-memory-button .drawer-toggle'));
         const content = document.getElementById('ct_memory_block');

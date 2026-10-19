@@ -193,8 +193,11 @@ export async function probeHttpHolder(port, ipVersion, host = ipVersion === 6 ? 
                         const { agent } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
                         if (typeof agent === 'string' && agent.startsWith('SillyTavern:')) {
                             finish({ type: 'SillyTavern', name: 'SillyTavern' });
+                        } else if (typeof agent === 'string' && agent.startsWith('Homunculus:')) {
+                            finish({ type: 'Another Homunculus Instance', name: 'Homunculus' });
                         } else if (typeof agent === 'string' && agent.startsWith('SillyBunny:')) {
-                            finish({ type: 'Another SillyBunny Instance', name: 'SillyBunny' });
+                            // Homunculus: the SillyBunny app this project was forked from.
+                            finish({ type: 'Generic Application (SillyBunny)', name: 'SillyBunny' });
                         } else {
                             finish();
                         }
@@ -325,8 +328,10 @@ export async function diagnosePortConflict(port, listenAddress, { runCommand = r
             const identity = `${info.name} ${info.command}`;
             if (/(?:^|[\\/\s"'])sillytavern(?:[\\/\s"':]|\.exe\b|$)/i.test(identity)) {
                 diagnosis.holderType = 'SillyTavern';
+            } else if (/(?:^|[\\/\s"'])homunculus(?:[\\/\s"':]|\.exe\b|$)/i.test(identity)) {
+                diagnosis.holderType = 'Another Homunculus Instance';
             } else if (/(?:^|[\\/\s"'])sillybunny(?:[\\/\s"':]|\.exe\b|$)/i.test(identity)) {
-                diagnosis.holderType = 'Another SillyBunny Instance';
+                diagnosis.holderType = 'Generic Application (SillyBunny)';
             } else if (info.name !== 'unknown') {
                 diagnosis.holderType = `Generic Application (${info.name})`;
             }
@@ -346,8 +351,8 @@ export function formatPortConflictBanner(diagnosis) {
     const separator = '='.repeat(70);
 
     const isSillyTavern = holderType === 'SillyTavern';
-    const isSillyBunny = holderType === 'Another SillyBunny Instance';
-    const holder = isSillyTavern ? 'SillyTavern' : isSillyBunny ? 'another SillyBunny instance' : 'another application';
+    const isHomunculus = holderType === 'Another Homunculus Instance';
+    const holder = isSillyTavern ? 'SillyTavern' : isHomunculus ? 'another Homunculus instance' : 'another application';
     const portChange = `change "port: ${port}" to a different, unused number.`;
 
     const lines = [
@@ -355,11 +360,11 @@ export function formatPortConflictBanner(diagnosis) {
         `[Startup Notice] Port ${port} is already in use!`,
         separator,
         '',
-        `SillyBunny cannot start because ${holder} is already using`,
+        `Homunculus cannot start because ${holder} is already using`,
         `port ${port}.`,
         ...(isSillyTavern ? [
             '',
-            'If you are running SillyTavern and SillyBunny at the same time, they',
+            'If you are running SillyTavern and Homunculus at the same time, they',
             'cannot share the same port number.',
         ] : []),
         '',
@@ -370,10 +375,10 @@ export function formatPortConflictBanner(diagnosis) {
         `  Path / Command: ${display(commandLine)}`,
         '',
         '--- How to Fix ---',
-        isSillyBunny
-            ? `  1. To run two instances of SillyBunny, ${portChange}`
-            : `  1. To run SillyBunny alongside ${isSillyTavern ? 'SillyTavern' : 'the other application'}, ${portChange}`,
-        '     This setting is in SillyBunny\'s "config.yaml".',
+        isHomunculus
+            ? `  1. To run two instances of Homunculus, ${portChange}`
+            : `  1. To run Homunculus alongside ${isSillyTavern ? 'SillyTavern' : 'the other application'}, ${portChange}`,
+        '     This setting is in Homunculus\'s "config.yaml".',
         ...(pid && process.platform === 'win32' ? [
             `  2. Close the other terminal window or end PID ${pid} in Task Manager.`,
         ] : []),

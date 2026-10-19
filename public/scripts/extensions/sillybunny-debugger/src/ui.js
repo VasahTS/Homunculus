@@ -13,7 +13,7 @@ const MENU_ITEM_ID = 'sbdbg-menu-item';
 const ENTRY_KEY = 'SBDebugger_showEntry';
 const FETCH_TIMEOUT = 5000;
 const ERUDA_BUILD = 'eruda-3.4.3-chobitsu-1.8.6-sbdbg';
-const ERUDA_BUNDLE_SLOT = '__sillyBunnyDebuggerEruda';
+const ERUDA_BUNDLE_SLOT = '__homunculusDebuggerEruda';
 const ERUDA_TOOLS = ['console', 'elements', 'network', 'info'];
 const LAYOUT_SELECTORS = [
     'body', '#top-bar', '#left-nav-panel', '#right-nav-panel', '#sheld',
@@ -73,7 +73,7 @@ function finishBundleLoad(load, error, instance) {
 }
 
 function acceptBundleInstance(value) {
-    if (value?.sillyBunnyDebuggerBuild !== ERUDA_BUILD) return;
+    if (value?.homunculusDebuggerBuild !== ERUDA_BUILD) return;
     const load = pendingBundleLoad;
     if (!active || !load || document.currentScript !== load.script) {
         cleanupBundleInstance(value);
@@ -392,7 +392,7 @@ function downloadReport(report) {
     const link = document.createElement('a');
     const blob = new Blob([report], { type: 'text/markdown' });
     link.href = URL.createObjectURL(blob);
-    link.download = `sillybunny-report-${new Date().toISOString().replaceAll(':', '-')}.md`;
+    link.download = `homunculus-report-${new Date().toISOString().replaceAll(':', '-')}.md`;
     document.body.appendChild(link);
     link.click();
     link.remove();

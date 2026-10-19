@@ -31,7 +31,7 @@ const MIGRATABLE_KEYS = [
     /^WINavOpened$/,
     /^WI_PerPage$/,
     /^world_info_sort_order$/,
-    // SillyBunny: migrate fork-owned per-account UI state from legacy device storage.
+    // Homunculus: migrate fork-owned per-account UI state from legacy device storage.
     /^ica--agent-list-tab$/,
     /^ica--tracker-panel-handle-top-v2$/,
     /^ica--tracker-panel-locked$/,

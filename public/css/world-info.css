@@ -1,4 +1,4 @@
-/* SillyBunny divergence: World Info is presented through the fork's shell and Characters-panel layout. */
+/* Homunculus divergence: World Info is presented through the fork's shell and Characters-panel layout. */
 .world_info_select_block {
     display: flex;
     flex-direction: row;
@@ -1480,7 +1480,7 @@ select.keyselect+span.select2-container .select2-selection--multiple {
 }
 
 @media screen and (max-width: 960px) {
-    /* SillyBunny: let the Characters shell own scrolling for embedded mobile lorebooks. */
+    /* Homunculus: let the Characters shell own scrolling for embedded mobile lorebooks. */
     #WorldInfo.sb-shell-embedded-content :is(#world_popup, #world_popup_entries_list) {
         width: 100%;
         height: auto;

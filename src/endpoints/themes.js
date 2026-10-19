@@ -19,7 +19,7 @@ router.post('/save', (request, response) => {
     return response.sendStatus(200);
 });
 
-// SillyBunny: installers publish a complete theme without replacing native edits.
+// Homunculus: installers publish a complete theme without replacing native edits.
 router.post('/create', (request, response) => {
     if (typeof request.body?.name !== 'string' || !request.body.name.trim()) {
         return response.sendStatus(400);

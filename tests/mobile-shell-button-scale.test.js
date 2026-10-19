@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const cssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-tabs.css'), 'utf8');
-const jsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const cssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-tabs.css'), 'utf8');
+const jsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 
 describe('mobile shell button scale', () => {
     test('defines mobile rail scale variables in :root', () => {

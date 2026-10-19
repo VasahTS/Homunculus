@@ -160,7 +160,7 @@ if (command === 'check') {
     const reason = needsInstall(profile);
 
     if (reason) {
-        if (process.env.SILLYBUNNY_DEPENDENCY_DEBUG) {
+        if (process.env.HOMUNCULUS_DEPENDENCY_DEBUG) {
             console.log(`Dependency install required: ${reason}.`);
         }
 

@@ -6,7 +6,7 @@ import path from 'node:path';
 const tempDirs = [];
 
 function createPluginsDirectory() {
-    const pluginsPath = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-plugin-loader-'));
+    const pluginsPath = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-plugin-loader-'));
     tempDirs.push(pluginsPath);
     return pluginsPath;
 }

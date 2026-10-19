@@ -67,7 +67,7 @@ describe('character card metadata preservation', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-card-metadata-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-card-metadata-'));
         directories = {
             root: tempRoot,
             backups: path.join(tempRoot, 'backups'),
@@ -143,7 +143,7 @@ describe('character card metadata preservation', () => {
             const uppercasePath = path.join(directories.characters, 'Alice.PNG');
             fs.renameSync(originalPath, uppercasePath);
             addAncillaryChunks(uppercasePath);
-            const alternateStreamPath = `${uppercasePath}:sillybunny-metadata-test`;
+            const alternateStreamPath = `${uppercasePath}:homunculus-metadata-test`;
             fs.writeFileSync(alternateStreamPath, 'preserve this stream', 'utf8');
             const cardBefore = fs.readFileSync(uppercasePath);
             const statBefore = fs.statSync(uppercasePath, { bigint: true });

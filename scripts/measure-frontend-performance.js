@@ -28,8 +28,8 @@ function loadPlaywright() {
 
 const { chromium, devices } = loadPlaywright();
 const outputDir = path.join(repoRoot, 'output', 'performance');
-const baseUrl = process.env.SILLYBUNNY_PERF_URL || 'http://127.0.0.1:4444';
-const outputPath = process.env.SILLYBUNNY_PERF_OUTPUT || path.join(outputDir, `frontend-${Date.now()}.json`);
+const baseUrl = process.env.HOMUNCULUS_PERF_URL || 'http://127.0.0.1:4444';
+const outputPath = process.env.HOMUNCULUS_PERF_OUTPUT || path.join(outputDir, `frontend-${Date.now()}.json`);
 const mobileProfile = devices['Pixel 5'];
 const defaultProfileNames = Object.freeze(['mobile', 'desktop']);
 const resourceTimingBufferSize = 1000;
@@ -507,7 +507,7 @@ async function settlePage(page, delayMs = 0) {
 
 async function captureInstrumentationSnapshot(page) {
     return await page.evaluate(() => {
-        const metrics = globalThis.__sillyBunnyPerfInstrumentation;
+        const metrics = globalThis.__homunculusPerfInstrumentation;
         return metrics ? JSON.parse(JSON.stringify(metrics)) : null;
     }).catch(() => null);
 }
@@ -518,7 +518,7 @@ async function measurePage(page) {
         const navigation = browserGlobal.performance.getEntriesByType('navigation')[0];
         const paint = Object.fromEntries(browserGlobal.performance.getEntriesByType('paint').map(entry => [entry.name, entry.startTime]));
         const resources = browserGlobal.performance.getEntriesByType('resource');
-        const longTasks = browserGlobal.__sillyBunnyLongTaskMetrics.snapshot();
+        const longTasks = browserGlobal.__homunculusLongTaskMetrics.snapshot();
 
         return {
             navigation: navigation ? {
@@ -547,7 +547,7 @@ async function measurePage(page) {
     await settlePage(page);
     const chatRender = { streaming, longChat };
     const instrumentationAfterSynthetic = await captureInstrumentationSnapshot(page);
-    const longTasksAfterSynthetic = await page.evaluate(() => globalThis.__sillyBunnyLongTaskMetrics.snapshot());
+    const longTasksAfterSynthetic = await page.evaluate(() => globalThis.__homunculusLongTaskMetrics.snapshot());
 
     return {
         ...metrics,
@@ -598,7 +598,7 @@ export function installLongTaskObserver() {
             metrics.longest = Math.max(metrics.longest, entry.duration);
         }
     };
-    browserGlobal.__sillyBunnyLongTaskMetrics = {
+    browserGlobal.__homunculusLongTaskMetrics = {
         snapshot() {
             if (observer) {
                 recordEntries(observer.takeRecords());
@@ -628,7 +628,7 @@ function installResourceTimingBuffer(size) {
 
 function installPerformanceInstrumentation() {
     const browserGlobal = globalThis;
-    if (browserGlobal.__sillyBunnyPerfInstrumentation) {
+    if (browserGlobal.__homunculusPerfInstrumentation) {
         return;
     }
 
@@ -658,7 +658,7 @@ function installPerformanceInstrumentation() {
         },
     };
 
-    Object.defineProperty(browserGlobal, '__sillyBunnyPerfInstrumentation', {
+    Object.defineProperty(browserGlobal, '__homunculusPerfInstrumentation', {
         configurable: false,
         enumerable: false,
         value: metrics,
@@ -822,12 +822,12 @@ async function readBudgetFile(budgetPath) {
 export async function run({
     url = baseUrl,
     output = outputPath,
-    profileNames = parseProfileNames(process.env.SILLYBUNNY_PERF_PROFILES || process.env.SILLYBUNNY_PERF_PROFILE),
-    serviceWorkers = process.env.SILLYBUNNY_PERF_SERVICE_WORKERS === 'allow' ? 'allow' : 'block',
-    instrumentation = ['1', 'true', 'on'].includes(String(process.env.SILLYBUNNY_PERF_INSTRUMENTATION).toLowerCase()),
-    cpuThrottleRate = process.env.SILLYBUNNY_PERF_CPU_THROTTLE || 1,
-    browserExecutablePath = process.env.SILLYBUNNY_PERF_BROWSER_EXECUTABLE || undefined,
-    budgetPath = process.env.SILLYBUNNY_PERF_BUDGET || '',
+    profileNames = parseProfileNames(process.env.HOMUNCULUS_PERF_PROFILES || process.env.HOMUNCULUS_PERF_PROFILE),
+    serviceWorkers = process.env.HOMUNCULUS_PERF_SERVICE_WORKERS === 'allow' ? 'allow' : 'block',
+    instrumentation = ['1', 'true', 'on'].includes(String(process.env.HOMUNCULUS_PERF_INSTRUMENTATION).toLowerCase()),
+    cpuThrottleRate = process.env.HOMUNCULUS_PERF_CPU_THROTTLE || 1,
+    browserExecutablePath = process.env.HOMUNCULUS_PERF_BROWSER_EXECUTABLE || undefined,
+    budgetPath = process.env.HOMUNCULUS_PERF_BUDGET || '',
 } = {}) {
     const appliedCpuThrottleRate = parseCpuThrottleRate(cpuThrottleRate);
     await fs.mkdir(path.dirname(output), { recursive: true });

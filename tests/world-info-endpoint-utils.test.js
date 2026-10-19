@@ -51,7 +51,7 @@ describe('World Info endpoints', () => {
     let uploadsPath;
 
     beforeAll(async () => {
-        uploadsPath = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-world-info-uploads-'));
+        uploadsPath = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-world-info-uploads-'));
         const app = express();
         app.use(express.json());
         app.use(multer({ storage: createUploadStorage(uploadsPath) }).single('avatar'));
@@ -67,7 +67,7 @@ describe('World Info endpoints', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-world-info-endpoints-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-world-info-endpoints-'));
         directories = { worlds: path.join(tempRoot, 'worlds') };
         fs.mkdirSync(directories.worlds, { recursive: true });
     });

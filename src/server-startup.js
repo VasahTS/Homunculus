@@ -27,7 +27,7 @@ import { router as assetsRouter } from './endpoints/assets.js';
 import { router as filesRouter } from './endpoints/files.js';
 import { router as charactersRouter } from './endpoints/characters.js';
 import { router as chatsRouter } from './endpoints/chats.js';
-// SillyBunny divergence: keep archive inventory and read-only orphan access isolated from upstream chat and Data Maid routes.
+// Homunculus divergence: keep archive inventory and read-only orphan access isolated from upstream chat and Data Maid routes.
 import { router as chatArchiveRouter } from './endpoints/chat-archive.js';
 import { router as groupsRouter } from './endpoints/groups.js';
 import { router as worldInfoRouter } from './endpoints/worldinfo.js';
@@ -58,8 +58,8 @@ import { router as imageMetadataRouter } from './endpoints/image-metadata.js';
 import { router as volcengineRouter } from './endpoints/volcengine.js';
 import { router as serverAdminRouter } from './endpoints/server-admin.js';
 import { router as inChatAgentsRouter } from './endpoints/in-chat-agents.js';
-// SillyBunny divergence: keep Conversation REST mounted here only; endpoint behavior stays isolated in its fork-owned router for upstream syncs.
-import { router as sillyBunnyConversationRouter } from './endpoints/sillybunny-conversation.js';
+// Homunculus divergence: keep Conversation REST mounted here only; endpoint behavior stays isolated in its fork-owned router for upstream syncs.
+import { router as homunculusConversationRouter } from './endpoints/homunculus-conversation.js';
 import { resumableGenerationMiddleware, router as resumableGenerationsRouter } from './resumable-generations.js';
 
 /**
@@ -78,7 +78,7 @@ import { resumableGenerationMiddleware, router as resumableGenerationsRouter } f
  */
 export function setupPrivateEndpoints(app) {
     app.use('/', userDataRouter);
-    // SillyBunny: resumable generations. The router is mounted first so its own requests never register as generations.
+    // Homunculus: resumable generations. The router is mounted first so its own requests never register as generations.
     app.use('/api/resumable-generations', resumableGenerationsRouter);
     app.use(resumableGenerationMiddleware);
     app.use('/api/users', usersPrivateRouter);
@@ -131,9 +131,12 @@ export function setupPrivateEndpoints(app) {
     app.use('/api/image-metadata', imageMetadataRouter);
     app.use('/api/server-admin', serverAdminRouter);
     app.use('/api/in-chat-agents', inChatAgentsRouter);
-    // SillyBunny divergence: preserve both fork REST aliases here so future upstream merges only need to reconcile these mount points.
-    app.use('/api/sillybunny-conversation', sillyBunnyConversationRouter);
-    app.use('/api/sillybunny/conversation', sillyBunnyConversationRouter);
+    // Homunculus divergence: preserve both fork REST aliases here so future upstream merges only need to reconcile these mount points.
+    app.use('/api/homunculus-conversation', homunculusConversationRouter);
+    app.use('/api/homunculus/conversation', homunculusConversationRouter);
+    // Homunculus: the old SillyBunny paths keep working for external clients.
+    app.use('/api/sillybunny-conversation', homunculusConversationRouter);
+    app.use('/api/sillybunny/conversation', homunculusConversationRouter);
 }
 
 /**
@@ -197,7 +200,7 @@ export class ServerStartup {
     #getAddressInUseMessage(url, ipVersion) {
         const listenAddress = this.#getListenAddress(url, ipVersion);
         let message = `Address ${listenAddress} is already in use. Another ${APP_NAME} instance may already be running. Stop the other process or change "port" in config.yaml.`;
-        // SillyBunny: released Bun builds create inheritable socket handles on
+        // Homunculus: released Bun builds create inheritable socket handles on
         // Windows, so a process spawned by the previous instance (git, package
         // install, browser launch) can keep the port bound after that instance
         // exited. Fixed in Bun main but not in any release yet.

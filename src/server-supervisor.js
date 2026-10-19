@@ -25,8 +25,8 @@ import { serverDirectory } from './server-directory.js';
 export const RESTART_EXIT_CODE = 75;
 export const SERVER_PLUGIN_UPDATE_EXIT_CODE = 76;
 export const SUPERVISOR_RELOAD_EXIT_CODE = 77;
-export const SUPERVISED_ENV = 'SILLYBUNNY_SUPERVISED';
-export const LAUNCHER_ENV = 'SILLYBUNNY_LAUNCHER';
+export const SUPERVISED_ENV = 'HOMUNCULUS_SUPERVISED';
+export const LAUNCHER_ENV = 'HOMUNCULUS_LAUNCHER';
 export const SUPERVISOR_SHUTDOWN_MESSAGE = 'sillybunny:shutdown';
 export const SUPERVISOR_FORCE_KILL_TIMEOUT_MS = 5000;
 export const SERVER_PLUGIN_ACTIVATION_TIMEOUT_MS = 150_000;
@@ -126,7 +126,7 @@ export async function runSupervisor({
             pluginUpdate.recover?.(pluginsRoot);
             return true;
         } catch (error) {
-            console.error('[SillyBunny] Failed to recover an interrupted server plugin update.', error);
+            console.error('[Homunculus] Failed to recover an interrupted server plugin update.', error);
             return false;
         }
     };
@@ -160,9 +160,9 @@ export async function runSupervisor({
             }
             try {
                 discardPreparedUpdate(expired);
-                console.warn(`[SillyBunny] Discarded expired server plugin update ${expired.transactionId}.`);
+                console.warn(`[Homunculus] Discarded expired server plugin update ${expired.transactionId}.`);
             } catch (error) {
-                console.error('[SillyBunny] Failed to discard an expired server plugin update.', error);
+                console.error('[Homunculus] Failed to discard an expired server plugin update.', error);
             }
         }, prepareLeaseMs);
         pendingPluginUpdateTimer.unref?.();
@@ -222,7 +222,7 @@ export async function runSupervisor({
             [SERVER_PLUGIN_UPDATE_SUPERVISOR_API_ENV]: SERVER_PLUGIN_UPDATE_SUPERVISOR_API_VERSION,
         };
         if (!isFirstLaunch) {
-            env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH = '1';
+            env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH = '1';
         }
 
         try {
@@ -312,7 +312,7 @@ export async function runSupervisor({
                         await stopChildForRollback(child, exitPromise);
                     }
                     pluginUpdate.rollback(activatingPluginUpdate, reason);
-                    console.error(`[SillyBunny] Server plugin update rolled back: ${reason}.`);
+                    console.error(`[Homunculus] Server plugin update rolled back: ${reason}.`);
                     activatingPluginUpdate = null;
                     child.off('message', onMessage);
                     if (shuttingDown) {
@@ -324,13 +324,13 @@ export async function runSupervisor({
 
                 try {
                     pluginUpdate.finalize(activatingPluginUpdate);
-                    console.info(`[SillyBunny] Server plugin ${activatingPluginUpdate.expectedPluginId} update activated successfully.`);
+                    console.info(`[Homunculus] Server plugin ${activatingPluginUpdate.expectedPluginId} update activated successfully.`);
                 } catch (error) {
-                    console.error('[SillyBunny] Server plugin update activated, but final cleanup failed.', error);
+                    console.error('[Homunculus] Server plugin update activated, but final cleanup failed.', error);
                     if (error?.serverPluginActivationRecorded === true && !recoverPluginUpdates()) {
-                        console.error('[SillyBunny] The healthy plugin is active, but its update lock requires manual cleanup.');
+                        console.error('[Homunculus] The healthy plugin is active, but its update lock requires manual cleanup.');
                     } else if (error?.serverPluginActivationRecorded !== true) {
-                        console.error('[SillyBunny] Activation could not be recorded; restoring the previous plugin now.');
+                        console.error('[Homunculus] Activation could not be recorded; restoring the previous plugin now.');
                         await stopChildForRollback(child, exitPromise);
                         pluginUpdate.rollback(activatingPluginUpdate, 'activation could not be recorded durably');
                         activatingPluginUpdate = null;
@@ -354,7 +354,7 @@ export async function runSupervisor({
 
             if (code === SERVER_PLUGIN_UPDATE_EXIT_CODE && !shuttingDown) {
                 if (!pendingPluginUpdate) {
-                    console.error('[SillyBunny] Server plugin update exit requested without a queued transaction.');
+                    console.error('[Homunculus] Server plugin update exit requested without a queued transaction.');
                     isFirstLaunch = false;
                     continue;
                 }
@@ -366,12 +366,12 @@ export async function runSupervisor({
                 try {
                     activatingPluginUpdate = pluginUpdate.apply(pendingPluginUpdate);
                 } catch (error) {
-                    console.error('[SillyBunny] Failed to activate the staged server plugin update. Restarting the previous version.', error);
+                    console.error('[Homunculus] Failed to activate the staged server plugin update. Restarting the previous version.', error);
                     if (!error?.preserveServerPluginTransaction && !error?.serverPluginTransactionCleaned) {
                         try {
                             pluginUpdate.discardPrepared?.(pendingPluginUpdate);
                         } catch (discardError) {
-                            console.error('[SillyBunny] Failed to discard the rejected server plugin update.', discardError);
+                            console.error('[Homunculus] Failed to discard the rejected server plugin update.', discardError);
                         }
                     }
                 } finally {
@@ -385,25 +385,25 @@ export async function runSupervisor({
                 try {
                     discardPreparedUpdate(pendingPluginUpdate);
                 } catch (error) {
-                    console.error('[SillyBunny] Failed to discard a queued server plugin update.', error);
+                    console.error('[Homunculus] Failed to discard a queued server plugin update.', error);
                 }
                 clearPendingPluginUpdate();
             }
 
             if (code === RESTART_EXIT_CODE && !shuttingDown) {
-                console.info('[SillyBunny] Restarting server...');
+                console.info('[Homunculus] Restarting server...');
                 isFirstLaunch = false;
                 continue;
             }
 
             if (code === SUPERVISOR_RELOAD_EXIT_CODE && !shuttingDown) {
-                console.info('[SillyBunny] Host update requires a fresh supervisor process.');
+                console.info('[Homunculus] Host update requires a fresh supervisor process.');
                 return exitFn(RESTART_EXIT_CODE);
             }
 
             return exitFn(signal ? 1 : (code ?? 0));
         } catch (error) {
-            console.error('[SillyBunny] Supervisor failed to launch the server.', error);
+            console.error('[Homunculus] Supervisor failed to launch the server.', error);
             return exitFn(1);
         }
     }

@@ -10,7 +10,7 @@ const LOCK_RETRY_DELAY_MS = 25;
 const LOCK_RETRY_LIMIT = 200;
 const MAX_CHAT_NAME_LENGTH = 255;
 
-// SillyBunny: upstream keeps the last opened chat inside the character card, so
+// Homunculus: upstream keeps the last opened chat inside the character card, so
 // every chat switch re-encodes the PNG. This sidecar holds it instead. Groups are
 // absent on purpose: their active chat already lives in the group file.
 

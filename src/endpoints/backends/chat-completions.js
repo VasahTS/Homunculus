@@ -296,7 +296,7 @@ function applyLocalPromptCacheScope(bodyParams, requestBody) {
         return;
     }
 
-    // SillyBunny: helper generations must explicitly opt out, because some
+    // Homunculus: helper generations must explicitly opt out, because some
     // local llama.cpp servers default to --cache-prompt for every request.
     bodyParams.cache_prompt = getLocalPromptCacheValue(requestBody.cacheScope);
 }
@@ -316,7 +316,7 @@ function logVerboseGenerationRequest(provider, request, payload) {
         return;
     }
 
-    // SillyBunny: keep full prompt payload diagnostics available through the existing prompt-log toggle.
+    // Homunculus: keep full prompt payload diagnostics available through the existing prompt-log toggle.
     const metadata = `type=${request.body.type} source=${request.body.chat_completion_source} model=${request.body.model} stream=${request.body.stream}`;
     const payloadText = formatVerboseGenerationPayload(payload);
     console.log(`[ChatCompletions] ${provider} request payload: ${metadata}\n${payloadText}`);
@@ -382,10 +382,10 @@ async function sendClaudeRequest(request, response) {
         const useTools = Array.isArray(request.body.tools) && request.body.tools.length > 0;
         const useSystemPrompt = Boolean(request.body.use_sysprompt);
         const convertedPrompt = convertClaudeMessages(request.body.messages, request.body.assistant_prefill, useSystemPrompt, useTools, getPromptNames(request));
-        // SillyBunny: claude-fable-5 support (substring match also catches router ids like 'anthropic/claude-fable-5')
+        // Homunculus: claude-fable-5 support (substring match also catches router ids like 'anthropic/claude-fable-5')
         const isFableModel = /claude-fable/.test(request.body.model);
         const isFable51Model = /claude-fable-5-1/.test(request.body.model);
-        // SillyBunny: Claude Sonnet 5 and Opus 5 require adaptive thinking and reject sampling params and assistant prefill.
+        // Homunculus: Claude Sonnet 5 and Opus 5 require adaptive thinking and reject sampling params and assistant prefill.
         const isSonnetOrOpus5 = /claude-(?:sonnet|opus)-5/.test(request.body.model);
         const isOpus55Model = /claude-opus-5-5(?:[-/:]|$)/.test(request.body.model);
         const useThinking = /^claude-(3-7|opus-4|sonnet-4|haiku-4-5|opus-4-5|opus-4-6|opus-4-7|sonnet-4-6)/.test(request.body.model) || isFableModel || isSonnetOrOpus5;
@@ -533,7 +533,7 @@ async function sendClaudeRequest(request, response) {
             delete requestBody.top_p;
             delete requestBody.top_k;
         } else if (isSonnetOrOpus5 && budgetTokens === null) {
-            // SillyBunny: Opus 5.5 rejects disabled thinking even when no effort is selected.
+            // Homunculus: Opus 5.5 rejects disabled thinking even when no effort is selected.
             requestBody.thinking = { type: isOpus55Model ? 'adaptive' : 'disabled' };
             if (isOpus55Model && includeReasoning) {
                 requestBody.thinking.display = 'summarized';
@@ -569,7 +569,7 @@ async function sendClaudeRequest(request, response) {
                 ...additionalHeaders,
             },
         };
-        // SillyBunny: node-fetch's stream pipeline leaks Bun timeout rejections; direct HTTPS preserves global agents.
+        // Homunculus: node-fetch's stream pipeline leaks Bun timeout rejections; direct HTTPS preserves global agents.
         const generateResponse = isBunRuntime() && request.body.stream && request.body.chat_completion_source === CHAT_COMPLETION_SOURCES.LINKAPI
             ? await fetchBunLinkApiStream(requestUrl, requestOptions)
             : await fetch(requestUrl, requestOptions);
@@ -581,14 +581,14 @@ async function sendClaudeRequest(request, response) {
             if (!generateResponse.ok) {
                 const generateResponseText = await generateResponse.text();
                 console.warn(color.red(`Claude API returned error: ${generateResponse.status} ${generateResponse.statusText}\n${generateResponseText}\n${divider}`));
-                // SillyBunny: forward upstream error body/status so the client toast shows the real cause (401→400 per forwardFetchResponse convention)
+                // Homunculus: forward upstream error body/status so the client toast shows the real cause (401→400 per forwardFetchResponse convention)
                 const errorBody = tryParse(generateResponseText) ?? { error: { message: generateResponseText || generateResponse.statusText } };
                 return response.status(generateResponse.status === 401 ? 400 : generateResponse.status).send(errorBody);
             }
 
             /** @type {any} */
             const generateResponseJson = await generateResponse.json();
-            // SillyBunny: scan all content blocks for the first text block, not just
+            // Homunculus: scan all content blocks for the first text block, not just
             // content[0]. When adaptive thinking is enabled, content[0] is a thinking
             // block ({ type: 'thinking', thinking: '...' }) with no .text property,
             // causing empty responses for Fable and other thinking-enabled models.
@@ -2754,7 +2754,7 @@ function forwardResponsesApiStream(fetchResponse, expressResponse, request, onDi
 
     const resumableGeneration = getResumableGeneration(request);
     if (resumableGeneration) {
-        // SillyBunny: a resumable generation finishes without the client; only an explicit cancel stops it.
+        // Homunculus: a resumable generation finishes without the client; only an explicit cancel stops it.
         resumableGeneration.onCancel(closeStream);
     } else {
         expressResponse.on('close', () => {
@@ -2922,18 +2922,18 @@ function getSafeCompletionErrorStatus(status) {
     return Number.isInteger(parsed) && parsed >= 400 && parsed < 500 ? parsed : 502;
 }
 
-// SillyBunny divergence: export the existing handler so Conversation REST can reuse upstream request assembly without forking backend logic.
+// Homunculus divergence: export the existing handler so Conversation REST can reuse upstream request assembly without forking backend logic.
 export async function handleChatCompletionsGenerate(request, response) {
     try {
         if (!request.body) return response.status(400).send({ error: true });
 
-        // SillyBunny divergence: normalize here, before the source switch, so every provider
+        // Homunculus divergence: normalize here, before the source switch, so every provider
         // branch below inherits it. Extensions and hand-edited connection profiles can supply a
         // reasoning effort the frontend never validated, and the pass-through sources forward it
         // to the provider verbatim.
         applyReasoningEffortNormalization(request.body);
 
-        // SillyBunny: enforce upstream Astra constraints before dispatch so profile overrides
+        // Homunculus: enforce upstream Astra constraints before dispatch so profile overrides
         // and Conversation REST requests follow the same rules as the frontend builder.
         if ([CHAT_COMPLETION_SOURCES.OPENAI, CHAT_COMPLETION_SOURCES.OPENAI_RESPONSES, CHAT_COMPLETION_SOURCES.AZURE_OPENAI, CHAT_COMPLETION_SOURCES.OPENROUTER].includes(request.body.chat_completion_source)
             && /gpt-6-astra/.test(request.body.model)) {
@@ -3205,7 +3205,7 @@ export async function handleChatCompletionsGenerate(request, response) {
             headers = {};
             bodyParams = {};
 
-            // SillyBunny: explicit lists replace the legacy selector even when empty; malformed restrictions must fail closed.
+            // Homunculus: explicit lists replace the legacy selector even when empty; malformed restrictions must fail closed.
             let hasProviderLists = false;
             for (const [field, key] of [
                 ['nanogpt_allowed_providers', 'only'],
@@ -3256,7 +3256,7 @@ export async function handleChatCompletionsGenerate(request, response) {
             if (request.body.repetition_penalty !== undefined) {
                 bodyParams['repetition_penalty'] = request.body.repetition_penalty;
             }
-            // SillyBunny divergence: 'auto' is truthy but means "unset", and upstream shipped it as
+            // Homunculus divergence: 'auto' is truthy but means "unset", and upstream shipped it as
             // a bare `"reasoning": {}`. Every real rung, 'none' included, goes through untouched.
             if (request.body.reasoning_effort && request.body.reasoning_effort !== 'auto') {
                 bodyParams['reasoning'] = { effort: toWireReasoningEffort(request.body.reasoning_effort) };
@@ -3297,7 +3297,7 @@ export async function handleChatCompletionsGenerate(request, response) {
                     type: request.body.include_reasoning ? 'enabled' : 'disabled',
                 },
             };
-            // SillyBunny divergence: K3 always reasons and takes the depth from a top-level
+            // Homunculus divergence: K3 always reasons and takes the depth from a top-level
             // reasoning_effort instead of the thinking object the older Kimi models use.
             if (isKimiK3Model(request.body.model) && request.body.reasoning_effort && !['auto', 'none'].includes(request.body.reasoning_effort)) {
                 bodyParams['reasoning_effort'] = toWireReasoningEffort(request.body.reasoning_effort);
@@ -3326,7 +3326,7 @@ export async function handleChatCompletionsGenerate(request, response) {
                     type: requiresThinking || request.body.include_reasoning ? 'enabled' : 'disabled',
                 },
             };
-            // SillyBunny divergence: Z.AI takes the reasoning depth alongside thinking.type from
+            // Homunculus divergence: Z.AI takes the reasoning depth alongside thinking.type from
             // GLM-5.2 onwards.
             if (zaiSupportsReasoningEffort(request.body.model) && request.body.reasoning_effort && !['auto', 'none'].includes(request.body.reasoning_effort)) {
                 bodyParams['reasoning_effort'] = toWireReasoningEffort(request.body.reasoning_effort);
@@ -3375,7 +3375,7 @@ export async function handleChatCompletionsGenerate(request, response) {
             return response.status(400).send({ error: true });
         }
 
-        // SillyBunny: service tiers are explicit routing choices on these two aggregators.
+        // Homunculus: service tiers are explicit routing choices on these two aggregators.
         if ([CHAT_COMPLETION_SOURCES.NANOGPT, CHAT_COMPLETION_SOURCES.OPENROUTER].includes(request.body.chat_completion_source)
             && request.body.service_tier !== undefined) {
             if (!['auto', 'default', 'flex', 'priority'].includes(request.body.service_tier)) {
@@ -3479,7 +3479,7 @@ export async function handleChatCompletionsGenerate(request, response) {
             applyKimiK3ModelParameterConstraints(requestBody);
         }
 
-        // SillyBunny: Claude models that require adaptive thinking reject legacy thinking types supplied by Custom endpoint settings.
+        // Homunculus: Claude models that require adaptive thinking reject legacy thinking types supplied by Custom endpoint settings.
         if (!isTextCompletion
             && request.body.chat_completion_source === CHAT_COMPLETION_SOURCES.CUSTOM
             && /claude-(?:fable-5(?:-1|\.1)|opus-5-5)(?:[-/:]|$)/i.test(String(requestBody.model))) {
@@ -3492,7 +3492,7 @@ export async function handleChatCompletionsGenerate(request, response) {
         if (request.body.chat_completion_source === CHAT_COMPLETION_SOURCES.CUSTOM) {
             excludeKeysByYaml(requestBody, request.body.custom_exclude_body);
             delete requestBody.request_controls;
-            // SillyBunny: enforce owned controls after custom body overrides, never on helper requests.
+            // Homunculus: enforce owned controls after custom body overrides, never on helper requests.
             let reasoning;
             if (hasCustomReasoningParamConfig(request.body)) {
                 const value = requestBody[request.body.custom_reasoning_param_name.trim()];

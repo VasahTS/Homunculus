@@ -76,7 +76,7 @@ import { t } from './i18n.js';
 import { getBackgroundPath, isCustomBackgroundUrl } from './backgrounds.js';
 import { setSlashCommandParserSettingsGetter } from './slash-commands/SlashCommandParserConfig.js';
 import { persona_description_positions as _persona_description_positions } from './personas.js';
-import { generateCustomCssWithAI, resolveCustomCssAIProfile } from './sillybunny-custom-css-ai.js';
+import { generateCustomCssWithAI, resolveCustomCssAIProfile } from './homunculus-custom-css-ai.js';
 import { populateConnectionProfileSelect } from './extensions/in-chat-agents/profile-utils.js';
 import { resolveMovingUIViewportState, scaleMovingUIViewportState } from './moving-ui-viewport.js';
 import { ANDROID_STREAMING_SETTING_DEFAULTS, ANDROID_STREAMING_SETTINGS_INITIALIZED_KEY, initializeAndroidStreamingSettings } from './mobile-streaming.js';
@@ -102,7 +102,7 @@ const defaultStoryString = '{{#if system}}{{system}}\n{{/if}}{{#if description}}
 const defaultExampleSeparator = '***';
 const defaultChatStart = '***';
 const defaultToastPosition = 'toast-top-center';
-const SILLYBUNNY_PALETTE_PRESETS = Object.freeze({
+const HOMUNCULUS_PALETTE_PRESETS = Object.freeze({
     'forest-dusk': {
         label: 'Forest Dusk',
         values: {
@@ -155,7 +155,7 @@ const SILLYBUNNY_PALETTE_PRESETS = Object.freeze({
         },
     },
 });
-const SILLYBUNNY_PALETTE_BINDINGS = Object.freeze([
+const HOMUNCULUS_PALETTE_BINDINGS = Object.freeze([
     ['main_text_color', '#main-text-color-picker', 'main'],
     ['italics_text_color', '#italics-color-picker', 'italics'],
     ['underline_text_color', '#underline-color-picker', 'underline'],
@@ -170,7 +170,7 @@ const SILLYBUNNY_PALETTE_BINDINGS = Object.freeze([
 const SB_ACCENT_PROFILE_SEED_VERSION = 2;
 const SB_ACCENT_PROFILES_DRAWER_KEY = 'SBAccentProfilesDrawerExpanded';
 const MAX_SB_ACCENT_PROFILE_NAME_LENGTH = 40;
-const SILLYBUNNY_ACCENT_PROFILE_SEEDS = Object.freeze([
+const HOMUNCULUS_ACCENT_PROFILE_SEEDS = Object.freeze([
     { name: 'Warm Signal', quote_text_color: 'rgba(201, 198, 168, 1)', underline_text_color: 'rgba(166, 164, 147, 1)' },
     { name: 'Story Moss', quote_text_color: 'rgba(114, 192, 144, 1)', underline_text_color: 'rgba(161, 209, 172, 1)' },
     { name: 'Forest Dawn', quote_text_color: 'rgba(53, 167, 124, 1)', underline_text_color: 'rgba(245, 125, 38, 1)' },
@@ -233,7 +233,7 @@ export const chat_styles = Object.freeze({
     DEFAULT: 0,
     BUBBLES: 1,
     DOCUMENT: 2,
-    // SillyBunny: native fork-only chat display styles kept compatible with Moonlit Echoes body classes.
+    // Homunculus: native fork-only chat display styles kept compatible with Moonlit Echoes body classes.
     ECHO: 3,
     WHISPER: 4,
     HUSH: 5,
@@ -253,8 +253,8 @@ const CHAT_STYLE_BODY_CLASSES = Object.freeze({
 });
 
 const LEGACY_CHAT_STYLE_BODY_CLASSES = Object.freeze([]);
-const NATIVE_CHAT_STYLE_STYLESHEET_ID = 'sillybunny-native-chat-styles';
-const NATIVE_CHAT_STYLE_STYLESHEET_HREF = 'css/sillybunny-chat-styles.css?v=20260606a';
+const NATIVE_CHAT_STYLE_STYLESHEET_ID = 'homunculus-native-chat-styles';
+const NATIVE_CHAT_STYLE_STYLESHEET_HREF = 'css/homunculus-chat-styles.css?v=20260606a';
 
 function ensureNativeChatStyleStylesheet() {
     if (document.getElementById(NATIVE_CHAT_STYLE_STYLESHEET_ID)) {
@@ -267,7 +267,7 @@ function ensureNativeChatStyleStylesheet() {
     link.type = 'text/css';
     link.href = NATIVE_CHAT_STYLE_STYLESHEET_HREF;
 
-    const themeStylesheet = document.querySelector('link[href^="css/sillybunny-theme.css"]');
+    const themeStylesheet = document.querySelector('link[href^="css/homunculus-theme.css"]');
     if (themeStylesheet) {
         themeStylesheet.after(link);
         return;
@@ -320,7 +320,7 @@ export const power_user = {
     ...ANDROID_STREAMING_SETTING_DEFAULTS,
     [ANDROID_STREAMING_SETTINGS_INITIALIZED_KEY]: true,
 
-    // SillyBunny: aggressive DOM unloading for low-memory devices
+    // Homunculus: aggressive DOM unloading for low-memory devices
     aggressive_dom_unload: false,
     aggressive_dom_window_size: 5,
 
@@ -340,8 +340,8 @@ export const power_user = {
     sort_order: 'asc',
     sort_rule: null,
     font_scale: 1,
-    line_spacing: 1.2, // SillyBunny: chat message line-spacing slider.
-    message_margin_size: 1, // SillyBunny: chat message margin-size slider.
+    line_spacing: 1.2, // Homunculus: chat message line-spacing slider.
+    message_margin_size: 1, // Homunculus: chat message margin-size slider.
     blur_strength: 10,
     shadow_width: 2,
     'customCSS-bg-blur': 0,
@@ -354,7 +354,7 @@ export const power_user = {
     italics_text_color: `${getComputedStyle(document.documentElement).getPropertyValue('--SmartThemeEmColor').trim()}`,
     underline_text_color: `${getComputedStyle(document.documentElement).getPropertyValue('--SmartThemeUnderlineColor').trim()}`,
     quote_text_color: `${getComputedStyle(document.documentElement).getPropertyValue('--SmartThemeQuoteColor').trim()}`,
-    sb_accent_profiles: SILLYBUNNY_ACCENT_PROFILE_SEEDS.map(profile => ({ ...profile })),
+    sb_accent_profiles: HOMUNCULUS_ACCENT_PROFILE_SEEDS.map(profile => ({ ...profile })),
     sb_accent_profiles_seed_version: SB_ACCENT_PROFILE_SEED_VERSION,
     blur_tint_color: `${getComputedStyle(document.documentElement).getPropertyValue('--SmartThemeBlurTintColor').trim()}`,
     chat_tint_color: `${getComputedStyle(document.documentElement).getPropertyValue('--SmartThemeChatTintColor').trim()}`,
@@ -1268,7 +1268,7 @@ function syncActiveCharacterEditorPanel() {
     }
 }
 
-// Exported so the editor sub-tabs (sillybunny-tabs.js) can reveal the hidden fields when a dimmed tab is tapped.
+// Exported so the editor sub-tabs (homunculus-tabs.js) can reveal the hidden fields when a dimmed tab is tapped.
 export function setCharacterSpoilerFreeFieldsHidden(hidden) {
     const form = document.getElementById('form_create');
     const activePanel = form?.querySelector('[data-sb-character-editor-panel]:not([hidden])');
@@ -1557,7 +1557,7 @@ function applyThemeColor(type) {
 }
 
 function syncThemeColorPickersFromState() {
-    for (const [key, selector] of SILLYBUNNY_PALETTE_BINDINGS) {
+    for (const [key, selector] of HOMUNCULUS_PALETTE_BINDINGS) {
         $(selector).attr('color', power_user[key]);
     }
 
@@ -1571,7 +1571,7 @@ function syncCustomAccentPickersFromState() {
 }
 
 function getSeedAccentProfiles() {
-    return SILLYBUNNY_ACCENT_PROFILE_SEEDS.map(profile => ({ ...profile }));
+    return HOMUNCULUS_ACCENT_PROFILE_SEEDS.map(profile => ({ ...profile }));
 }
 
 function normalizeAccentProfile(profile) {
@@ -1810,8 +1810,8 @@ async function deleteAccentProfile(index) {
     toastr.success(`${profile.name} deleted.`, 'Accent profile');
 }
 
-function applySillyBunnyPalettePreset(presetId) {
-    const preset = SILLYBUNNY_PALETTE_PRESETS[presetId];
+function applyHomunculusPalettePreset(presetId) {
+    const preset = HOMUNCULUS_PALETTE_PRESETS[presetId];
 
     if (!preset) {
         return;
@@ -1820,20 +1820,20 @@ function applySillyBunnyPalettePreset(presetId) {
     Object.assign(power_user, preset.values);
     syncThemeColorPickersFromState();
 
-    for (const [, , type] of SILLYBUNNY_PALETTE_BINDINGS) {
+    for (const [, , type] of HOMUNCULUS_PALETTE_BINDINGS) {
         applyThemeColor(type);
     }
 
     applyBlurStrength();
     applyShadowWidth();
     saveSettingsDebounced();
-    toastr.success(`${preset.label} applied.`, 'SillyBunny palette');
+    toastr.success(`${preset.label} applied.`, 'Homunculus palette');
 
     if (power_user.fast_ui_mode && preset.values.blur_strength !== undefined) {
-        toastr.warning('Blur effects are disabled while Fast UI Mode is on.', 'SillyBunny palette', { timeOut: 4000 });
+        toastr.warning('Blur effects are disabled while Fast UI Mode is on.', 'Homunculus palette', { timeOut: 4000 });
     }
     if (power_user.noShadows && preset.values.shadow_width !== undefined) {
-        toastr.warning('Text shadows are disabled while No Shadows mode is on.', 'SillyBunny palette', { timeOut: 4000 });
+        toastr.warning('Text shadows are disabled while No Shadows mode is on.', 'Homunculus palette', { timeOut: 4000 });
     }
 }
 
@@ -1863,7 +1863,7 @@ function buildCustomCssAiPopup(currentCss) {
                 <label class="checkbox_label"><input type="radio" name="custom_css_ai_apply_mode" value="replace" checked><span>Replace current CSS</span></label>
                 <label class="checkbox_label"><input type="radio" name="custom_css_ai_apply_mode" value="append"><span>Append below current CSS</span></label>
             </div>
-            <small>The AI sees your current Custom CSS and the active SillyBunny theme variables. It should return raw CSS only.</small>
+            <small>The AI sees your current Custom CSS and the active Homunculus theme variables. It should return raw CSS only.</small>
             <small>Current Custom CSS length: ${String(currentCss ?? '').length.toLocaleString()} characters.</small>
         </div>
     `);
@@ -2079,7 +2079,7 @@ function applyThemeEffects() {
             document.documentElement.style.setProperty(cssVar, String(value));
         }
 
-        // SillyBunny: a zero-strength blur still forces its own compositing layer, so the CSS only attaches the filter while the slider is above 0.
+        // Homunculus: a zero-strength blur still forces its own compositing layer, so the CSS only attaches the filter while the slider is above 0.
         if (property.activeClass) {
             document.body.classList.toggle(property.activeClass, Number(value) > 0);
         }
@@ -4276,7 +4276,7 @@ jQuery(async () => {
         applyCustomCSS();
     });
 
-    // SillyBunny: Custom CSS AI wand uses the active Connection Manager profile without swapping global state.
+    // Homunculus: Custom CSS AI wand uses the active Connection Manager profile without swapping global state.
     $('#custom_css_ai_wand').on('click', () => { void handleCustomCssAiWandClick(); });
     $('#custom_css_ai_wand').on('keydown', event => {
         if (event.key !== 'Enter' && event.key !== ' ') {
@@ -4438,7 +4438,7 @@ jQuery(async () => {
         saveSettingsDebounced();
     });
 
-    // SillyBunny: aggressive DOM unloading for low-memory devices
+    // Homunculus: aggressive DOM unloading for low-memory devices
     $('#aggressive_dom_unload').on('input', function () {
         power_user.aggressive_dom_unload = !!$(this).prop('checked');
         saveSettingsDebounced();
@@ -5144,13 +5144,13 @@ jQuery(async () => {
     });
 
     $(document).on('click', '.sb-theme-preset-button', function () {
-        applySillyBunnyPalettePreset(String($(this).data('sb-palette')));
+        applyHomunculusPalettePreset(String($(this).data('sb-palette')));
     });
 
     $(document).on('click', '.sb-theme-preset-reset', function () {
         applyTheme('Dark V 1.0');
         saveSettingsDebounced();
-        toastr.info('Theme colors reset to Dark V 1.0.', 'SillyBunny palette');
+        toastr.info('Theme colors reset to Dark V 1.0.', 'Homunculus palette');
     });
 
     // Accent color presets
@@ -5199,7 +5199,7 @@ jQuery(async () => {
 
         if (quoteColor && underlineColor) {
             applyAccentColors(quoteColor, underlineColor);
-            toastr.info('Accent colors applied.', 'SillyBunny palette');
+            toastr.info('Accent colors applied.', 'Homunculus palette');
         }
     });
 

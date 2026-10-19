@@ -11,7 +11,7 @@ test.describe('Welcome starter pack action layout', () => {
     test('wraps action buttons before their label words fragment', async ({ page }) => {
         const [baseCss, themeCss, welcomeCss] = await Promise.all([
             fs.readFile(path.join(repoRoot, 'public/style.css'), 'utf8'),
-            fs.readFile(path.join(repoRoot, 'public/css/sillybunny-theme.css'), 'utf8'),
+            fs.readFile(path.join(repoRoot, 'public/css/homunculus-theme.css'), 'utf8'),
             fs.readFile(path.join(repoRoot, 'public/css/welcome.css'), 'utf8'),
         ]);
 

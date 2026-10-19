@@ -15,7 +15,7 @@ import { getEnabledThirdPartyExtensions } from '../public/scripts/extensions/sil
 
 const extensionRoot = new URL('../public/scripts/extensions/sillybunny-debugger/', import.meta.url);
 
-describe('SillyBunny Debugger', () => {
+describe('Homunculus Debugger', () => {
     test('bounds capture without inspecting application objects', () => {
         const ring = createRing(3);
         for (let value = 1; value <= 5; value += 1) ring.push(value);

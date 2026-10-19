@@ -161,7 +161,7 @@ export function prefetchAsset(href, { as = 'fetch', rel = 'prefetch', type = '' 
     return link;
 }
 
-window.SillyBunnyAssets = Object.assign(window.SillyBunnyAssets ?? {}, {
+window.HomunculusAssets = Object.assign(window.HomunculusAssets ?? {}, {
     loadStylesheetAsync,
     prefetchAsset,
 });

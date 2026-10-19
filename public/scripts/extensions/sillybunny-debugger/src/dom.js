@@ -1,5 +1,5 @@
 /**
- * Tiny DOM helpers shared by the UI module. No SillyBunny imports.
+ * Tiny DOM helpers shared by the UI module. No Homunculus imports.
  * Trimmed copy of the MacroEnhanced helpers.
  */
 

@@ -49,7 +49,7 @@ const DEFAULT_INTERVAL = 1;
 // dead zone while this module body runs. The default role has to be read lazily, at call time.
 const getDefaultRole = () => extension_prompt_roles.SYSTEM;
 
-// SillyBunny: resolving these at read time keeps a chat that never used an Author's Note out of
+// Homunculus: resolving these at read time keeps a chat that never used an Author's Note out of
 // chat_metadata. Stamping the defaults in on load dirtied every chat the moment it was opened, and
 // there is no metadata-only write: saving chat metadata rewrites the entire chat file.
 export function getAuthorsNotePrompt() {
@@ -72,7 +72,7 @@ export function getAuthorsNoteRole() {
     return chat_metadata[metadata_keys.role] ?? extension_settings.note?.defaultRole ?? getDefaultRole();
 }
 
-// SillyBunny divergence: character and group Author's Notes use a fork-owned scoped store while preserving existing note settings.
+// Homunculus divergence: character and group Author's Notes use a fork-owned scoped store while preserving existing note settings.
 function ensureCharacterNoteStore() {
     if (!extension_settings.note.chara) {
         extension_settings.note.chara = [];

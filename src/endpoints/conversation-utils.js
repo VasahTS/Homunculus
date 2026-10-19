@@ -14,7 +14,7 @@ import path from 'node:path';
 import ipaddr from 'ipaddr.js';
 import mime from 'mime-types';
 
-import { MAX_THREAD_MESSAGES } from '../../public/scripts/sillybunny-conversation/constants.js';
+import { MAX_THREAD_MESSAGES } from '../../public/scripts/homunculus-conversation/constants.js';
 import { isPathInside } from '../path-containment.js';
 
 // Validation constants

@@ -13,7 +13,7 @@ import { AIMLAPI_HEADERS, OPENROUTER_HEADERS, SILICONFLOW_ENDPOINT, ZAI_ENDPOINT
 
 export const router = express.Router();
 
-// SillyBunny: keep OpenAI TTS proxy content types aligned with the requested audio format.
+// Homunculus: keep OpenAI TTS proxy content types aligned with the requested audio format.
 const OPENAI_TTS_CONTENT_TYPES = {
     mp3: 'audio/mpeg',
     opus: 'audio/opus',

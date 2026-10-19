@@ -35,7 +35,7 @@ const TOOLS = Object.freeze([
     { drawer: 'advanced-formatting-button', icon: 'fa-font', name: 'Formatting', desc: 'Instruct, context and system templates.' },
     { drawer: 'agents-settings-button', icon: 'fa-robot', name: 'Agents', desc: 'In-chat agents that help each reply.' },
     { drawer: 'ct-memory-button', icon: 'fa-brain', name: 'Memory', desc: 'Chapter summaries and recall of old messages.' },
-    { open: 'SillyBunnyClassicCardBrowser', icon: 'fa-earth-americas', name: 'Card Browser', desc: 'Find and import cards from ChubAI, JannyAI and more.' },
+    { open: 'HomunculusClassicCardBrowser', icon: 'fa-earth-americas', name: 'Card Browser', desc: 'Find and import cards from ChubAI, JannyAI and more.' },
     { drawer: 'extensions-settings-button', icon: 'fa-cubes', name: 'Extensions', desc: 'Install and configure extensions.' },
     { drawer: 'backgrounds-button', icon: 'fa-panorama', name: 'Backgrounds', desc: 'Pick the chat background.' },
     { drawer: 'ct-personalize-button', icon: 'fa-palette', name: 'Customize', desc: 'Visual profiles, layout and effects.' },
@@ -135,7 +135,7 @@ function ensureHomeButton() {
     makeRailButton('ct-home-button', 'fa-house', 'Home', () => toggleHome());
     // Card Browser gets its own button, next to the Characters icon in the top bar.
     makeRailButton('ct-cards-button', 'fa-earth-americas', 'Card Browser', () => {
-        const browser = globalThis.SillyBunnyClassicCardBrowser;
+        const browser = globalThis.HomunculusClassicCardBrowser;
         if (!browser) return;
         if (currentView === 'ct-cards-button') browser.close(); else browser.open();
     }, 'rightNavHolder');
@@ -634,7 +634,7 @@ function setOpenState(open, { keepView = false } = {}) {
 }
 
 export async function openHome() {
-    globalThis.SillyBunnyClassicCardBrowser?.close?.();
+    globalThis.HomunculusClassicCardBrowser?.close?.();
     const root = ensureHomeRoot();
     // Close any open (unpinned) drawer so Home is not hidden behind it.
     for (const content of document.querySelectorAll('#top-settings-holder .drawer-content.openDrawer:not(.pinnedOpen)')) {
@@ -690,7 +690,7 @@ function init() {
         if (!content?.classList.contains('pinnedOpen') || !isOpenContent(content) || !(state.open || browserOpen)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        if (browserOpen) globalThis.SillyBunnyClassicCardBrowser?.close?.();
+        if (browserOpen) globalThis.HomunculusClassicCardBrowser?.close?.();
         closeHome();
     }, true);
     // Opening any drawer from the top bar / sidebar while Home is up closes Home.
@@ -709,4 +709,4 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicHome = { openHome, closeHome, toggleHome, showChat, setView, getView };
+globalThis.HomunculusClassicHome = { openHome, closeHome, toggleHome, showChat, setView, getView };

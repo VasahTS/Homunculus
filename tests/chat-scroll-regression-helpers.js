@@ -1,7 +1,7 @@
 /* global document, HTMLElement, requestAnimationFrame, window, WheelEvent */
 import { testSetup } from './frontend/frontent-test-utils.js';
 
-export const APP_URL = process.env.SILLYBUNNY_TEST_BASE_URL || '/';
+export const APP_URL = process.env.HOMUNCULUS_TEST_BASE_URL || '/';
 
 /**
  * Loads the app and waits until startup has finished on any profile, including a fresh one.
@@ -26,7 +26,7 @@ export async function dismissOnboardingIfPresent(page) {
     const dialogText = await openDialog.textContent({ timeout: 1000 }).catch(() => '');
     const onboardingInput = openDialog.locator('textarea.popup-input, input.popup-input, input[type="text"], textarea').first();
     const hasOnboardingInput = await onboardingInput.isVisible().catch(() => false);
-    const isWelcomeDialog = /Welcome to SillyBunny/i.test(dialogText ?? '');
+    const isWelcomeDialog = /Welcome to Homunculus/i.test(dialogText ?? '');
 
     if (!isWelcomeDialog && !hasOnboardingInput) {
         return;

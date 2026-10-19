@@ -7,7 +7,7 @@ const indexHtml = readFileSync(path.join(repoRoot, 'public', 'index.html'), 'utf
 const scriptSource = readFileSync(path.join(repoRoot, 'public', 'script.js'), 'utf8');
 const powerUserSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'power-user.js'), 'utf8');
 const mobileStreamingSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'mobile-streaming.js'), 'utf8');
-const settingsTabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-settings-tabs.js'), 'utf8');
+const settingsTabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-settings-tabs.js'), 'utf8');
 
 const androidSettingIds = [
     'android_conservative_streaming',

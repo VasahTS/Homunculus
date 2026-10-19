@@ -20,10 +20,10 @@ if (-not $runtime) {
     Fail 'Nao encontrei o Node.js nem o Bun. Rode o Start.bat uma vez e tente de novo.'
 }
 if (-not (Test-Path 'public/index.html')) {
-    Fail 'Esta pasta nao parece ser uma instalacao do Homunculus / SillyBunny Classic (falta public\index.html).'
+    Fail 'Esta pasta nao parece ser uma instalacao do Homunculus / Homunculus Classic (falta public\index.html).'
 }
 
-# Homunculus no longer follows SillyBunny releases: remove the old updater/installer if they are still here.
+# Homunculus no longer follows Homunculus releases: remove the old updater/installer if they are still here.
 foreach ($old in @('Atualizar-Classic.bat', 'Instalar.bat', 'classic-ui/Update-Classic.ps1', 'classic-ui/Install-Classic.ps1')) {
     if (Test-Path $old) { Remove-Item -Force $old }
 }

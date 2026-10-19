@@ -8,7 +8,7 @@ import yauzl from 'yauzl';
 
 import { isPathInside } from './path-containment.js';
 
-const GITHUB_OWNER = 'VasahTS'; // Homunculus: never pull SillyBunny release ZIPs over this install
+const GITHUB_OWNER = 'VasahTS'; // Homunculus: never pull Homunculus release ZIPs over this install
 const GITHUB_REPO = 'Homunculus';
 const GITHUB_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const GITHUB_RELEASE_DOWNLOAD_PREFIX = `/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/`;
@@ -335,7 +335,7 @@ export async function stageZipReleaseUpdate(releaseStatus) {
     const latestVersion = normalizeVersion(releaseStatus?.latestVersion);
     const assetName = buildReleaseZipAssetName(latestVersion);
     const assetUrl = validateReleaseAssetUrl(releaseStatus?.assetUrl, latestVersion);
-    const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-zip-update-'));
+    const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-zip-update-'));
     const zipPath = path.join(stagingRoot, assetName);
     const extractRoot = path.join(stagingRoot, 'extract');
 

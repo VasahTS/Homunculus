@@ -231,8 +231,8 @@ import {
     resolveMainGenerationControlState,
     shouldBlockGenerationStart,
 } from "./lib/action-controls.js";
-// SillyBunny divergence: Conversation capability registry bridge.
-import { registerExtensionCapability } from "../../sillybunny-conversation/extension-capabilities.js";
+// Homunculus divergence: Conversation capability registry bridge.
+import { registerExtensionCapability } from "../../homunculus-conversation/extension-capabilities.js";
 
 // Artist lists for random selection
 const ARTISTS_NATURAL = ["a1 (initial-g)", "abubu", "afrobull", "aiue oka", "akairiot", "akamatsu ken", "alex ahad", "alzi xiaomi", "amazuyu tatsuki", "aoi nagisa (metalder)", "ask (askzy)", "atdan", "awa", "ayami kojima", "azasuke", "azto dio", "bkub", "blade (galaxist)", "boris (noborhys)", "bow (bhp)", "butcha-u", "chouzuki maryou", "ciloranko", "circle anco", "crote", "dagasi", "dairi", "dino (dinoartforame)", "dishwasher1910", "drawfag", "dsmile", "ebifurya", "eroquis", "fkey", "fuzichoco", "gomennasai", "hammer (sunset beach)", "hana kazari", "hara (harayutaka)", "haruyama kazunori", "hews", "hiroki (yyqw7151)", "hiten", "hoshi (snacherubi)", "inoino", "itomugi-kun", "ixy", "kagami hirotaka", "kanon (kurogane knights)", "kantoku", "kawacy", "ke-ta", "kou hiyoyo", "kouji (campus life)", "kuavera", "kuon (kwonchan)", "lack", "lm7", "lolita channel", "m-da s-tarou", "matsunaga kouyou", "mika pikazo", "mikeinel", "mizuki hitoshi", "mizumizuni", "morikura en", "naga u", "nardack", "neco", "nel-zel formula", "neocoill", "nian", "nixeu", "nyamota", "nyantcha", "ojipon", "onikobe rin", "piromizu", "pochi (pochi-goya)", "qp:flapper", "rebecca (keinelove)", "redjuice", "rei (sanbonzakura)", "rurudo", "ruu (tksymkw)", "shirataki", "sincos", "sky-freedom", "tofuubear", "tony taka", "tukiwani", "wanke", "yaegashi nan", "yamakaze", "yoko juusuke", "yoshiaki", "yuuki tatsuya"];
@@ -4248,7 +4248,7 @@ function enqueueExternalGeneration(task, parentSignal = null) {
         controller,
         signal: controller.signal,
         comfyPrompt: null,
-        // SillyBunny divergence: capability runs own budgets independently of interactive generation.
+        // Homunculus divergence: capability runs own budgets independently of interactive generation.
         context: { outputBudget: { count: 0, bytes: 0, error: null } },
     };
     const abortFromParent = () => abortExternalGenerationRun(run, parentSignal?.reason);
@@ -5919,7 +5919,7 @@ function enrichSceneTextForFilters(sceneText, label = "Contextual filters", cont
 
 let quickImageGenInitializationPromise = null;
 
-// SillyBunny divergence: expose a tiny readiness seam so Conversation media flows can wait for QIG boot without copying its init state.
+// Homunculus divergence: expose a tiny readiness seam so Conversation media flows can wait for QIG boot without copying its init state.
 function ensureQuickImageGenReady(timeoutMs = 10000) {
     if (!quickImageGenInitializationPromise) {
         return Promise.reject(new Error("Quick Image Gen initialization has not started."));
@@ -5961,7 +5961,7 @@ function getGenerationSettingsForRun(context = null) {
     const merged = transientValues && typeof transientValues === "object"
         ? { ...baseSettings, ...transientValues }
         : baseSettings;
-    // SillyBunny divergence: scope settings to an explicitly supplied context so
+    // Homunculus divergence: scope settings to an explicitly supplied context so
     // Conversation generation cannot inherit the active roleplay character.
     const runContext = context || getContext?.();
     const snapshot = snapshotGenerationRunSettings(getScopedCharacterGenerationSettings(merged, runContext));
@@ -6682,7 +6682,7 @@ async function prepareQigFinalPrompt({
             llmSceneText: llmSceneText || sourcePrompt,
             signal,
             settings,
-            // SillyBunny divergence: keep filter matching on the caller's context.
+            // Homunculus divergence: keep filter matching on the caller's context.
             ...(context ? { context } : {}),
         });
         if (signal?.aborted) throw getAbortError(signal);
@@ -7018,7 +7018,7 @@ async function callOverrideLLM(instruction, systemPrompt = "", signal = null, { 
         throw new Error("The selected separate AI profile is unavailable. Check Connection Manager. The request was NOT sent to the main chat AI.");
     }
 
-    // SillyBunny divergence: scoped runs pass their own context, so history comes from it.
+    // Homunculus divergence: scoped runs pass their own context, so history comes from it.
     const history = buildOverrideChatHistory(s, requestContext);
     const messages = buildTextAIRequestMessages(instruction, { role, history, systemPrompt, prefill: assistantPrefill });
 
@@ -8892,7 +8892,7 @@ async function genLocal(prompt, negative, s, signal, options = {}) {
                 promptId: promptResponse.prompt_id,
                 allowLegacyInterrupt: s.comfyAllowLegacyInterrupt === true,
             };
-            // SillyBunny divergence: external capability runs own their prompt directly and
+            // Homunculus divergence: external capability runs own their prompt directly and
             // must never claim or clear the UI generation's tracked prompt.
             if (options.externalRun) {
                 options.externalRun.comfyPrompt = trackedPrompt;
@@ -12075,7 +12075,7 @@ async function finalizeGeneratedResults(providerResult, prompt, negative, settin
         });
         return entries;
     } catch (error) {
-        // SillyBunny divergence: release outputs when a scoped/external run fails or is cancelled.
+        // Homunculus divergence: release outputs when a scoped/external run fails or is cancelled.
         finalizedEntries.forEach(releaseTransientProviderResult);
         releaseTransientProviderResult(providerResult);
         throw error;
@@ -23109,7 +23109,7 @@ function initializeQuickImageGen() {
         } catch (err) {
             console.error("[Quick Image Gen] Initialization failed:", err);
             reportInitializationFailure(err);
-            // SillyBunny divergence: still reject so ensureQuickImageGenReady() fails fast
+            // Homunculus divergence: still reject so ensureQuickImageGenReady() fails fast
             // for Conversation media flows instead of waiting out its timeout.
             throw err;
         }
@@ -23689,7 +23689,7 @@ export function deactivate() {
 // Export module info for SillyTavern
 export { extensionName };
 
-// SillyBunny divergence: minimal helper exports for the Expressions Agent bridge.
+// Homunculus divergence: minimal helper exports for the Expressions Agent bridge.
 // These are kept intentionally small so upstream syncs only need to preserve this
 // one export block. The actual sprite-generation logic lives outside QIG in
 // public/scripts/extensions/expressions/expression-sprite-bridge.js.

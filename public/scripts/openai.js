@@ -329,7 +329,7 @@ const INLINE_SELECT_PICKER_CONTROLS = [
     { source: 'openrouter-quantizations-text', select: '#openrouter_quantizations_text', label: 'OpenRouter quantizations', multiple: true },
 ];
 
-// SillyBunny: touch browsers can open Select2 search as a keyboard-only field.
+// Homunculus: touch browsers can open Select2 search as a keyboard-only field.
 // Keep mobile OpenRouter/API selects backed by native values while rendering an inline list.
 const modelIdSearchControlState = new Map();
 let modelSelectPickerDocumentListenerBound = false;
@@ -775,7 +775,7 @@ function applyToolCallRecurseLimit(value = oai_settings.tool_call_recurse_limit)
 export let promptManager = null;
 
 /**
- * SillyBunny: prompt order reset needs the selected preset's saved order, not the current modified settings.
+ * Homunculus: prompt order reset needs the selected preset's saved order, not the current modified settings.
  * Gets the prompt order from the selected OpenAI preset before user edits are applied.
  * @param {number|string|null} characterId Character/dummy ID to match in the preset prompt order.
  * @returns {Array<Object>} Prompt order from the selected preset, or an empty array.
@@ -1310,7 +1310,7 @@ async function populateChatHistory(messages, prompts, chatCompletion, type = nul
     // Insert chat messages as long as there is budget available
     const chatPool = [...messages].reverse();
 
-    // SillyBunny divergence from upstream: prepare and count a window of chat prompts at a
+    // Homunculus divergence from upstream: prepare and count a window of chat prompts at a
     // time. Upstream prepares and counts inside the loop below, which costs a round trip per
     // message (two once names are enabled) - free on localhost, but the dominant cost of
     // building a prompt against a remotely hosted server. Windowing rather than doing the
@@ -2039,7 +2039,7 @@ export async function prepareOpenAIMessages({
 
     let chat = chatCompletion.getChat();
 
-    // SillyBunny: only prompt-ready listeners that mutate the finalized chat should
+    // Homunculus: only prompt-ready listeners that mutate the finalized chat should
     // trigger the post-mutation budget recount.
     const eventData = { chat, dryRun, chatChanged: false };
     await eventSource.emit(event_types.CHAT_COMPLETION_PROMPT_READY, eventData);
@@ -2235,7 +2235,7 @@ function isContextUnlockConfigurable(source = oai_settings.chat_completion_sourc
 }
 
 function isMaxContextUnlockedForSource(settings = oai_settings) {
-    // SillyBunny keeps most OpenAI-compatible sources unlocked; expose model limits only where users requested them.
+    // Homunculus keeps most OpenAI-compatible sources unlocked; expose model limits only where users requested them.
     return !isContextUnlockConfigurable(settings.chat_completion_source) || !!settings.max_context_unlocked;
 }
 
@@ -2742,7 +2742,7 @@ function toggleInlineSelectPickerOption(select, value) {
             if (option.value === value) {
                 if (!option.disabled || option.selected) {
                     option.selected = !option.selected;
-                    // SillyBunny: match desktop OpenRouter routing priority, newest selection last.
+                    // Homunculus: match desktop OpenRouter routing priority, newest selection last.
                     if (option.selected && select.classList.contains('openrouter_providers')) select.append(option);
                 }
                 break;
@@ -2850,7 +2850,7 @@ function bindInlineSelectPickerSelect(select, control) {
     select.dataset.sbInlineSelectPickerBound = 'true';
     select.classList.add('sb-inline-select-picker-control');
 
-    // SillyBunny: repaint an open provider menu after async updates without saving settings.
+    // Homunculus: repaint an open provider menu after async updates without saving settings.
     if (select.classList.contains('openrouter_providers') || ['nanogpt_allowed_providers', 'nanogpt_ignored_providers'].includes(select.id)) {
         $(select).on('change.select2', () => {
             const menu = document.getElementById(`${select.id}_menu`);
@@ -3876,7 +3876,7 @@ function updateKimiK3PrefillVisibility() {
 
 /**
  * Gets the prefill that should be sent ahead of the model's reply, and prepended back onto it.
- * SillyBunny divergence: Kimi K3's partial prefill is a preset-scoped field of its own rather
+ * Homunculus divergence: Kimi K3's partial prefill is a preset-scoped field of its own rather
  * than the global Start Reply With, so it never reaches the models that reject a prefill.
  * K3 falls back to the global value when its own field is empty, so setups that predate the
  * field keep working until their text is moved across.
@@ -4490,7 +4490,7 @@ function getNanoGptModelTemplate(option) {
 
     const contextLength = model.context_length || 'Unknown';
 
-    // SillyBunny: share upstream model details with the mobile picker; treat catalogue fields as text.
+    // Homunculus: share upstream model details with the mobile picker; treat catalogue fields as text.
     const row = $('<span>', { class: 'flex-container alignItemsBaseline', title: model.id });
     row.append($('<strong>').text(model.name || model.id), document.createTextNode(` | ${contextLength} ctx | `), $('<small>').text(price));
     const icons = $('<span>');
@@ -5309,7 +5309,7 @@ function getReasoningEffort(settings = null, model = null) {
                     ? reasoning_effort_types.none
                     : undefined;
             case reasoning_effort_types.min:
-                // SillyBunny divergence: no endpoint accepts the literal 'min', and 'minimal' is how
+                // Homunculus divergence: no endpoint accepts the literal 'min', and 'minimal' is how
                 // OpenAI-compatible ones spell this rung. Every other rung is sent exactly as picked.
                 return 'minimal';
             default:
@@ -5813,7 +5813,7 @@ export async function createGenerationParameters(settings, model, type, messages
         delete generate_data.top_logprobs;
     }
 
-    // SillyBunny: Claude Fable and Sonnet 5 reject sampling parameters, including through provider-prefixed proxy model ids.
+    // Homunculus: Claude Fable and Sonnet 5 reject sampling parameters, including through provider-prefixed proxy model ids.
     applyClaudeModelParameterConstraints(generate_data, {
         preserveReasoning: [chat_completion_sources.CLAUDE, chat_completion_sources.LINKAPI].includes(settings.chat_completion_source),
     });
@@ -5825,7 +5825,7 @@ export async function createGenerationParameters(settings, model, type, messages
         generate_data.json_schema = jsonSchema;
     }
 
-    // SillyBunny: apply per-target transmission choices without changing sampler presets.
+    // Homunculus: apply per-target transmission choices without changing sampler presets.
     const requestSource = settings.chat_completion_source || '';
     const requestProfile = selected_custom_endpoint_preset?.secretId || undefined;
     const targetKey = createSamplingTargetKey({
@@ -5886,7 +5886,7 @@ async function sendOpenAIRequest(type, messages, signal, { jsonSchema = null, ca
     const requestControls = { maxOutputTokens, responseLength, preserveReasoningBudget };
     if (generate_data.chat_completion_source === chat_completion_sources.CUSTOM) {
         if ((Number.isFinite(maxOutputTokens) && maxOutputTokens > 0) || (Number.isFinite(responseLength) && responseLength > 0)) {
-            // SillyBunny: custom YAML is applied server-side, so its final payload owns the limit.
+            // Homunculus: custom YAML is applied server-side, so its final payload owns the limit.
             generate_data.request_controls = requestControls;
         }
     } else {
@@ -5894,7 +5894,7 @@ async function sendOpenAIRequest(type, messages, signal, { jsonSchema = null, ca
     }
 
     if (generate_data.chat_completion_source === chat_completion_sources.CUSTOM && selected_custom_endpoint_preset?.secretId) {
-        // SillyBunny: Custom endpoint profiles bind chat requests to their saved secret, not the last active CUSTOM key.
+        // Homunculus: Custom endpoint profiles bind chat requests to their saved secret, not the last active CUSTOM key.
         generate_data.secret_id = selected_custom_endpoint_preset.secretId;
     }
 
@@ -7280,7 +7280,7 @@ function loadOpenAISettings(data, settings) {
     setToolReasoningControls();
     setAutoAppendReasoningTagControls();
 
-    // SillyBunny: saved provider names must survive catalogue failures and absent providers.
+    // Homunculus: saved provider names must survive catalogue failures and absent providers.
     setOpenRouterProviders('#openrouter_providers_chat', oai_settings.openrouter_providers);
     $('#openrouter_quantizations_chat').trigger('change');
     updateNanoGptProviderControls();
@@ -7473,7 +7473,7 @@ export function maybeApplyModelSamplingProfile() {
         oai_settings.model_sampling_profiles[profileMatch.canonicalKey] = structuredClone(profileMatch.profile);
         saveSettingsDebounced();
     }
-    // SillyBunny: Removed constant "Model sampling profile loaded" toast to reduce UI noise
+    // Homunculus: Removed constant "Model sampling profile loaded" toast to reduce UI noise
 }
 
 function maybeShowPresetConnectionBindingReminder(previousPresetName, nextPresetName) {
@@ -7550,7 +7550,7 @@ function setAutoAppendReasoningTagControls() {
 }
 
 async function getStatusOpen() {
-    // SillyBunny: only the latest connection attempt may update status or provider models.
+    // Homunculus: only the latest connection attempt may update status or provider models.
     cancelStatusCheck('New Chat Completion status check');
     const { signal } = abortStatusCheck;
     const isCurrentCheck = () => !signal.aborted && main_api === 'openai';
@@ -7997,7 +7997,7 @@ async function onPresetImportFileChange(e) {
 
     await eventSource.emit(event_types.OAI_PRESET_IMPORT_READY, { data: presetBody, presetName: name });
 
-    // SillyBunny: migrate before merging an import with an existing preset's provider lists.
+    // Homunculus: migrate before merging an import with an existing preset's provider lists.
     migrateNanoGptProviderSettings(presetBody);
 
     const savePresetSettings = await fetch('/api/presets/save', {
@@ -8299,7 +8299,7 @@ function onSettingsPresetChange() {
         scheduleOpenAIUiRefresh();
         $('#openai_logit_bias_preset').trigger('change');
 
-        // SillyBunny: re-assert the per-model sampling profile after a preset has
+        // Homunculus: re-assert the per-model sampling profile after a preset has
         // written its sampling values, so a bound model profile always wins over
         // the (Default/char) preset — the core promise of "decouple sampling from
         // preset". Without this, starting a new chat or switching to a backend
@@ -8996,7 +8996,7 @@ async function onModelChange() {
     if (oai_settings.chat_completion_source == chat_completion_sources.CLAUDE) {
         if (maxContextUnlocked) {
             $('#openai_max_context').attr('max', unlocked_max);
-        } else if (/^claude-(opus-5|sonnet-5|sonnet-4-(?:[5-9]|\d{2,})|opus-4-(?:[6-9]|\d{2,})|fable)/.test(value)) { // SillyBunny: current Claude models with 1M context windows
+        } else if (/^claude-(opus-5|sonnet-5|sonnet-4-(?:[5-9]|\d{2,})|opus-4-(?:[6-9]|\d{2,})|fable)/.test(value)) { // Homunculus: current Claude models with 1M context windows
             $('#openai_max_context').attr('max', max_1mil);
         } else if (/^claude-(3|opus|haiku|sonnet)/.test(value)) {
             $('#openai_max_context').attr('max', max_200k);
@@ -9398,7 +9398,7 @@ async function onConnectButtonClick(e) {
             ? selected_custom_endpoint_preset
             : null;
 
-        // SillyBunny: an explicitly entered key replaces the profile binding; an empty input reuses it.
+        // Homunculus: an explicitly entered key replaces the profile binding; an empty input reuses it.
         if (apiKey.length) {
             const secretId = await writeSecret(config.key, apiKey);
             if (customEndpointPreset) {
@@ -9637,15 +9637,15 @@ export function isImageInliningSupported() {
         'gpt-4.5-preview',
         'gpt-4o',
         'gpt-5',
-        'gpt-6-astra', // SillyBunny: Astra supports image input in both native OpenAI API modes.
+        'gpt-6-astra', // Homunculus: Astra supports image input in both native OpenAI API modes.
         'o1',
         'o3',
         'o4-mini',
         // Claude
         'claude-3',
-        'claude-fable', // SillyBunny: claude-fable-5 vision support
-        'claude-opus-5', // SillyBunny: claude-opus-5 vision support
-        'claude-sonnet-5', // SillyBunny: claude-sonnet-5 vision support
+        'claude-fable', // Homunculus: claude-fable-5 vision support
+        'claude-opus-5', // Homunculus: claude-opus-5 vision support
+        'claude-sonnet-5', // Homunculus: claude-sonnet-5 vision support
         'claude-opus-4',
         'claude-sonnet-4',
         'claude-haiku-4',
@@ -9970,7 +9970,7 @@ function setProxyPreset(name, url, password, source = '', { applySource = true, 
 
     const shouldSwitchSource = applySource && normalizedPreset.source && normalizedPreset.source !== oai_settings.chat_completion_source;
 
-    // SillyBunny: when applying a bound preset during settings load (silent), switch the backend
+    // Homunculus: when applying a bound preset during settings load (silent), switch the backend
     // and refresh source-dependent UI without triggering a reconnect or the proxy confirmation modal,
     // which would otherwise block the startup loader and freeze the settings panel. See #304 regression.
     if (silent) {
@@ -10001,7 +10001,7 @@ function onProxyPresetChange() {
     saveSettingsDebounced();
 }
 
-// SillyBunny: reverse direction of the reverse-proxy backend binding. Selecting a bound preset already
+// Homunculus: reverse direction of the reverse-proxy backend binding. Selecting a bound preset already
 // switches the backend (forward); this keeps the binding two-way by selecting a preset bound to the
 // newly chosen backend. Guarded against re-entrancy so it can't feed back into the source change handler.
 let isSyncingProxyBinding = false;
@@ -10101,7 +10101,7 @@ export async function loadCustomEndpointPresets(settings) {
     }
 
     const savedSelectedPreset = settings.selected_custom_endpoint_preset;
-    // SillyBunny: re-resolve the saved selection against the presets array so both point at the same object.
+    // Homunculus: re-resolve the saved selection against the presets array so both point at the same object.
     const savedSelectedName = savedSelectedPreset ? normalizeCustomEndpointPreset(savedSelectedPreset).name : null;
     selected_custom_endpoint_preset = savedSelectedName
         ? custom_endpoint_presets.find(preset => preset.name === savedSelectedName) ?? null
@@ -10119,9 +10119,9 @@ export async function loadCustomEndpointPresets(settings) {
 
     $('#custom_endpoint_preset').val(selected_custom_endpoint_preset?.name || 'None');
 
-    // SillyBunny: 'None' means "use the URL/model typed in the fields"; applying it at load would blank them.
+    // Homunculus: 'None' means "use the URL/model typed in the fields"; applying it at load would blank them.
     if (selected_custom_endpoint_preset && selected_custom_endpoint_preset.name !== 'None') {
-        // SillyBunny: load-time apply must not rotate or write secrets; requests send secret_id explicitly.
+        // Homunculus: load-time apply must not rotate or write secrets; requests send secret_id explicitly.
         await setCustomEndpointPreset(
             selected_custom_endpoint_preset.name,
             selected_custom_endpoint_preset.url,
@@ -10163,7 +10163,7 @@ async function activateCustomEndpointPresetSecret(preset, { forceWrite = false }
     }
 
     if (preset.secretId && (!forceWrite || !preset.key)) {
-        // SillyBunny: rotate to the bound profile secret instead of writing duplicate or accidental empty keys.
+        // Homunculus: rotate to the bound profile secret instead of writing duplicate or accidental empty keys.
         // Skip when it is already active (e.g. a connection profile just rotated it): rotating re-triggers a full API reconnect.
         const isAlreadyActive = secret_state[SECRET_KEYS.CUSTOM]?.some(secret => secret.id === preset.secretId && secret.active);
         if (!isAlreadyActive) {
@@ -10172,7 +10172,7 @@ async function activateCustomEndpointPresetSecret(preset, { forceWrite = false }
         return;
     }
 
-    // SillyBunny: legacy/keyless profiles get a stable per-profile secret id, even when the key is intentionally empty.
+    // Homunculus: legacy/keyless profiles get a stable per-profile secret id, even when the key is intentionally empty.
     const secretId = await writeSecret(SECRET_KEYS.CUSTOM, preset.key, undefined, { allowEmpty: true });
     if (secretId) {
         preset.secretId = secretId;
@@ -10181,7 +10181,7 @@ async function activateCustomEndpointPresetSecret(preset, { forceWrite = false }
 
 function updateCustomEndpointKeyInput(preset, key) {
     if (preset?.secretId) {
-        // SillyBunny: saved profile secrets are write-only in the UI; avoid replaying stale plaintext copies.
+        // Homunculus: saved profile secrets are write-only in the UI; avoid replaying stale plaintext copies.
         $('#api_key_custom').val('').attr('placeholder', t`(saved secret)`);
         return;
     }
@@ -10189,7 +10189,7 @@ function updateCustomEndpointKeyInput(preset, key) {
     $('#api_key_custom').removeAttr('placeholder').val(key);
 }
 
-// SillyBunny: connection profiles can rotate CUSTOM secrets without using the endpoint preset dropdown.
+// Homunculus: connection profiles can rotate CUSTOM secrets without using the endpoint preset dropdown.
 export function syncCustomEndpointPresetSelectionBySecretId(secretId) {
     const normalizedSecretId = String(secretId ?? '').trim();
     if (!normalizedSecretId) {
@@ -10288,17 +10288,17 @@ $('#save_custom_endpoint').on('click', async function () {
     // Write a secret when a key was typed, or mint a stable empty secret for keyless endpoints
     if (keyInputValue || !preset.secretId) {
         await activateCustomEndpointPresetSecret(preset, { forceWrite: true });
-        // SillyBunny: a failed secret write must not fall back to the old profile binding.
+        // Homunculus: a failed secret write must not fall back to the old profile binding.
         if (!preset.secretId) {
             return;
         }
     }
 
     await setCustomEndpointPreset(preset.name, preset.url, preset.key, preset.model, { secretId: preset.secretId, writeKey: false });
-    // SillyBunny: update selection before yielding to persistence so a later user selection wins.
+    // Homunculus: update selection before yielding to persistence so a later user selection wins.
     updateCustomEndpointPresetOption(preset);
     $('#custom_endpoint_preset').val(preset.name);
-    // SillyBunny: persist the new secret binding before a successful Save can be followed by a reload.
+    // Homunculus: persist the new secret binding before a successful Save can be followed by a reload.
     if (await saveSettings(0, { returnResult: true }) !== true) {
         return;
     }
@@ -10336,7 +10336,7 @@ $('#delete_custom_endpoint').on('click', async function () {
     }
 });
 
-// SillyBunny: connection profiles record the selected Custom endpoint profile by name, like /proxy does for
+// Homunculus: connection profiles record the selected Custom endpoint profile by name, like /proxy does for
 // reverse proxies. Secret ids are not unique across endpoint profiles (saving one without retyping the key binds it
 // to the active secret), so re-selecting by secret alone lands on the first profile that shares it.
 async function runCustomEndpointPresetCallback(_, value) {
@@ -10369,7 +10369,7 @@ function runProxyCallback(_, value) {
 
     const proxyNames = proxies.map(preset => preset.name);
 
-    // SillyBunny: 'None' is the no-proxy sentinel connection profiles send when they
+    // Homunculus: 'None' is the no-proxy sentinel connection profiles send when they
     // have no proxy configured, but the None preset itself is deletable. Resolve the
     // sentinel exactly — fuzzy search could land on a real proxy — and recreate it
     // silently instead of warning about a preset the user never chose.
@@ -10512,7 +10512,7 @@ function runStringChatCompletionSettingCallback(commandName, settingName, select
     };
 }
 
-// SillyBunny: the Custom endpoint additional parameters are YAML, which is indentation-sensitive, so unlike the
+// Homunculus: the Custom endpoint additional parameters are YAML, which is indentation-sensitive, so unlike the
 // other string settings the value is stored verbatim instead of trimmed.
 function runCustomEndpointParameterCallback(settingName, selector) {
     return (args, value) => {
@@ -10852,7 +10852,7 @@ export function initOpenAI() {
         ],
         helpString: 'Sets a Custom OpenAI-compatible endpoint profile by name. Gets the current one if no name is provided.',
     }));
-    // SillyBunny: Connection Manager snapshots Chat Completion request behavior via slash commands.
+    // Homunculus: Connection Manager snapshots Chat Completion request behavior via slash commands.
     registerChatCompletionProfileSlashCommands();
 
     $('#test_api_button').on('click', testApiConnection);
@@ -11067,7 +11067,7 @@ export function initOpenAI() {
         toggleChatCompletionForms();
         applyConfigurableContextLimit();
         syncProxyPresetToBoundSource(oai_settings.chat_completion_source);
-        // SillyBunny: source switches should not reset the selected settings preset.
+        // Homunculus: source switches should not reset the selected settings preset.
         restoreOpenAIPresetSelection(presetName);
         maybeApplyModelSamplingProfile();
         saveSettingsDebounced();
@@ -11567,7 +11567,7 @@ export function initOpenAI() {
         clearSamplingProfileForCurrentModel();
     });
 
-    if (!globalThis.SillyBunnyClassicUi) groupOpenAISettingsIntoDrawers(); // Classic UI fork: keep SillyTavern's flat layout
+    if (!globalThis.HomunculusClassicUi) groupOpenAISettingsIntoDrawers(); // Classic UI fork: keep SillyTavern's flat layout
     injectServerChatCompletionConfigCard();
     cacheOpenAIStaticModelGroups();
     bindInlineSelectPickerControls();

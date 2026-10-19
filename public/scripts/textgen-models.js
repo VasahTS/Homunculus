@@ -25,7 +25,7 @@ function shouldUseNativeApiSelects() {
     return isMobile() || (window.matchMedia?.('(max-width: 768px)').matches ?? false);
 }
 
-// SillyBunny: share in-flight catalogue requests, not a hardcoded provider list.
+// Homunculus: share in-flight catalogue requests, not a hardcoded provider list.
 let openRouterProvidersRequest = null;
 
 const OPENROUTER_PROVIDER_WARNING_SELECTORS = {
@@ -94,7 +94,7 @@ export async function syncOpenRouterProvidersForModel(modelId, providersSelector
     const $providers = $(providersSelector);
     if (!$providers.length) return;
 
-    // SillyBunny: a late catalogue or model response must not overwrite a newer selection.
+    // Homunculus: a late catalogue or model response must not overwrite a newer selection.
     const request = {};
     $providers.data('openrouterRequest', request);
     const tierSelector = OPENROUTER_PROVIDER_WARNING_SELECTORS[providersSelector]?.tierSelector;
@@ -231,7 +231,7 @@ export async function syncNanoGptProvidersForModel(modelId, providersSelector) {
         if (requestId !== nanoGptProvidersRequest || !Array.isArray(data?.providers) || typeof data.supportsProviderSelection !== 'boolean') return;
         const providerIds = data.providers.filter(id => typeof id === 'string' && id.trim());
 
-        // SillyBunny: refresh availability without changing saved restrictions or losing new provider IDs.
+        // Homunculus: refresh availability without changing saved restrictions or losing new provider IDs.
         for (const select of $providers.add('#nanogpt_ignored_providers')) {
             for (const id of providerIds) {
                 if (!Array.from(select.options).some(option => option.value === id)) {
@@ -1314,7 +1314,7 @@ export function initTextGenModels() {
         width: '100%',
         closeOnSelect: false,
     });
-    // SillyBunny: refresh open results after async updates, surviving shell reinitialisation.
+    // Homunculus: refresh open results after async updates, surviving shell reinitialisation.
     $(document).on('change.select2', '.openrouter_providers, #nanogpt_allowed_providers, #nanogpt_ignored_providers', function () {
         const select2 = $(this).data('select2');
         if (select2?.isOpen()) {

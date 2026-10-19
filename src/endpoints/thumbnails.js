@@ -117,7 +117,7 @@ function getOriginalFolder(directories, type) {
     return originalFolder;
 }
 
-// SillyBunny: path containment permits POSIX-valid names that sanitize-filename rejects.
+// Homunculus: path containment permits POSIX-valid names that sanitize-filename rejects.
 function resolveDirectChildPath(folder, file) {
     if (typeof file !== 'string' || !file || file.includes('\0') || path.basename(file) !== file) {
         return null;
@@ -135,7 +135,7 @@ function resolveDirectChildPath(folder, file) {
  * @param {string} file Requested file name
  * @returns {string} File name to use for thumbnail lookups
  */
-// SillyBunny: diverges from upstream. Clients can send a `file` that was percent-encoded twice
+// Homunculus: diverges from upstream. Clients can send a `file` that was percent-encoded twice
 // ("Mara%2520Rodriguez.png"); Express decodes it once, leaving a literal "%20" that never matches
 // the file on disk. The name as sent always wins, so real '%' characters keep working.
 function resolveOriginalFileName(directories, type, file) {
@@ -226,7 +226,7 @@ export async function generateThumbnail(directories, type, file, forceGenerate =
     if (!resolveDirectChildPath(originalFolder, file) || !resolveDirectChildPath(thumbnailFolder, file)) {
         return { path: null, aspectRatio: null, resolution: null };
     }
-    // SillyBunny: tolerate a double percent-encoded name (see resolveOriginalFileName).
+    // Homunculus: tolerate a double percent-encoded name (see resolveOriginalFileName).
     file = resolveOriginalFileName(directories, type, file);
     const pathToCachedFile = resolveDirectChildPath(thumbnailFolder, file);
     const pathToOriginalFile = resolveDirectChildPath(originalFolder, file);
@@ -386,7 +386,7 @@ publicRouter.get('/', async function (request, response) {
         const originalFolder = getOriginalFolder(request.user.directories, type);
         if (!resolveDirectChildPath(originalFolder, rawFile)) return response.sendStatus(403);
 
-        // SillyBunny: tolerate a double percent-encoded `file` param (see resolveOriginalFileName).
+        // Homunculus: tolerate a double percent-encoded `file` param (see resolveOriginalFileName).
         const file = resolveOriginalFileName(request.user.directories, type, rawFile);
         const pathToOriginalFile = resolveDirectChildPath(originalFolder, file);
         if (!pathToOriginalFile) return response.sendStatus(403);

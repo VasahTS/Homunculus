@@ -24,7 +24,7 @@ function isProcessAlive(pid) {
 
 function buildVisibleWindowsCommand(command, cwd) {
     const quoted = command.map(value => `"${String(value).replace(/"/g, '\\"')}"`).join(' ');
-    const title = 'SillyBunny Server';
+    const title = 'Homunculus Server';
     return [
         'cmd.exe',
         [
@@ -246,7 +246,7 @@ function validatePayload(payload) {
     }
 
     if (!fs.existsSync(path.join(installDir, 'package.json'))) {
-        throw new Error('ZIP update helper install directory is not a SillyBunny app folder.');
+        throw new Error('ZIP update helper install directory is not a Homunculus app folder.');
     }
 
     if (!isPathInside(stagingRoot, releaseRoot, { allowEqual: true }) || !fs.existsSync(path.join(releaseRoot, 'package.json'))) {
@@ -280,7 +280,7 @@ async function main() {
         applyReleaseOverlay({ releaseRoot, installDir, backupRoot, logPath }, state);
         runInstallCommand(installDir, logPath);
         fs.rmSync(stagingRoot, { recursive: true, force: true });
-        appendLog(logPath, 'ZIP update applied successfully. Relaunching SillyBunny.');
+        appendLog(logPath, 'ZIP update applied successfully. Relaunching Homunculus.');
     } catch (error) {
         failure = error;
         appendLog(logPath, `ZIP update failed: ${error?.message || error}`);

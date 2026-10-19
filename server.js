@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import './src/legacy-env.js';
 import { runSupervisor, shouldSupervise } from './src/server-supervisor.js';
 
 // Supervise a child copy so restarts and transactional plugin replacement are

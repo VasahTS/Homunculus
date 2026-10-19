@@ -57,10 +57,10 @@ function createEpochAwareAddAudioJob(context, audioJobQueue) {
 async function importConversationTts() {
     jest.resetModules();
     await jest.unstable_mockModule('../public/script.js', () => ({ name1: 'User' }));
-    await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/thread-store-utils.js', () => ({
+    await jest.unstable_mockModule('../public/scripts/homunculus-conversation/thread-store-utils.js', () => ({
         getConversationAttachmentSummary: jest.fn(() => '[Attachment]'),
     }));
-    return import('../public/scripts/sillybunny-conversation/tts.js');
+    return import('../public/scripts/homunculus-conversation/tts.js');
 }
 
 afterEach(() => {
@@ -138,12 +138,12 @@ describe('TTS Conversation integration', () => {
         await jest.unstable_mockModule('../public/scripts/RossAscends-mods.js', () => ({
             getMessageTimeStamp: jest.fn(() => 'now'),
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/constants.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/constants.js', () => ({
             DEFAULT_BRANCH_ID: 'main',
             MAX_THREAD_MESSAGES: 100,
             SAFE_TOAST_OPTIONS: {},
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/context.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/context.js', () => ({
             getActiveConversationBranch,
             getConversationGroupIdForAvatar: jest.fn(() => 'group-a'),
             getConversationPersonaId: jest.fn(() => 'persona-a'),
@@ -154,22 +154,22 @@ describe('TTS Conversation integration', () => {
             parsePositiveInt: jest.fn(value => Number(value) || 0),
             persistConversationStore: jest.fn(),
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/notifications.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/notifications.js', () => ({
             isConversationActiveThread,
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/render-scheduler.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/render-scheduler.js', () => ({
             scheduleTimelineRender,
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/settings-store.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/settings-store.js', () => ({
             getConversationSessionMarker: jest.fn(() => 0),
             resetFollowupCount: jest.fn(),
             setConversationSessionMarker: jest.fn(),
             setLastUserActivity: jest.fn(),
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/typing.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/typing.js', () => ({
             stripPreviewText: jest.fn(value => String(value || '').trim()),
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/thread-store-utils.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/thread-store-utils.js', () => ({
             getConversationAttachmentLabels: jest.fn(() => []),
             getConversationAttachmentSummary: jest.fn(() => ''),
             getConversationFileAttachments: jest.fn(() => []),
@@ -182,11 +182,11 @@ describe('TTS Conversation integration', () => {
             resolveConversationReminderBranchId: jest.fn(() => 'branch-a'),
             safeParseThread: jest.fn(messages => messages),
         }));
-        await jest.unstable_mockModule('../public/scripts/sillybunny-conversation/tts.js', () => ({
+        await jest.unstable_mockModule('../public/scripts/homunculus-conversation/tts.js', () => ({
             narrateConversationMessage,
         }));
 
-        const { appendConversationThreadMessage } = await import('../public/scripts/sillybunny-conversation/thread-store.js');
+        const { appendConversationThreadMessage } = await import('../public/scripts/homunculus-conversation/thread-store.js');
         appendConversationThreadMessage('speaker.png', { mes: 'other persona', role: 'character' }, {
             branchId: 'branch-a',
             groupId: 'group-a',

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Mirrors is_truthy in start.sh so SILLYBUNNY_* flags accept the same spellings
+# Mirrors is_truthy in start.sh so HOMUNCULUS_* flags accept the same spellings
 # in containers as they do under the shell launchers.
 is_truthy() {
     case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
@@ -13,8 +13,13 @@ is_truthy() {
     esac
 }
 
+# Homunculus: this setting used to be named SILLYBUNNY_BUN_SMOL; keep the old name working.
+if [ -z "${HOMUNCULUS_BUN_SMOL+x}" ] && [ -n "${SILLYBUNNY_BUN_SMOL+x}" ]; then
+    export HOMUNCULUS_BUN_SMOL="$SILLYBUNNY_BUN_SMOL"
+fi
+
 # Function to handle startup logic (Config check + init + Start)
-start_sillybunny() {
+start_homunculus() {
     local PREFIX="$1"
     shift # Remove the first argument (PREFIX) so $@ contains the rest
 
@@ -28,11 +33,11 @@ start_sillybunny() {
     $PREFIX bun run init
 
     # Start the server
-    if is_truthy "${SILLYBUNNY_BUN_SMOL:-}"; then
+    if is_truthy "${HOMUNCULUS_BUN_SMOL:-}"; then
         # Bun grows the JSC heap freely while RAM looks plentiful, which reads as
         # a leak under a container memory cap. --smol trades throughput for much
         # more aggressive GC.
-        echo "[SillyBunny] SILLYBUNNY_BUN_SMOL set — starting Bun in low-memory mode (--smol)."
+        echo "[Homunculus] HOMUNCULUS_BUN_SMOL set — starting Bun in low-memory mode (--smol)."
         exec $PREFIX bun --smol server.js --listen "$@"
     fi
 
@@ -117,4 +122,4 @@ else
 fi
 
 # Calling function with the determined prefix
-start_sillybunny "$EXEC_PREFIX" "$@"
+start_homunculus "$EXEC_PREFIX" "$@"

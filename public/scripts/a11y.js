@@ -94,7 +94,7 @@ let accessibilityObserver = null;
  */
 function applyA11yRules(element) {
     try {
-        // SillyBunny: scan each added subtree once, including controls supplied by extensions.
+        // Homunculus: scan each added subtree once, including controls supplied by extensions.
         for (const candidate of [element, ...element.querySelectorAll(a11ySelector)]) {
             for (const [selector, rule] of a11yRuleEntries) {
                 if (candidate.matches(selector)) {

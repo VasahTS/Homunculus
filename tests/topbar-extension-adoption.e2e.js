@@ -5,8 +5,8 @@ import { dismissOpenDialogIfPresent, openQuietChatForSmoke, waitForAnimationFram
 // Regression pack for third-party top-bar buttons. CharacterLibrary injects a bare
 // `<div class="drawer">` after #rightNavHolder; upstream's global `.drawer { width: 100% }` made it
 // the only non-zero flex child of this fork's fixed, full-width #top-settings-holder, so it painted
-// over the whole SillyBunny bar and swallowed every click meant for it.
-// Run with: SILLYBUNNY_TEST_BASE_URL=http://127.0.0.1:<port> npx playwright test topbar-extension-adoption.e2e.js
+// over the whole Homunculus bar and swallowed every click meant for it.
+// Run with: HOMUNCULUS_TEST_BASE_URL=http://127.0.0.1:<port> npx playwright test topbar-extension-adoption.e2e.js
 
 test.describe.configure({ mode: 'serial' });
 
@@ -266,7 +266,7 @@ test.describe('third-party top-bar button adoption', () => {
     test('keeps a third-party settings drawer reachable in exactly one tab', async ({ page }) => {
         await openBarForTest(page);
         // The settings tab filter loads on demand when the Settings panel first opens.
-        await page.evaluate(() => window.SillyBunnyShell.openTab('right', 'settings'));
+        await page.evaluate(() => window.HomunculusShell.openTab('right', 'settings'));
         await expect(page.locator('#sb-settings-tabs')).toHaveCount(1);
 
         const visibility = await page.evaluate(async () => {
@@ -338,7 +338,7 @@ test.describe('third-party top-bar button adoption', () => {
         await openBarForTest(page);
 
         await page.evaluate(() => {
-            window.SillyBunnyShell?.setTopbarIconsOnly?.(true);
+            window.HomunculusShell?.setTopbarIconsOnly?.(true);
         });
         await waitForAnimationFrames(page, 3);
         await injectCharacterLibraryButton(page);

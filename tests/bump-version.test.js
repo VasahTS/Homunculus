@@ -57,7 +57,7 @@ describe('bump-version', () => {
 
         test('fails loudly when a version copy can no longer be found', () => {
             const file = path.join(directory, 'src/endpoints/horde.js');
-            fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/'SillyBunny:[^']+'/, '\'renamed\''));
+            fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/'Homunculus:[^']+'/, '\'renamed\''));
             expect(() => bumpVersion('9.8.7', { repoRoot: directory })).toThrow('src/endpoints/horde.js');
             expect(findVersionMismatches(directory).map(entry => entry.file)).toEqual(['src/endpoints/horde.js']);
         });

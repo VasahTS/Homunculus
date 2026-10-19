@@ -19,7 +19,7 @@ class FakeProcess extends EventEmitter {
     constructor() {
         super();
         this.env = {
-            SILLYBUNNY_SUPERVISED: '1',
+            HOMUNCULUS_SUPERVISED: '1',
             [SERVER_PLUGIN_UPDATE_SUPERVISOR_API_ENV]: SERVER_PLUGIN_UPDATE_SUPERVISOR_API_VERSION,
         };
         this.send = jest.fn((message, callback) => {
@@ -38,11 +38,11 @@ class FakeProcess extends EventEmitter {
 describe('server plugin update IPC', () => {
     test('requires a supervised IPC child', () => {
         expect(isServerPluginUpdateSupervised({ env: {}, send: () => { } })).toBe(false);
-        expect(isServerPluginUpdateSupervised({ env: { SILLYBUNNY_SUPERVISED: '1' }, send: null })).toBe(false);
-        expect(isServerPluginUpdateSupervised({ env: { SILLYBUNNY_SUPERVISED: '1' }, send: () => { } })).toBe(false);
+        expect(isServerPluginUpdateSupervised({ env: { HOMUNCULUS_SUPERVISED: '1' }, send: null })).toBe(false);
+        expect(isServerPluginUpdateSupervised({ env: { HOMUNCULUS_SUPERVISED: '1' }, send: () => { } })).toBe(false);
         expect(isServerPluginUpdateSupervised({
             env: {
-                SILLYBUNNY_SUPERVISED: '1',
+                HOMUNCULUS_SUPERVISED: '1',
                 [SERVER_PLUGIN_UPDATE_SUPERVISOR_API_ENV]: SERVER_PLUGIN_UPDATE_SUPERVISOR_API_VERSION,
             },
             send: () => { },

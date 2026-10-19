@@ -4,7 +4,7 @@ import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import ipRegex from 'ip-regex';
 import envPaths from 'env-paths';
-import { APP_NAME } from './runtime.js';
+import { APP_NAME, LEGACY_APP_NAME } from './runtime.js';
 import { color, getConfigValue, stringToBool } from './util.js';
 import { initConfig } from './config-init.js';
 
@@ -13,14 +13,14 @@ import { initConfig } from './config-init.js';
  * @property {string} configPath Path to the config file
  * @property {string} dataRoot Data root directory
  * @property {number} port Port number
- * @property {boolean} listen If SillyBunny is listening on all network interfaces
+ * @property {boolean} listen If Homunculus is listening on all network interfaces
  * @property {string} listenAddressIPv6 IPv6 address to listen to
  * @property {string} listenAddressIPv4 IPv4 address to listen to
  * @property {boolean|string} enableIPv4 If enable IPv4 protocol ("auto" is also allowed)
  * @property {boolean|string} enableIPv6 If enable IPv6 protocol ("auto" is also allowed)
  * @property {boolean} dnsPreferIPv6 If prefer IPv6 for DNS
  * @property {number} heartbeatInterval Interval in seconds to write a heartbeat file. 0 to disable.
- * @property {boolean} browserLaunchEnabled If automatically launch SillyBunny in the browser
+ * @property {boolean} browserLaunchEnabled If automatically launch Homunculus in the browser
  * @property {string} browserLaunchHostname Browser launch hostname
  * @property {number} browserLaunchPort Browser launch port override (-1 is use server port)
  * @property {boolean} browserLaunchAvoidLocalhost If avoid using 'localhost' for browser launch in auto mode
@@ -52,7 +52,12 @@ export class CommandLineParser {
      * @returns {CommandLineArguments} Default configuration values
      */
     getDefaultConfig(isGlobal) {
-        const appPaths = envPaths(APP_NAME, { suffix: '' });
+        let appPaths = envPaths(APP_NAME, { suffix: '' });
+        // Homunculus: keep using a global data folder created under the old app name.
+        const legacyAppPaths = envPaths(LEGACY_APP_NAME, { suffix: '' });
+        if (isGlobal && !fs.existsSync(appPaths.data) && fs.existsSync(legacyAppPaths.data)) {
+            appPaths = legacyAppPaths;
+        }
         const configPath = isGlobal ? path.join(appPaths.data, 'config.yaml') : './config.yaml';
         const dataPath = isGlobal ? path.join(appPaths.data, 'data') : './data';
         return Object.freeze({
@@ -143,7 +148,7 @@ export class CommandLineParser {
             .option('browserLaunchEnabled', {
                 type: 'boolean',
                 default: null,
-                describe: 'Automatically launch SillyBunny in the browser',
+                describe: 'Automatically launch Homunculus in the browser',
             })
             .option('browserLaunchHostname', {
                 type: 'string',

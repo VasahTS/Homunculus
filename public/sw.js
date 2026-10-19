@@ -1,4 +1,4 @@
-const SB_SW_CACHE_VERSION = 'sillybunny-cache-v20260622g';
+const SB_SW_CACHE_VERSION = 'homunculus-cache-v20260622g';
 const SB_STATIC_CACHE = `${SB_SW_CACHE_VERSION}-static`;
 const SB_SHELL_CACHE = `${SB_SW_CACHE_VERSION}-shell`;
 const SB_FRONTEND_ASSET_PREFIX = '/frontend-assets/';
@@ -55,7 +55,7 @@ async function staleWhileRevalidate(request) {
     const freshResponse = fetch(request)
         .then((response) => {
             putCache(cache, request, response).catch((error) => {
-                console.debug('SillyBunny service worker skipped static cache update.', error);
+                console.debug('Homunculus service worker skipped static cache update.', error);
             });
 
             return response;
@@ -81,7 +81,7 @@ async function cacheFirst(request) {
 
     const response = await fetch(request);
     await putCache(cache, request, response).catch((error) => {
-        console.debug('SillyBunny service worker skipped immutable cache update.', error);
+        console.debug('Homunculus service worker skipped immutable cache update.', error);
     });
     return response;
 }
@@ -92,7 +92,7 @@ async function networkFirst(request) {
     try {
         const response = await fetch(request);
         await putCache(cache, request, response).catch((error) => {
-            console.debug('SillyBunny service worker skipped shell cache update.', error);
+            console.debug('Homunculus service worker skipped shell cache update.', error);
         });
         return response;
     } catch (error) {
@@ -110,15 +110,21 @@ self.addEventListener('install', () => {
     self.skipWaiting();
 });
 
-// SillyBunny: iOS WebKit keeps the current page controlled by this service worker until the
+// Homunculus: iOS WebKit keeps the current page controlled by this service worker until the
 // page unloads, even after registration.unregister(). Without this the SW would re-populate
 // its caches during the pre-reload window and the reload navigation itself, undoing a cache
 // clear. The page posts { type: 'SB_CLEAR_CACHES' } and waits for the matching reply before
 // reloading.
-async function deleteSillyBunnyCaches() {
+// Homunculus: caches were named sillybunny-cache-* before the rename; treat them as ours so
+// they get cleaned up instead of lingering (and never answer requests with stale files).
+function isHomunculusCacheName(cacheName) {
+    return cacheName.startsWith('homunculus-cache-') || cacheName.startsWith('sillybunny-cache-');
+}
+
+async function deleteHomunculusCaches() {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames
-        .filter(cacheName => cacheName.startsWith('sillybunny-cache-'))
+        .filter(cacheName => isHomunculusCacheName(cacheName))
         .map(cacheName => caches.delete(cacheName)));
 }
 
@@ -130,9 +136,9 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
         let ok = true;
         try {
-            await deleteSillyBunnyCaches();
+            await deleteHomunculusCaches();
         } catch (error) {
-            console.error('SillyBunny service worker failed to clear caches on request.', error);
+            console.error('Homunculus service worker failed to clear caches on request.', error);
             ok = false;
         }
 
@@ -147,7 +153,7 @@ self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames
-            .filter(cacheName => cacheName.startsWith('sillybunny-cache-') && cacheName !== SB_STATIC_CACHE && cacheName !== SB_SHELL_CACHE)
+            .filter(cacheName => isHomunculusCacheName(cacheName) && cacheName !== SB_STATIC_CACHE && cacheName !== SB_SHELL_CACHE)
             .map(cacheName => caches.delete(cacheName)));
         await self.clients.claim();
     })());

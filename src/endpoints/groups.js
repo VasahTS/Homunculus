@@ -256,7 +256,7 @@ router.post('/create', (request, response) => {
     const dateAddedRoot = getEntityDateAddedRoot(request.user.directories);
     const fileName = path.basename(pathToFile);
     try {
-        // SillyBunny: persist the initial header so the first ordinary open also works after a reload.
+        // Homunculus: persist the initial header so the first ordinary open also works after a reload.
         const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${groupMetadata.chat_id}.jsonl`));
         if (!fs.existsSync(chatFilePath)) {
             const chatHeader = { chat_metadata: {}, user_name: 'unused', character_name: 'unused' };
@@ -334,7 +334,7 @@ router.post('/delete', getFileNameValidationFunction('id'), async (request, resp
                 maxRecoveryStates: maxTotalChatBackups,
             }));
             if (isChatBackupEnabled) {
-                // SillyBunny: tombstones keep intentional group deletion from looking like recoverable loss.
+                // Homunculus: tombstones keep intentional group deletion from looking like recoverable loss.
                 for (const recoveryTarget of recoveryTargets) {
                     runChatRecoveryBestEffort(
                         () => markChatDeleted(recoveryTarget),

@@ -39,7 +39,7 @@ function debouncePromise(func, delay) {
 
 const DEFAULT_DEPTH = 4;
 const DEFAULT_ORDER = 100;
-const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: list-only layout
+const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: list-only layout
 
 /**
  * @enum {number}
@@ -671,7 +671,7 @@ class PromptManager {
             counts[promptID] = null;
             promptOrderEntry.enabled = !promptOrderEntry.enabled;
 
-            // SillyBunny: clear persisted variables owned by a prompt when it is disabled.
+            // Homunculus: clear persisted variables owned by a prompt when it is disabled.
             if (!promptOrderEntry.enabled) {
                 const prompt = this.getPromptById(promptID);
 
@@ -737,7 +737,7 @@ class PromptManager {
             }
         };
 
-        // SillyBunny: the prompt editor now exposes a preview tab that needs its own
+        // Homunculus: the prompt editor now exposes a preview tab that needs its own
         // click handler and state sync separate from upstream edit/inspect flows.
         this.handlePromptEditorTabClick = (event) => {
             const tabName = event.currentTarget?.dataset?.tab;
@@ -1042,7 +1042,7 @@ class PromptManager {
                 .then(userChoice => {
                     if (!userChoice) return;
 
-                    // SillyBunny: reset to the selected preset's saved order before falling back to the upstream default.
+                    // Homunculus: reset to the selected preset's saved order before falling back to the upstream default.
                     const presetPromptOrder = getCurrentOpenAIPresetPromptOrder(this.activeCharacter?.id);
                     const resetPromptOrder = presetPromptOrder.length ? presetPromptOrder : promptManagerDefaultPromptOrder;
 
@@ -1148,7 +1148,7 @@ class PromptManager {
         // Clear forms on closing the popup
         document.getElementById(this.configuration.prefix + 'prompt_manager_popup_entry_form_close').addEventListener('click', closeAndClearPopup);
         document.getElementById(this.configuration.prefix + 'prompt_manager_popup_close_button').addEventListener('click', closeAndClearPopup);
-        // SillyBunny: preview mode has its own close button and field listeners.
+        // Homunculus: preview mode has its own close button and field listeners.
         document.getElementById(this.configuration.prefix + 'prompt_manager_popup_preview_close_button').addEventListener('click', closeAndClearPopup);
         document.querySelectorAll('.' + this.configuration.prefix + 'prompt_manager_tab_button').forEach(button => {
             button.addEventListener('click', this.handlePromptEditorTabClick);
@@ -1204,7 +1204,7 @@ class PromptManager {
         const promptManager = document.getElementById(this.configuration.prefix + 'prompt_manager');
         const listElement = this.listElement ?? promptManager?.querySelector(`#${this.configuration.prefix}prompt_manager_list`);
 
-        // SillyBunny: desktop split scrolls the constrained prompt list itself; mobile
+        // Homunculus: desktop split scrolls the constrained prompt list itself; mobile
         // still scrolls through the shell/upstream panel container.
         if (this.isDesktopSplitLayout() && listElement instanceof HTMLElement) {
             return listElement;
@@ -1922,7 +1922,7 @@ class PromptManager {
 
         const previewRequest = ++this.previewTokenCountRequest;
         const selectedPrompt = this.getPromptById(this.selectedPromptId);
-        // SillyBunny: marker prompt definitions are usually empty placeholders.
+        // Homunculus: marker prompt definitions are usually empty placeholders.
         // Preview their latest rendered message from the dry-run prompt assembly instead.
         const renderedMarkerPrompt = selectedPrompt?.marker
             ? getRenderedMarkerPrompt(selectedPrompt.identifier, this.messages)

@@ -70,7 +70,7 @@ let suppressHandleClickUntil = 0;
 let handleNode = null;
 let conversationModeObserver = null;
 
-// SillyBunny divergence: Conversation Mode owns the shell while active, so the upstream companion panel must hide behind this DOM-state adapter.
+// Homunculus divergence: Conversation Mode owns the shell while active, so the upstream companion panel must hide behind this DOM-state adapter.
 export function isConversationModeActive() {
     const sheld = globalThis.document?.getElementById?.('sheld');
     return sheld?.dataset?.sbConversationMode === 'on'
@@ -394,7 +394,7 @@ function getPanelAgents() {
     return getAgents().filter(agent => isCompanionAgent(agent) && agent.category !== 'tool');
 }
 
-// SillyBunny: the slide-out tracker panel is the home for 'panel'-mode companion state only.
+// Homunculus: the slide-out tracker panel is the home for 'panel'-mode companion state only.
 // 'card' renders inline under the reply (handled by isHiddenCompanionResult in companion-ui),
 // and 'hidden' is feedback-only and renders nowhere. When a live agent exists we trust its
 // current editor config so flipping the Display dropdown takes effect on the next render; for
@@ -437,7 +437,7 @@ export function collectPanelAgentStates() {
     const byAgentId = new Map();
 
     for (const agent of getPanelAgents()) {
-        // SillyBunny: only 'panel'-mode companions belong in the tracker panel; 'card' and 'hidden' are excluded.
+        // Homunculus: only 'panel'-mode companions belong in the tracker panel; 'card' and 'hidden' are excluded.
         if (isAgentEnabledForCurrentScope(agent) && isPanelDisplayMode(agent)) {
             byAgentId.set(agent.id, { agentId: agent.id, agent, latest: null, history: [] });
         }
@@ -460,7 +460,7 @@ export function collectPanelAgentStates() {
                 continue;
             }
 
-            // SillyBunny: resolve the agent up front so we can filter by display mode before
+            // Homunculus: resolve the agent up front so we can filter by display mode before
             // creating any panel state. 'card' and 'hidden' results stay out of the panel;
             // orphaned results fall back to the mode stored on the result itself.
             const existingState = byAgentId.get(agentId);

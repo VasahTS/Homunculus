@@ -17,7 +17,7 @@
     display: none;
 }
 
-/* SillyBunny: Backups replace the chat list so cleanup controls cannot consume a short nested tray. */
+/* Homunculus: Backups replace the chat list so cleanup controls cannot consume a short nested tray. */
 #select_chat_popup.chatBackupsOpen {
     height: 100%;
 }

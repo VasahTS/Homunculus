@@ -35,7 +35,7 @@ function getCurrentTimestamp() {
     return 0;
 }
 
-const state = globalThis.__sillyBunnyServerLogBuffer ??= {
+const state = globalThis.__homunculusServerLogBuffer ??= {
     initialized: false,
     captureStartedAt: getCurrentTimestamp(),
     nextId: 1,

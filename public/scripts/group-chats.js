@@ -572,7 +572,7 @@ async function _save(group, reload = true) {
         headers: getRequestHeaders(),
         body: JSON.stringify(group),
     });
-    // SillyBunny: surface metadata-save failures so chat rename can roll back consistently.
+    // Homunculus: surface metadata-save failures so chat rename can roll back consistently.
     if (!response.ok) {
         throw new Error(`Could not save group ${group.id}.`);
     }
@@ -618,7 +618,7 @@ async function loadGroupChat(chatId, allowCreate = false) {
         body: JSON.stringify({ id: chatId, allow_create: allowCreate }),
     }), { refreshCsrfToken });
 
-    // SillyBunny: fail closed instead of replacing missing or corrupt persisted chat data with a greeting.
+    // Homunculus: fail closed instead of replacing missing or corrupt persisted chat data with a greeting.
     if (!response.ok) {
         throw new Error(`Could not load group chat ${chatId}.`);
     }
@@ -722,7 +722,7 @@ async function validateGroup(group, { trustActiveChat = false } = {}) {
             dirty = true;
         }
 
-        // SillyBunny: a newly-created group chat has no JSONL yet, so keep its active branch id.
+        // Homunculus: a newly-created group chat has no JSONL yet, so keep its active branch id.
         if (!trustActiveChat && presentChats.length && !presentChats.includes(String(group.chat_id ?? ''))) {
             group.chat_id = presentChats[presentChats.length - 1];
             dirty = true;
@@ -787,10 +787,10 @@ export async function getGroupChat(groupId, reload = false, { switchMenu = true,
         data.shift();
     }
 
-    // SillyBunny: initialize empty, untainted group chats even when the chat id was created before this load.
+    // Homunculus: initialize empty, untainted group chats even when the chat id was created before this load.
     const freshChat = !metadata.tainted && (!Array.isArray(data) || !data.length);
 
-    // SillyBunny: no integrity slug means the server treats the file as intact and mints one on the
+    // Homunculus: no integrity slug means the server treats the file as intact and mints one on the
     // first real save. Stamping one in on load only dirtied legacy chats into a needless rewrite.
     await loadItemizedPrompts(getCurrentChatId());
 
@@ -1147,7 +1147,7 @@ function saveGroupChat(groupId, shouldSaveGroup, force = false, throwOnError = f
 
 /**
  * Waits for saves already queued on the serial group chat save queue to settle.
- * SillyBunny: group saves run on their own queue, so navigation has to drain it separately.
+ * Homunculus: group saves run on their own queue, so navigation has to drain it separately.
  * @returns {Promise<void>}
  */
 export async function waitForQueuedGroupChatSaves() {
@@ -1167,7 +1167,7 @@ async function saveGroupChatImmediately({ groupId, shouldSaveGroup, force = fals
         return false;
     }
 
-    // SillyBunny: abort saves whose identity or generation changed while queued to prevent chat cloning.
+    // Homunculus: abort saves whose identity or generation changed while queued to prevent chat cloning.
     const abortReason = getQueuedChatSaveAbortReason({
         scheduledGroupId: groupId,
         currentGroupId: selected_group,
@@ -1203,7 +1203,7 @@ async function saveGroupChatImmediately({ groupId, shouldSaveGroup, force = fals
         headers: getRequestHeaders(),
         body: savePayload,
     });
-    // SillyBunny: rebuild compressed save requests after refreshing a stale CSRF token.
+    // Homunculus: rebuild compressed save requests after refreshing a stale CSRF token.
     const response = await fetchWithCsrfRetry('/api/chats/group/save', buildSaveGroupChatRequest, { refreshCsrfToken });
 
     if (!response.ok) {
@@ -1244,7 +1244,7 @@ async function saveGroupChatImmediately({ groupId, shouldSaveGroup, force = fals
     }
 
     if (shouldSaveGroup) {
-        // SillyBunny: strict saves cannot acknowledge deferred group metadata writes.
+        // Homunculus: strict saves cannot acknowledge deferred group metadata writes.
         if (throwOnError && !groups.some(candidate => candidate.id === group.id)) {
             throw new Error('Group not found');
         }
@@ -2159,8 +2159,8 @@ async function renameOpenGroup() {
     await editGroup(openGroupId, true, true);
 }
 
-const sillyBunnyShell = /** @type {any} */ (globalThis.SillyBunnyShell || {});
-globalThis.SillyBunnyShell = Object.assign(sillyBunnyShell, {
+const homunculusShell = /** @type {any} */ (globalThis.HomunculusShell || {});
+globalThis.HomunculusShell = Object.assign(homunculusShell, {
     renameOpenGroup,
 });
 
@@ -2641,7 +2641,7 @@ function isMobileGroupCandidateRowTap(event) {
         return false;
     }
 
-    return globalThis.SillyBunnyShell?.isMobileViewport?.() ?? Boolean(globalThis.matchMedia?.('(max-width: 768px)')?.matches);
+    return globalThis.HomunculusShell?.isMobileViewport?.() ?? Boolean(globalThis.matchMedia?.('(max-width: 768px)')?.matches);
 }
 
 async function onGroupCandidateRowClick(event) {
@@ -2740,7 +2740,7 @@ function filterGroupMembers() {
 
 function filterGroupMemberList() {
     const searchValue = String($(this).val());
-    // SillyBunny: the editor and its popout share one filter, including the search-order input.
+    // Homunculus: the editor and its popout share one filter, including the search-order input.
     $('[id="rm_group_members_filter"]').not(this).val(searchValue);
     groupMembersFilter.setFilterData(FILTER_TYPES.SEARCH, searchValue.toLowerCase());
 }
@@ -3181,7 +3181,7 @@ function doCurMemberListPopout() {
             .append(controlBarHtml)
             .append(memberListClone);
 
-        // SillyBunny: HTML copies do not retain the search input's current value.
+        // Homunculus: HTML copies do not retain the search input's current value.
         newElement.find('#rm_group_members_filter').val($('#rm_group_members_filter').val());
 
         // Remove pagination from popout
@@ -3213,20 +3213,20 @@ jQuery(() => {
 
     $(document).on('click', '.group_select', async function () {
         const isCharactersBlockClick = $(this).closest('#rm_print_characters_block').length > 0;
-        const shouldCloseCharacterMenu = isCharactersBlockClick && (globalThis.SillyBunnyShell?.isMobileViewport?.() ?? true);
+        const shouldCloseCharacterMenu = isCharactersBlockClick && (globalThis.HomunculusShell?.isMobileViewport?.() ?? true);
         const groupId = $(this).attr('data-chid') || $(this).attr('data-grid');
-        // SillyBunny: drawer selection flashes Editor instead of opening it.
+        // Homunculus: drawer selection flashes Editor instead of opening it.
         const didOpenGroup = await openGroupById(groupId, { switchMenu: false });
         if (didOpenGroup && isCharactersBlockClick) {
             pulseSelectedEntityCard(this);
-            globalThis.SillyBunnyShell?.highlightCharacterEditorTab?.();
+            globalThis.HomunculusShell?.highlightCharacterEditorTab?.();
         }
         if (shouldCloseCharacterMenu) {
-            globalThis.SillyBunnyShell?.closeCharacters?.();
+            globalThis.HomunculusShell?.closeCharacters?.();
         }
     });
     $('#rm_group_filter').on('input', filterGroupMembers);
-    // SillyBunny: include the search field created later by the native popout.
+    // Homunculus: include the search field created later by the native popout.
     $(document).on('input', '#rm_group_members_filter', filterGroupMemberList);
     $('#rm_group_submit').on('click', createGroup);
     $('#rm_group_quick_create').on('click', createQuickGroupFromSelectedMembers);

@@ -115,8 +115,8 @@ var retry_delay = 500;
 let counterNonce = Date.now();
 
 function openWorldInfoCharacterTab() {
-    if (globalThis.SillyBunnyShell?.openTab) {
-        globalThis.SillyBunnyShell.openTab('characters', 'world-info');
+    if (globalThis.HomunculusShell?.openTab) {
+        globalThis.HomunculusShell.openTab('characters', 'world-info');
         return;
     }
 
@@ -747,7 +747,7 @@ export async function initMovingUI() {
         dragElement($('#sheld'));
         dragElement($('#left-nav-panel'));
         dragElement($('#right-nav-panel'));
-        // SillyBunny: World Info is embedded in the Characters panel now; the
+        // Homunculus: World Info is embedded in the Characters panel now; the
         // panel itself handles moving/resizing, so do not persist a separate
         // draggable #WorldInfo state that would fight the tab layout.
         dragElement($('#floatingPrompt'));
@@ -831,7 +831,7 @@ export function initRossMods() {
             }
         }
     });
-    // SillyBunny: World Info now lives inside the right Characters panel, so the
+    // Homunculus: World Info now lives inside the right Characters panel, so the
     // legacy WI pin only preserves auto-open preference instead of pinning a left drawer.
     $(WIPanelPin).on('click', async function () {
         accountStorage.setItem('WINavLockOn', $(WIPanelPin).prop('checked'));
@@ -850,7 +850,7 @@ export function initRossMods() {
             $(RightNavPanel).addClass('pinnedOpen');
             $(RightNavDrawerIcon).addClass('drawerPinnedOpen');
         }
-        // SillyBunny: retain WI auto-open preference without applying legacy drawer pin classes.
+        // Homunculus: retain WI auto-open preference without applying legacy drawer pin classes.
         $(WIPanelPin).prop('checked', accountStorage.getItem('WINavLockOn') === 'true');
     }
 
@@ -1280,7 +1280,7 @@ export function initRossMods() {
             }
 
             if ($('#WorldInfo').is(':visible')) {
-                globalThis.SillyBunnyShell?.closeCharacters?.();
+                globalThis.HomunculusShell?.closeCharacters?.();
                 return;
             }
 
@@ -1292,7 +1292,7 @@ export function initRossMods() {
                 }
             }
 
-            // SillyBunny removes the legacy left-panel pin, so Escape always closes this shell.
+            // Homunculus removes the legacy left-panel pin, so Escape always closes this shell.
             if ($('#left-nav-panel').is(':visible')) {
                 $('#leftNavDrawerIcon').trigger('click');
                 return;

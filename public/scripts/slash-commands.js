@@ -349,7 +349,7 @@ export function initDefaultSlashCommands() {
         callback: async function (args, prompt) {
             const options = prompt?.toString()?.trim() ? { quiet_prompt: prompt.toString().trim(), quietToLoud: true } : {};
             const shouldAwait = isTrueBoolean(args?.await?.toString());
-            // SillyBunny: settle busy timeouts so awaited callers can restore their state.
+            // Homunculus: settle busy timeouts so awaited callers can restore their state.
             const generationPromise = delay(1).then(async () => {
                 try {
                     await waitUntilCondition(() => !is_send_press && !is_group_generating, 10000, 100);
@@ -1509,7 +1509,7 @@ export function initDefaultSlashCommands() {
         aliases: ['default'],
         helpString: t`Sets the message style to flat chat mode.`,
     }));
-    // SillyBunny: expose extra chat style aliases so shell-specific styles can be
+    // Homunculus: expose extra chat style aliases so shell-specific styles can be
     // switched from slash commands without touching the upstream style list.
     registerChatStyleSlashCommand({
         name: 'echostyle',
@@ -5133,7 +5133,7 @@ async function deleteMessagesByNameCallback(_, name) {
         }
     }
 
-    // SillyBunny: this shrink is the user's own deletion, not an accidental overwrite.
+    // Homunculus: this shrink is the user's own deletion, not an accidental overwrite.
     await saveChatConditional({ allowShrink: true });
     await reloadCurrentChat();
 

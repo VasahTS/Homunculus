@@ -1,7 +1,7 @@
 // Classic UI fork: "Import & Restore" (import a SillyTavern folder or backup ZIP) for the classic
-// User Settings drawer. The functions below are copied unchanged from SillyBunny's graphical shell
-// (public/scripts/sillybunny-tabs.js, which this fork does not load), together with the small helpers
-// they use. Refresh this copy if SillyBunny changes its importer.
+// User Settings drawer. The functions below are copied unchanged from Homunculus's graphical shell
+// (public/scripts/homunculus-tabs.js, which this fork does not load), together with the small helpers
+// they use. Refresh this copy if Homunculus changes its importer.
 import { fetchWithCsrfRetry } from './csrf-token-refresh.js';
 import { refreshCsrfToken } from '../script.js';
 
@@ -78,7 +78,7 @@ async function waitForAuthorizedRequestHeaders(timeoutMs = 15000, context = getS
     return getRequestHeadersFromContext(context);
 }
 
-/* ---- copied from sillybunny-tabs.js ---- */
+/* ---- copied from homunculus-tabs.js ---- */
 
 function getImporterState() {
     return importerState;

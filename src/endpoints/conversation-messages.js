@@ -4,13 +4,13 @@
  * Functions for creating, appending, and formatting conversation messages.
  */
 
-import { MAX_THREAD_MESSAGES } from '../../public/scripts/sillybunny-conversation/constants.js';
-import { truncateConversationReplyPreview } from '../../public/scripts/sillybunny-conversation/preview-utils.js';
+import { MAX_THREAD_MESSAGES } from '../../public/scripts/homunculus-conversation/constants.js';
+import { truncateConversationReplyPreview } from '../../public/scripts/homunculus-conversation/preview-utils.js';
 import {
     getConversationAttachmentLabels,
     getConversationAttachmentSummary,
     hasConversationMessageContent,
-} from '../../public/scripts/sillybunny-conversation/thread-store-utils.js';
+} from '../../public/scripts/homunculus-conversation/thread-store-utils.js';
 import {
     getObject,
     isObject,
@@ -93,7 +93,7 @@ export function getConversationMessagePreviewText(message) {
     return stripPreviewText(message?.mes) || stripPreviewText(getConversationAttachmentLabels(message).join(', '));
 }
 
-export { truncateConversationReplyPreview } from '../../public/scripts/sillybunny-conversation/preview-utils.js';
+export { truncateConversationReplyPreview } from '../../public/scripts/homunculus-conversation/preview-utils.js';
 
 /**
  * Build a reply reference object from a message

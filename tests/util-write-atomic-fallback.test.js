@@ -27,7 +27,7 @@ function mockWritableTarget() {
 }
 
 function createTargetPath() {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-atomic-'));
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-atomic-'));
     return path.join(tempRoot, 'example.jsonl');
 }
 

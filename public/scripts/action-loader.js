@@ -608,7 +608,7 @@ async function hideOverlay() {
  */
 function yoinkPreloader() {
     if (preloaderYoinked) return;
-    window.SillyBunnyBootGuard?.bootCompleted?.();
+    window.HomunculusBootGuard?.bootCompleted?.();
     document.getElementById('preloader')?.remove();
     preloaderYoinked = true;
 }

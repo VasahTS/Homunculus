@@ -27,8 +27,8 @@ describe('shared browser helper consolidation', () => {
             ['public/scripts/extensions/in-chat-agents/pathfinder/llm-sidecar.js', 'from \'../../../util/abort-error.js\';'],
             ['public/scripts/extensions/in-chat-agents/pathfinder/prompts/pipeline-runner.js', 'from \'../../../../util/abort-error.js\';'],
             ['public/scripts/extensions/in-chat-agents/pathfinder/sidecar-retrieval.js', 'from \'../../../util/abort-error.js\';'],
-            ['public/scripts/sillybunny-conversation/generation.js', 'from \'../util/abort-error.js\';'],
-            ['public/scripts/sillybunny-custom-css-ai.js', 'from \'./util/abort-error.js\';'],
+            ['public/scripts/homunculus-conversation/generation.js', 'from \'../util/abort-error.js\';'],
+            ['public/scripts/homunculus-custom-css-ai.js', 'from \'./util/abort-error.js\';'],
         ];
 
         for (const [relativePath, importSource] of consumers) {
@@ -38,14 +38,14 @@ describe('shared browser helper consolidation', () => {
             expect(source).not.toContain('function isAbortLikeError(');
         }
 
-        expect(readRepoFile('public/scripts/sillybunny-custom-css-ai.js')).toContain('export { isAbortLikeError };');
+        expect(readRepoFile('public/scripts/homunculus-custom-css-ai.js')).toContain('export { isAbortLikeError };');
     });
 
     test('named regex consumers import the shared escape helper', () => {
         const chatLabelSource = readRepoFile('public/scripts/chat-label.js');
         const summarizeSource = readRepoFile('public/scripts/extensions/in-chat-agents/pathfinder/tools/summarize.js');
-        const partnersSource = readRepoFile('public/scripts/sillybunny-conversation/partners-utils.js');
-        const tabsSource = readRepoFile('public/scripts/sillybunny-tabs.js');
+        const partnersSource = readRepoFile('public/scripts/homunculus-conversation/partners-utils.js');
+        const tabsSource = readRepoFile('public/scripts/homunculus-tabs.js');
         const trackerSource = readRepoFile('public/scripts/extensions/in-chat-agents/tracker-state.js');
 
         expect(chatLabelSource).toContain('import { escapeRegex } from \'./util/escape-regex.js\';');

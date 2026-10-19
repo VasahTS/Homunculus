@@ -138,7 +138,7 @@ router.post('/rename', async function (request, response) {
     }
 });
 
-// SillyBunny: distinct routes keep native overwrites separate from create-only installs.
+// Homunculus: distinct routes keep native overwrites separate from create-only installs.
 router.post('/upload', (request, response) => uploadBackground(request, response));
 router.post('/upload-new', (request, response) => uploadBackground(request, response, true));
 

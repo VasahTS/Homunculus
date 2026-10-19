@@ -180,7 +180,7 @@ function getStoredMancerServer() {
     try {
         return localStorage.getItem(MANCER_SERVER_KEY);
     } catch (error) {
-        // SillyBunny: iOS WebKit can throw on localStorage before the boot UI exists.
+        // Homunculus: iOS WebKit can throw on localStorage before the boot UI exists.
         console.warn('Unable to read stored Mancer server.', error);
         return null;
     }
@@ -209,7 +209,7 @@ const KOBOLDCPP_ORDER = [6, 0, 1, 3, 4, 2, 5];
 
 function shouldUseLocalPromptCache(settings) {
     const serverUrl = getTextGenServer(settings?.type);
-    // SillyBunny: only keep prompt cache hot for local backends; remote servers
+    // Homunculus: only keep prompt cache hot for local backends; remote servers
     // should not inherit the helper-generation cache lane.
     return isLikelyLocalServerUrl(serverUrl, window.location.href);
 }
@@ -693,7 +693,7 @@ export async function loadTextGenSettings(data, loadedSettings) {
     }
 
     $('#textgen_type').val(textgenerationwebui_settings.type);
-    // SillyBunny: restore saved providers without waiting for the live catalogue or saving an empty selection.
+    // Homunculus: restore saved providers without waiting for the live catalogue or saving an empty selection.
     setOpenRouterProviders('#openrouter_providers_text', textgenerationwebui_settings.openrouter_providers);
     $('#openrouter_service_tier_text').val(textgenerationwebui_settings.openrouter_service_tier);
     $('#openrouter_quantizations_text').val(textgenerationwebui_settings.openrouter_quantizations).trigger('change');
@@ -1941,7 +1941,7 @@ export function createTextGenGenerationData(settings, model, finalPrompt = null,
     }
 
     if (shouldUseLocalPromptCache(settings)) {
-        // SillyBunny: helper generations must explicitly opt out, because some
+        // Homunculus: helper generations must explicitly opt out, because some
         // local llama.cpp servers default to --cache-prompt for every request.
         params.cache_prompt = getLocalPromptCacheValue(cacheScope);
     }
@@ -1958,7 +1958,7 @@ export function createTextGenGenerationData(settings, model, finalPrompt = null,
         }
     }
 
-    // SillyBunny: match the flat text request before the server constructs backend-specific options.
+    // Homunculus: match the flat text request before the server constructs backend-specific options.
     const textContext = createSamplingRequestContext({
         backend: 'text',
         source: settings.type || 'textgenerationwebui',

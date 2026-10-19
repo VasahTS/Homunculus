@@ -78,12 +78,12 @@ const activatingExtensionDedupKeys = new Set();
  */
 const extensionLoadErrors = new Set();
 
-// SillyBunny: extensions append settings UI into shared columns; keep that surface resilient.
+// Homunculus: extensions append settings UI into shared columns; keep that surface resilient.
 const extensionSettingsHostIds = ['extensions_settings', 'extensions_settings2'];
 const ignoredExtensionSettingsSelectors = [];
 const ignoredExtensionSettingsSelector = ignoredExtensionSettingsSelectors.join(', ');
 const LEGACY_MOONLIT_ECHOES_SETTINGS_KEY = 'SillyTavernMoonlitEchoesTheme';
-const SILLYBUNNY_MOONLIT_ECHOES_EXTENSION_NAME = 'third-party/SillyBunny-MoonlitEchoesTheme';
+const HOMUNCULUS_MOONLIT_ECHOES_EXTENSION_NAME = 'third-party/SillyBunny-MoonlitEchoesTheme';
 const MOONLIT_ECHOES_NOTICE_STORAGE_KEY = 'moonlit_echoes_moved_notice_v1';
 const LEGACY_BUNDLED_OPT_IN_EXTENSION_IDS = [
     'sillytavern-character-colors',
@@ -272,7 +272,7 @@ export function saveMetadataDebounced() {
             return;
         }
 
-        // SillyBunny: reopening or reloading the same chat keeps every check above satisfied while
+        // Homunculus: reopening or reloading the same chat keeps every check above satisfied while
         // the messages are cleared and not yet reloaded. Saving there writes an empty chat over the
         // populated file, which the server refuses. The generation changes on every chat load.
         if (generation !== getChatGeneration()) {
@@ -405,7 +405,7 @@ export const extension_settings = {
 };
 
 /**
- * SillyBunny: core and bundled extensions used to be force-enabled, which made any entry
+ * Homunculus: core and bundled extensions used to be force-enabled, which made any entry
  * the user still had in `disabledExtensions` for them a no-op. Now that those toggles are
  * honoured, drop those stale entries once so upgrading does not silently switch off
  * extensions that have been running all along. Choices made afterwards are respected.
@@ -456,7 +456,7 @@ function applyBundledOptInDefaults({ migrateLegacy = false, initializeProcessedI
         }
     }
 
-    // SillyBunny: the legacy global bit covered older opt-ins; newer bundled opt-ins are tracked per-extension.
+    // Homunculus: the legacy global bit covered older opt-ins; newer bundled opt-ins are tracked per-extension.
     if (migrateLegacy && extension_settings.bundledOptInDefaultsApplied) {
         for (const id of LEGACY_BUNDLED_OPT_IN_EXTENSION_IDS) {
             const key = getExtensionDedupKey(id);
@@ -500,14 +500,14 @@ function maybeShowMoonlitEchoesMovedNotice() {
         return;
     }
 
-    const forkExtension = findExtension(SILLYBUNNY_MOONLIT_ECHOES_EXTENSION_NAME);
+    const forkExtension = findExtension(HOMUNCULUS_MOONLIT_ECHOES_EXTENSION_NAME);
     if (forkExtension?.enabled || accountStorage.getItem(MOONLIT_ECHOES_NOTICE_STORAGE_KEY) === 'true') {
         return;
     }
 
     const message = forkExtension
-        ? t`Moonlit Echoes moved out of SillyBunny core. Your settings were left unchanged; enable the SillyBunny Moonlit Echoes Theme extension to keep Moonlit styles active.`
-        : t`Moonlit Echoes moved out of SillyBunny core. Your settings were left unchanged; install the SillyBunny Moonlit Echoes Theme from Launchpad optional installs to keep Moonlit styles active.`;
+        ? t`Moonlit Echoes moved out of Homunculus core. Your settings were left unchanged; enable the SillyBunny Moonlit Echoes Theme extension to keep Moonlit styles active.`
+        : t`Moonlit Echoes moved out of Homunculus core. Your settings were left unchanged; install the SillyBunny Moonlit Echoes Theme from Launchpad optional installs to keep Moonlit styles active.`;
 
     const buttonClass = 'moonlit-echoes-launchpad-button';
     const content = `${message}<br><button type="button" class="menu_button ${buttonClass}">${t`Show in Launchpad`}</button>`;
@@ -522,7 +522,7 @@ function maybeShowMoonlitEchoesMovedNotice() {
             const button = toast?.querySelector?.(`.${buttonClass}`);
             button?.addEventListener('click', async () => {
                 accountStorage.setItem(MOONLIT_ECHOES_NOTICE_STORAGE_KEY, 'true');
-                await globalThis.SillyBunnyShell?.highlightLaunchpadItem?.(SILLYBUNNY_MOONLIT_ECHOES_EXTENSION_NAME);
+                await globalThis.HomunculusShell?.highlightLaunchpadItem?.(HOMUNCULUS_MOONLIT_ECHOES_EXTENSION_NAME);
             });
         },
         onCloseClick() {
@@ -1081,7 +1081,7 @@ async function activateExtensions() {
         const displayName = manifest.display_name || name;
         const isDisabled = isExtensionDisabled(name);
         const clientVersionMeetsMinimum = minClientVersion === undefined
-            || versionCompare(clientVersion, minClientVersion, { mapSillyBunnyToSillyTavern: true });
+            || versionCompare(clientVersion, minClientVersion, { mapHomunculusToSillyTavern: true });
         const disabledDependencyNames = Array.isArray(extensionDependencies)
             ? extensionDependencies.filter(dep => isExtensionDisabled(dep))
             : [];
@@ -1385,7 +1385,7 @@ function generateExtensionHtml(name, manifest, isActive, isDisabled, isExternal,
             case 'local':
                 return '<i class="fa-sm fa-fw fa-solid fa-user" data-i18n="[title]ext_type_local" title="This is a local extension, available only for you."></i>';
             case 'core':
-                return '<i class="fa-sm fa-fw fa-solid fa-cube" title="This is a SillyBunny core extension. It cannot be deleted and can be disabled."></i>';
+                return '<i class="fa-sm fa-fw fa-solid fa-cube" title="This is a Homunculus core extension. It cannot be deleted and can be disabled."></i>';
             case 'bundled':
                 return '<i class="fa-sm fa-fw fa-solid fa-box-archive" title="This is a bundled third-party extension. It cannot be deleted or updated, and can be disabled."></i>';
             case 'system':
@@ -2313,7 +2313,7 @@ export async function loadExtensionSettings(settings, versionChanged, enableAuto
     // Clean stale entries from disabledExtensions list
     const originalDisabledCount = extension_settings.disabledExtensions.length;
     extension_settings.disabledExtensions = extension_settings.disabledExtensions.filter(name => {
-        // SillyBunny: normalized aliases survive third-party-to-bundled promotion.
+        // Homunculus: normalized aliases survive third-party-to-bundled promotion.
         const exists = extensionNames.some(extensionName => areExtensionIdsEqual(name, extensionName));
         if (!exists) {
             console.log(`[Extensions] Removed stale disabled extension: ${name}`);
@@ -2340,7 +2340,7 @@ export async function loadExtensionSettings(settings, versionChanged, enableAuto
         await autoUpdateExtensions(false);
     }
 
-    // SillyBunny: extension settings are injected by many independent modules,
+    // Homunculus: extension settings are injected by many independent modules,
     // so guard the shared settings columns against duplicate top-level drawers.
     observeExtensionSettingsDrawers();
     await activateExtensions();
@@ -2617,7 +2617,7 @@ export async function writeExtensionField(characterId, key, value, { throwOnErro
     }
 
     if (throwOnError) {
-        // SillyBunny: bind the request to the card, then merge into its latest local state.
+        // Homunculus: bind the request to the card, then merge into its latest local state.
         value = JSON.parse(requestBody).data.extensions[key];
         await persist();
         context = getContext();

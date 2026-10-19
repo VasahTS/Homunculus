@@ -10,7 +10,7 @@
 // SillyTavern's normal "Import Character from File".
 //
 // Open it from its own globe button in the top bar, the globe in the Characters panel, Home -> Tools, or with
-// globalThis.SillyBunnyClassicCardBrowser.open().
+// globalThis.HomunculusClassicCardBrowser.open().
 
 import { helpButton, closeHelp } from './classic-help.js';
 
@@ -829,7 +829,7 @@ async function chatWithImported() {
     close();
     const { selectCharacterById } = await import('../script.js');
     await selectCharacterById(index);
-    globalThis.SillyBunnyClassicHome?.showChat?.();
+    globalThis.HomunculusClassicHome?.showChat?.();
 }
 
 // ───────────────────────── Rendering ─────────────────────────
@@ -1476,7 +1476,7 @@ function setButtonState(open) {
 function open() {
     if (!root) build();
     if (state.open) return;
-    const home = globalThis.SillyBunnyClassicHome;
+    const home = globalThis.HomunculusClassicHome;
     home?.closeHome?.(); // before state.open: closing Home switches the view to the chat
     state.open = true;
     returnFocus = document.activeElement;
@@ -1497,7 +1497,7 @@ function close() {
     root?.classList.remove('is-open');
     document.body.classList.remove('ct-cb-open');
     setButtonState(false);
-    const home = globalThis.SillyBunnyClassicHome;
+    const home = globalThis.HomunculusClassicHome;
     if (home?.getView?.() === VIEW_ID) home.setView('chat');
     if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
 }
@@ -1553,4 +1553,4 @@ if (document.readyState === 'loading') {
     init();
 }
 
-globalThis.SillyBunnyClassicCardBrowser = { open, close };
+globalThis.HomunculusClassicCardBrowser = { open, close };

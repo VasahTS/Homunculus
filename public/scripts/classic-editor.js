@@ -132,7 +132,7 @@ function onSideClick(event) {
     const action = target.dataset.ctEd;
     if (action === 'list') $id('rm_button_characters')?.click();
     else if (action === 'avatar') $id('add_avatar_button')?.click();
-    else if (action === 'chat') globalThis.SillyBunnyClassicHome?.showChat?.();
+    else if (action === 'chat') globalThis.HomunculusClassicHome?.showChat?.();
     else if (action === 'lore') $id('world_button')?.click();
     else if (action === 'goto') {
         const panel = panelEl(target.dataset.ctSec);
@@ -309,7 +309,7 @@ function build() {
     syncMode();
 }
 
-/* In the Lantern gallery a click on a character opens its editor (SillyBunny only selects it). */
+/* In the Lantern gallery a click on a character opens its editor (Homunculus only selects it). */
 function bindGalleryClicks() {
     document.addEventListener('click', (event) => {
         if (!isLantern()) return;

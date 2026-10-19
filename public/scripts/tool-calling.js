@@ -798,7 +798,7 @@ export class ToolManager {
         }
 
         for (const toolCall of toolCalls) {
-            // SillyBunny: every call belongs to the response that requested the batch.
+            // Homunculus: every call belongs to the response that requested the batch.
             if (signal?.aborted || !isCurrent()) break;
             if (!toolCall || !toolCall.function || typeof toolCall.function !== 'object') {
                 continue;

@@ -1,5 +1,5 @@
 /**
- * SillyBunny: canonical reasoning-effort vocabulary and request normalization.
+ * Homunculus: canonical reasoning-effort vocabulary and request normalization.
  *
  * Deliberately import-free. Every per-provider lookup table in the codebase is keyed on the
  * exact lowercase strings below, so a value that reaches a provider with different casing
@@ -23,7 +23,7 @@ export const REASONING_EFFORT = {
 
 /**
  * Maps a canonical effort to the spelling providers actually accept.
- * SillyBunny: every rung is forwarded verbatim, so the depth the user picked is the depth the
+ * Homunculus: every rung is forwarded verbatim, so the depth the user picked is the depth the
  * provider receives and a provider that refuses one says so instead of silently reasoning less.
  * `min` is the sole exception: no provider accepts that literal string, and `minimal` is how
  * OpenAI-compatible endpoints spell the same rung.

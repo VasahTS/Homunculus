@@ -2,7 +2,7 @@ import { describe, expect, jest, test } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const source = readFileSync(new URL('../public/scripts/sillybunny-tabs.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const source = readFileSync(new URL('../public/scripts/homunculus-tabs.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 function createStorage(entries = []) {
     const values = new Map(entries);
@@ -37,7 +37,7 @@ function openShell(storage, mobile = false) {
         returnToChatSurface,
     });
     const functions = [
-        'isSillyBunnyStorageKey', 'scheduleSbStorageFlush', 'flushSbStorageWrites', 'bindSbStorageFlushEvents',
+        'isHomunculusStorageKey', 'scheduleSbStorageFlush', 'flushSbStorageWrites', 'bindSbStorageFlushEvents',
         'safeGetItem', 'safeSetItem', 'safeRemoveItem', 'normalizeStoredBoolean',
         'normalizeTopbarLabelPart', 'normalizeTopbarLabelParts', 'normalizeTopbarCustomText',
         'isMobileViewport', 'readTopbarLabelClickCycle', 'isTopbarLabelClickCycleEnabled',

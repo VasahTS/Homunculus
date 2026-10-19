@@ -8,8 +8,8 @@ const readSource = (...parts) => readFileSync(path.join(repoRoot, ...parts), 'ut
 
 describe('Group chat bulk actions', () => {
     test('routes group cards through selection, tag, and delete actions', () => {
-        const tabsSource = readSource('public', 'scripts', 'sillybunny-tabs.js');
-        const tabsCssSource = readSource('public', 'css', 'sillybunny-tabs.css');
+        const tabsSource = readSource('public', 'scripts', 'homunculus-tabs.js');
+        const tabsCssSource = readSource('public', 'css', 'homunculus-tabs.css');
         const overlayCssSource = readSource('public', 'css', 'character-group-overlay.css');
         const mobileCssSource = readSource('public', 'css', 'mobile-styles.css');
         const bulkEditSource = readSource('public', 'scripts', 'bulk-edit.js');

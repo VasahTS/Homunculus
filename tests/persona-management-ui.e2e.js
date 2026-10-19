@@ -30,7 +30,7 @@ for (const width of [320, 390, 1280]) {
                     activeAppendices: {},
                 };
                 setPersonaDescription();
-                window.SillyBunnyShell.openTab('characters', 'persona');
+                window.HomunculusShell.openTab('characters', 'persona');
             });
             await expect(page.locator('#PersonaManagement')).toBeVisible();
             await page.evaluate(() => document.getElementById('persona_workspace_tab_edit').click());

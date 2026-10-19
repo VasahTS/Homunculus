@@ -1,5 +1,5 @@
-/* Classic UI fork: styles for the elements the fork adds or keeps from SillyBunny inside the
-   SillyTavern layout. SillyBunny's own shell stylesheet (sillybunny-tabs.css) is not loaded. */
+/* Classic UI fork: styles for the elements the fork adds or keeps from Homunculus inside the
+   SillyTavern layout. Homunculus's own shell stylesheet (homunculus-tabs.css) is not loaded. */
 
 /* ---------- In-Chat Agents drawer ---------- */
 
@@ -11,7 +11,7 @@
     gap: 5px;
 }
 
-/* ---------- Character panel: drop SillyBunny shell chrome, keep SillyTavern's own controls ---------- */
+/* ---------- Character panel: drop Homunculus shell chrome, keep SillyTavern's own controls ---------- */
 
 #right-nav-panel .sb-character-shell-nav-wrapper,
 #right-nav-panel .sb-character-shell-header > :not(#sb_character_mode_toggle),
@@ -66,7 +66,7 @@
     display: none !important;
 }
 
-/* Character editor sections (SillyBunny replaced the "Advanced Definitions" popup with these tabs) */
+/* Character editor sections (Homunculus replaced the "Advanced Definitions" popup with these tabs) */
 /* Every section shown in one scroll, like SillyTavern's editor (no section tabs to click through). */
 #right-nav-panel .sb-character-editor-subtabs-wrapper {
     display: none !important;
@@ -76,7 +76,7 @@
     display: block !important;
 }
 
-/* Spoiler-free mode (SillyBunny setting) still hides the definition and greeting fields. */
+/* Spoiler-free mode (Homunculus setting) still hides the definition and greeting fields. */
 #form_create[data-sb-spoiler-free-fields-hidden="true"] [data-sb-character-editor-panel="definitions"],
 #form_create[data-sb-spoiler-free-fields-hidden="true"] [data-sb-character-editor-panel="greetings"] {
     display: none !important;
@@ -137,13 +137,13 @@
     width: 100%;
 }
 
-/* Import panel and "no character" placeholders are SillyBunny shell surfaces */
+/* Import panel and "no character" placeholders are Homunculus shell surfaces */
 #right-nav-panel .sb-character-import-panel[hidden],
 #right-nav-panel .sb-character-editor-empty[hidden] {
     display: none !important;
 }
 
-/* SillyBunny's "Clear cookies & cache" button is wired by its shell; the regular "Clear all cache" stays. */
+/* Homunculus's "Clear cookies & cache" button is wired by its shell; the regular "Clear all cache" stays. */
 #clear_cookies_cache_button {
     display: none !important;
 }
@@ -201,7 +201,7 @@
     display: inline;
 }
 
-/* Chat Archive (bundled SillyBunny extension): icon-only like the other character panel buttons */
+/* Chat Archive (bundled Homunculus extension): icon-only like the other character panel buttons */
 #rm_buttons_container .sbca-drawer-button-label {
     display: none;
 }
@@ -213,7 +213,7 @@
     }
 }
 
-/* ---------- World Info: SillyTavern layout (SillyBunny wraps the same controls in cards and a side editor) ---------- */
+/* ---------- World Info: SillyTavern layout (Homunculus wraps the same controls in cards and a side editor) ---------- */
 
 #WorldInfo .world_popup_action_group,
 #world_popup_entries_column {
@@ -330,7 +330,7 @@
     width: 100%;
 }
 
-/* Quick context-size presets (SillyBunny feature): one compact row of chips */
+/* Quick context-size presets (Homunculus feature): one compact row of chips */
 .quick_context_size_container {
     display: flex;
     flex-wrap: wrap;
@@ -400,7 +400,7 @@
     display: none;
 }
 
-/* SillyBunny palette and accent pickers only apply to SillyBunny's own theme, which this fork does not load. */
+/* Homunculus palette and accent pickers only apply to Homunculus's own theme, which this fork does not load. */
 #user-settings-block .sb-theme-presets,
 #user-settings-block .sb-accent-color-controls,
 #sb-accent-profiles-panel {
@@ -494,7 +494,7 @@
     gap: 5px;
 }
 
-/* What is left of SillyBunny's controls row after its pieces were moved */
+/* What is left of Homunculus's controls row after its pieces were moved */
 .classic_char_identity > .flex-container.expander {
     display: none;
 }
@@ -607,7 +607,7 @@
     display: none !important;
 }
 
-/* ---------- Import & Restore (SillyBunny importer, see scripts/classic-importer.js) ---------- */
+/* ---------- Import & Restore (Homunculus importer, see scripts/classic-importer.js) ---------- */
 
 #sb-import-card {
     display: flex;

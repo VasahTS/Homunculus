@@ -20,7 +20,7 @@ usage() {
 Usage: bash scripts/sync-quick-image-gen.sh [options]
 
 Syncs the bundled Quick Image Gen extension from upstream. The bundled copy carries
-SillyBunny divergences (Conversation capability wiring, scoped generation, lifecycle
+Homunculus divergences (Conversation capability wiring, scoped generation, lifecycle
 hooks), so the sync is a three-way merge instead of an overwrite:
 
   base     = upstream commit recorded in scripts/quick-image-gen-sync-state.json,
@@ -227,7 +227,7 @@ if (!source.includes(moduleExport)) {
 
 const bridgeExportBlock = `
 
-// SillyBunny divergence: minimal helper exports for the Expressions Agent bridge.
+// Homunculus divergence: minimal helper exports for the Expressions Agent bridge.
 // These are kept intentionally small so upstream syncs only need to preserve this
 // one export block. The actual sprite-generation logic lives outside QIG in
 // public/scripts/extensions/expressions/expression-sprite-bridge.js.
@@ -323,7 +323,7 @@ for (const relativePath of relativePaths) {
     copy(ours, output);
     const result = spawnSync('git', [
         'merge-file',
-        '-L', 'SillyBunny',
+        '-L', 'Homunculus',
         '-L', 'upstream base',
         '-L', 'upstream incoming',
         output,

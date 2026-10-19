@@ -97,9 +97,9 @@ describe('server supervisor', () => {
 
     test('shouldSupervise lets launchers wrap one built-in supervisor', () => {
         expect(shouldSupervise({})).toBe(true);
-        expect(shouldSupervise({ SILLYBUNNY_LAUNCHER: '1' })).toBe(true);
-        expect(shouldSupervise({ SILLYBUNNY_SUPERVISED: '1' })).toBe(false);
-        expect(shouldSupervise({ SILLYBUNNY_LAUNCHER: '', SILLYBUNNY_SUPERVISED: '' })).toBe(true);
+        expect(shouldSupervise({ HOMUNCULUS_LAUNCHER: '1' })).toBe(true);
+        expect(shouldSupervise({ HOMUNCULUS_SUPERVISED: '1' })).toBe(false);
+        expect(shouldSupervise({ HOMUNCULUS_LAUNCHER: '', HOMUNCULUS_SUPERVISED: '' })).toBe(true);
     });
 
     test('marks the child as supervised and forwards runtime flags', async () => {
@@ -113,9 +113,9 @@ describe('server supervisor', () => {
         expect(command).toBe('bun');
         expect(args).toEqual(['--smol', 'server.js', '--listen']);
         expect(options.stdio).toEqual(['inherit', 'inherit', 'inherit', 'ipc']);
-        expect(options.env.SILLYBUNNY_SUPERVISED).toBe('1');
+        expect(options.env.HOMUNCULUS_SUPERVISED).toBe('1');
         expect(options.env[SERVER_PLUGIN_UPDATE_SUPERVISOR_API_ENV]).toBe(SERVER_PLUGIN_UPDATE_SUPERVISOR_API_VERSION);
-        expect(options.env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH).toBeUndefined();
+        expect(options.env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH).toBeUndefined();
         expect(exitFn).toHaveBeenCalledWith(0);
     });
 
@@ -144,9 +144,9 @@ describe('server supervisor', () => {
         await runSupervisor({ argv: ['node', 'server.js'], execArgv: [], spawnFn, exitFn });
 
         expect(spawnFn).toHaveBeenCalledTimes(3);
-        expect(spawnFn.mock.calls[0][2].env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH).toBeUndefined();
-        expect(spawnFn.mock.calls[1][2].env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH).toBe('1');
-        expect(spawnFn.mock.calls[2][2].env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH).toBe('1');
+        expect(spawnFn.mock.calls[0][2].env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH).toBeUndefined();
+        expect(spawnFn.mock.calls[1][2].env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH).toBe('1');
+        expect(spawnFn.mock.calls[2][2].env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH).toBe('1');
         expect(exitFn).toHaveBeenCalledWith(0);
     });
 

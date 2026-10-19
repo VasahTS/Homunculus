@@ -20,19 +20,19 @@ import {
     DEFAULT_CONVERSATION_REPLY_MAX_TOKENS,
     MIN_CONVERSATION_REPLY_MAX_TOKENS,
     MAX_CONVERSATION_REPLY_MAX_TOKENS,
-} from '../../public/scripts/sillybunny-conversation/constants.js';
+} from '../../public/scripts/homunculus-conversation/constants.js';
 import {
     getConversationAttachmentSummary,
     getConversationMediaDisplay,
     getConversationMediaIndex,
     getConversationPromptMediaAttachments,
-} from '../../public/scripts/sillybunny-conversation/thread-store-utils.js';
+} from '../../public/scripts/homunculus-conversation/thread-store-utils.js';
 import {
     buildConversationGroupReferenceContext,
     compileGeechanPrompt,
     formatPromptText,
     getGroundedDialogueRulesPrompt,
-} from '../../public/scripts/sillybunny-conversation/shared-helpers.js';
+} from '../../public/scripts/homunculus-conversation/shared-helpers.js';
 import { getObject, clamp, parsePositiveInt, isObject } from './conversation-utils.js';
 import { convertImageUrlsToBase64 } from './conversation-utils.js';
 import { getConversationThreadStore } from './conversation-threads.js';

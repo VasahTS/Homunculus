@@ -11,10 +11,10 @@ import {
 } from '../public/scripts/mobile-shell-lifecycle/index.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 const browserFixesSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'browser-fixes.js'), 'utf8');
-const tabsCssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-tabs.css'), 'utf8');
-const mobileShellCssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-mobile-shell.css'), 'utf8');
+const tabsCssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-tabs.css'), 'utf8');
+const mobileShellCssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-mobile-shell.css'), 'utf8');
 
 function createElementStub({
     parentElement = null,
@@ -105,7 +105,7 @@ function getFunctionSource(name) {
 
 describe('mobile shell lifecycle wiring', () => {
     test('keeps the trailing mobile chat hardening parseable', () => {
-        expect(() => parse(mobileShellCssSource, { source: 'sillybunny-mobile-shell.css' })).not.toThrow();
+        expect(() => parse(mobileShellCssSource, { source: 'homunculus-mobile-shell.css' })).not.toThrow();
         expect(mobileShellCssSource).toMatch(/#sb-bottom-chat-bar\s*\{[^}]*touch-action:\s*pan-x;/);
         expect(mobileShellCssSource).toMatch(/#sb-bottom-chat-secondary-row\s*\{[^}]*touch-action:\s*pan-x;/);
     });

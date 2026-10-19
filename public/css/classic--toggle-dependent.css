@@ -579,7 +579,7 @@ label[for="bind_preset_to_connection"]:has(input:checked) {
     margin-left: 5px;
 }
 
-/* ===== Classic UI fork: SillyBunny-only rules from css/toggle-dependent.css (auto-extracted, see tools/css-merge.mjs) ===== */
+/* ===== Classic UI fork: Homunculus-only rules from css/toggle-dependent.css (auto-extracted, see tools/css-merge.mjs) ===== */
 
 
 body.documentstyle #chat .mes .mes_block .ch_name .timestamp-model {

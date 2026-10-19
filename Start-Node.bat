@@ -1,5 +1,5 @@
 @echo off
-REM Force SillyBunny to use Node.js instead of Bun.
+REM Force Homunculus to use Node.js instead of Bun.
 REM Use this if Bun causes high CPU usage on your platform.
 setlocal enabledelayedexpansion
 pushd %~dp0
@@ -27,7 +27,7 @@ if %errorlevel% neq 0 (
 )
 
 set NODE_ENV=production
-set SILLYBUNNY_LAUNCHER=1
+set HOMUNCULUS_LAUNCHER=1
 set "_dependency_profile=node-production"
 if exist node_modules\eslint\package.json set "_dependency_profile=node-development"
 node scripts\dependency-state.js check !_dependency_profile! > nul 2>&1
@@ -60,7 +60,7 @@ if !errorlevel! neq 0 (
 call npm run init
 if !errorlevel! neq 0 goto end
 
-echo Entering SillyBunny (Node.js mode)...
+echo Entering Homunculus (Node.js mode)...
 set NODE_NO_WARNINGS=1
 
 :server_loop
@@ -68,8 +68,8 @@ node --no-warnings server.js %*
 set "_server_exit=!errorlevel!"
 if "!_server_exit!"=="75" (
     echo.
-    echo [SillyBunny] Restarting server...
-    set SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH=1
+    echo [Homunculus] Restarting server...
+    set HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH=1
     goto server_loop
 )
 

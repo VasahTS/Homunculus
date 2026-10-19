@@ -9,7 +9,7 @@ export function initDataMaid() {
         return;
     }
 
-    // SillyBunny: cleanup is optional; load its dialog only after an explicit request.
+    // Homunculus: cleanup is optional; load its dialog only after an explicit request.
     let opening = false;
     dataMaidButton.addEventListener('click', async () => {
         if (opening) return;

@@ -974,7 +974,7 @@
 
     body {
         touch-action: manipulation;
-        /* SillyBunny: keep in sync with style.css — `clip` blocks programmatic
+        /* Homunculus: keep in sync with style.css — `clip` blocks programmatic
            viewport scrolling (scrollIntoView) that `hidden` allows. */
         overflow: hidden;
         overflow: clip;
@@ -1014,7 +1014,7 @@
         min-height: var(--sb-mobile-touch-target, 44px);
     }
 
-    /* SillyBunny divergence: text-labelled icon controls may expand beyond upstream square sizing. */
+    /* Homunculus divergence: text-labelled icon controls may expand beyond upstream square sizing. */
     .menu_button:is(.fa, .fa-solid, .fa-regular, .fa-brands):empty,
     .menu_button_icon:is(.fa, .fa-solid, .fa-regular, .fa-brands):empty,
     .right_menu_button:is(.fa, .fa-solid, .fa-regular, .fa-brands):empty,
@@ -1574,12 +1574,12 @@
 
     /*
      * Prevent original ST drawers from flashing on mobile before the
-     * SillyBunny shell system initializes (~120ms after page load).
+     * Homunculus shell system initializes (~120ms after page load).
      * Uses opacity instead of display so the shell can still find and
      * reparent the content. Once the shell adds data-sb-shell-ready
      * or sb-shell-root, the drawer becomes visible through its own rules.
      */
-    /* SillyBunny: scope to native drawer IDs; allow third-party extension drawers to render. */
+    /* Homunculus: scope to native drawer IDs; allow third-party extension drawers to render. */
     #top-settings-holder #ai-config-button .drawer-content:not([data-sb-shell-ready]):not(.sb-managed):not(.sb-shell-embedded-content),
     #top-settings-holder #sys-settings-button .drawer-content:not([data-sb-shell-ready]):not(.sb-managed):not(.sb-shell-embedded-content),
     #top-settings-holder #advanced-formatting-button .drawer-content:not([data-sb-shell-ready]):not(.sb-managed):not(.sb-shell-embedded-content),
@@ -2047,7 +2047,7 @@
         grid-area: hide !important;
     }
 
-    /* SillyBunny: Mobile-specific group member touch targets for Add Members screen */
+    /* Homunculus: Mobile-specific group member touch targets for Add Members screen */
     #rm_group_add_members .group_member {
         cursor: pointer;
         padding: 8px 5px;

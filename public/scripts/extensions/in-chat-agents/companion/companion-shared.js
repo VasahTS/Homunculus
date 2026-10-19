@@ -38,7 +38,7 @@ export const CHATROOM_STYLE_VALUES = new Set([
 
 export const CHATROOM_REPLY_MAX_CHARS = 2000;
 
-// SillyBunny: an agent with nothing to report returns one of these instead of prose or an empty
+// Homunculus: an agent with nothing to report returns one of these instead of prose or an empty
 // string, so "nothing happened" is a deliberate answer rather than a failed run. Tracker companions
 // are taught their sentinel automatically; other custom companions can opt in through their prompt.
 export const EMPTY_OUTPUT_SENTINELS = new Set(['phone-none', 'PHONE_NONE', 'tracker-none', 'TRACKER_NONE']);

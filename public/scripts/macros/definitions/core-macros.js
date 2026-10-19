@@ -289,7 +289,7 @@ export function registerCoreMacros() {
                 description: 'Any kind of text as comment. If you want multiline comments, consider using a scoped macro like {{//}}First\nSecond{{///}}.',
             },
         ],
-        // SillyBunny: discard empty/multi-argument comments without a list, which would prevent scoped comments.
+        // Homunculus: discard empty/multi-argument comments without a list, which would prevent scoped comments.
         strictArgs: false,
         description: 'Comment macro that produces an empty string. Can be used for writing into prompt definitions, without being passed to the context.',
         returns: '',

@@ -383,7 +383,7 @@ export const FEATHERLESS_HEADERS = {
 };
 
 export const OPENROUTER_KEYS = [
-    'service_tier', // SillyBunny: retain explicit Flex/Priority routing in Text Completion.
+    'service_tier', // Homunculus: retain explicit Flex/Priority routing in Text Completion.
     'max_tokens',
     'temperature',
     'top_k',
@@ -498,7 +498,7 @@ export const OPENAI_REASONING_EFFORT_MODELS = [
     'gpt-5.5',
     'gpt-5.5-2026-04-23',
     'gpt-5.5-pro',
-    // SillyBunny: GPT-5.6 and GPT-6 Astra native IDs expose configurable reasoning effort.
+    // Homunculus: GPT-5.6 and GPT-6 Astra native IDs expose configurable reasoning effort.
     'gpt-5.6',
     'gpt-5.6-sol',
     'gpt-5.6-terra',

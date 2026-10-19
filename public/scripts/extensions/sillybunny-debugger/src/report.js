@@ -45,7 +45,7 @@ export function formatLayoutRows(rows) {
 
 export function buildReport({ header = [], entries = [], counters = {}, requests = [], layout = null, layoutHeader = '' }) {
     const problems = entries.filter((entry) => ERROR_KINDS.has(entry.kind));
-    const headerLines = ['## SillyBunny Diagnostic Report'];
+    const headerLines = ['## Homunculus Diagnostic Report'];
     for (const [label, value] of header) headerLines.push(`- ${inline(label)}: ${inline(value)}`);
     const headerSection = capSection(headerLines.join('\n'), HEADER_LIMIT);
 

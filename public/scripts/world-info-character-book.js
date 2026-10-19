@@ -63,7 +63,7 @@ export function normalizeWorldInfoPosition(position, positions) {
 }
 
 /**
- * Normalizes character-book entry positions into SillyTavern/SillyBunny World Info position IDs.
+ * Normalizes character-book entry positions into SillyTavern/Homunculus World Info position IDs.
  *
  * Character cards commonly store positions as CC/ST strings such as `before_char` or `after_char`.
  * Imported World Info entries must use numeric position IDs; leaving the strings intact prevents
@@ -171,7 +171,7 @@ export function serializeWorldInfoEntry(entry, positions, originalEntry = {}) {
     const normalizedPosition = normalizeWorldInfoPosition(entry.position, positions);
     const serializedEntry = {
         ...originalEntry,
-        // SillyBunny: imported card IDs are independent of the native UID map.
+        // Homunculus: imported card IDs are independent of the native UID map.
         id: originalEntry.id ?? entry.uid,
         keys,
         secondary_keys: secondaryKeys,

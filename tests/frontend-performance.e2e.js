@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 
 const coreAssetPaths = [
     '/script.js',
-    '/scripts/sillybunny-tabs.js',
+    '/scripts/homunculus-tabs.js',
     '/style.css',
-    '/css/sillybunny-mobile-shell.css',
+    '/css/homunculus-mobile-shell.css',
 ];
 
 async function waitForResourceStability(page) {
@@ -34,7 +34,7 @@ test.describe('frontend performance smoke', () => {
             return browserGlobal.document.readyState === 'complete'
                 && browserGlobal.document.getElementById('preloader') === null
                 && typeof browserGlobal.SillyTavern?.getContext === 'function'
-                && Boolean(browserGlobal.SillyBunnyShell);
+                && Boolean(browserGlobal.HomunculusShell);
         }, null, { timeout: 60000 });
         await waitForResourceStability(page);
 
@@ -62,7 +62,7 @@ test.describe('frontend performance smoke', () => {
 
             return {
                 title: browserGlobal.document.title,
-                hasShell: Boolean(browserGlobal.SillyBunnyShell),
+                hasShell: Boolean(browserGlobal.HomunculusShell),
                 resourceCount: resources.length,
                 jsBytes,
                 cssBytes,
@@ -71,7 +71,7 @@ test.describe('frontend performance smoke', () => {
             };
         }, coreAssetPaths);
 
-        expect(snapshot.title).toBe('SillyBunny');
+        expect(snapshot.title).toBe('Homunculus');
         expect(snapshot.hasShell).toBe(true);
         expect(snapshot.resourceCount).toBeLessThan(700);
         expect(snapshot.jsBytes).toBeGreaterThan(0);

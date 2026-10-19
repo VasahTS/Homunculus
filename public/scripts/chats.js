@@ -166,7 +166,7 @@ export async function hideChatMessageRange(start, end, unhide, nameFitler = null
     refreshSwipeButtons();
 
     await saveChatConditional();
-    // SillyBunny: keep chat listeners in sync after range-hiding messages so the
+    // Homunculus: keep chat listeners in sync after range-hiding messages so the
     // shell and footer controls can refresh immediately.
     await eventSource.emit(event_types.MESSAGE_UPDATED, start);
 }
@@ -909,7 +909,7 @@ function expandMessageMedia(messageId, mediaIndex) {
         function getImageElement() {
             const img = document.createElement('img');
             img.src = mediaAttachment.url;
-            // SillyBunny: defer enlarged image decoding to keep large chats responsive.
+            // Homunculus: defer enlarged image decoding to keep large chats responsive.
             img.loading = 'lazy';
             img.decoding = 'async';
             img.classList.add('img_enlarged');
@@ -1783,7 +1783,7 @@ function ensureAttachmentsExist() {
  * @returns {FileAttachment[]} List of attachments
  */
 export function getDataBankAttachments(includeDisabled = false) {
-    // SillyBunny: reading must not create chat_metadata.attachments. Every reader below already
+    // Homunculus: reading must not create chat_metadata.attachments. Every reader below already
     // falls back to an empty list, and an empty array written here dirties a chat just by looking
     // at it, which costs a full chat-file rewrite on the next save.
     const globalAttachments = extension_settings.attachments ?? [];
@@ -1800,7 +1800,7 @@ export function getDataBankAttachments(includeDisabled = false) {
  * @returns {FileAttachment[]} List of attachments
  */
 export function getDataBankAttachmentsForSource(source, includeDisabled = true) {
-    // SillyBunny: see getDataBankAttachments. Reading is not a reason to write to chat_metadata.
+    // Homunculus: see getDataBankAttachments. Reading is not a reason to write to chat_metadata.
     function getBySource() {
         switch (source) {
             case ATTACHMENT_SOURCE.GLOBAL:
@@ -2302,7 +2302,7 @@ export function initChatUtilities() {
         if ($('.edit_textarea').length) return;
         $(this).closest('.mes').find('.mes_edit').trigger('click');
         if ($(event.target).closest('.mes_reasoning').length) {
-            $('.reasoning_edit_textarea')[0]?.focus({ preventScroll: true }); // SillyBunny: reasoning.js already reveals the textarea; a scrolling focus double-jumps.
+            $('.reasoning_edit_textarea')[0]?.focus({ preventScroll: true }); // Homunculus: reasoning.js already reveals the textarea; a scrolling focus double-jumps.
         }
     });
 

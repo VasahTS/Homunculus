@@ -21,7 +21,7 @@ import { recoverInterruptedServerPluginUpdates } from '../src/server-plugin-upda
 const tempDirectories = [];
 
 function createTempDirectory() {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-server-plugin-manager-'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-server-plugin-manager-'));
     tempDirectories.push(directory);
     return directory;
 }
@@ -91,7 +91,7 @@ function createReleaseRepository({ markerSymlinkTarget = '' } = {}) {
     fs.mkdirSync(sourcePath);
     fs.mkdirSync(pluginsRoot);
     runGit(sourcePath, 'init', '--initial-branch=main');
-    runGit(sourcePath, 'config', 'user.name', 'SillyBunny Tests');
+    runGit(sourcePath, 'config', 'user.name', 'Homunculus Tests');
     runGit(sourcePath, 'config', 'user.email', 'tests@example.invalid');
     runGit(root, 'init', '--bare', remotePath);
 
@@ -103,7 +103,7 @@ function createReleaseRepository({ markerSymlinkTarget = '' } = {}) {
     runGit(root, 'clone', '--branch', 'v1.0.0', '--single-branch', repositoryUrl, pluginPath);
     // The clone inherits nothing from sourcePath, so tests that commit into it need their own
     // identity: CI runners have no global user.name/user.email and git refuses to author there.
-    runGit(pluginPath, 'config', 'user.name', 'SillyBunny Tests');
+    runGit(pluginPath, 'config', 'user.name', 'Homunculus Tests');
     runGit(pluginPath, 'config', 'user.email', 'tests@example.invalid');
     fs.writeFileSync(path.join(pluginPath, '.cursor-key'), 'persistent-secret\n', { mode: 0o600 });
 

@@ -519,7 +519,7 @@ export function evalBoolean(rule, a, b) {
     // If no rule was provided, we are implicitly using 'eq', as defined for the slash commands
     rule ??= 'eq';
 
-    // SillyBunny: upstream tests `typeof === 'number'` here, which relied on the variable
+    // Homunculus: upstream tests `typeof === 'number'` here, which relied on the variable
     // readers coercing on the way out. They no longer do that for values whose text would
     // change (see readVariableValue), so a padded '007' would reach the string switch and
     // throw for gt/gte/lt/lte. Accept numeric-looking strings so the comparison still runs.

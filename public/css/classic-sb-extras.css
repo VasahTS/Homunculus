@@ -1,4 +1,4 @@
-/* ===== Classic UI fork: SillyBunny-only rules from css/sillybunny-theme.css (auto-extracted, see tools/css-merge.mjs) ===== */
+/* ===== Classic UI fork: Homunculus-only rules from css/homunculus-theme.css (auto-extracted, see tools/css-merge.mjs) ===== */
 :root {
     --sb-radius-sm: 10px;
     --sb-radius-md: 16px;
@@ -1828,7 +1828,7 @@ body:is(.firefox-macos, .chrome-macos) #sb-chatbar-layer {
 @media screen and (max-width: 480px) {
 
     #PersonaManagement .persona-management-actions {
-        /* SillyBunny: keep the icon-only action row evenly distributed on narrow shells. */
+        /* Homunculus: keep the icon-only action row evenly distributed on narrow shells. */
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: stretch;
@@ -1884,7 +1884,7 @@ body:is(.firefox-macos, .chrome-macos) #sb-chatbar-layer {
     }
 }
 
-/* ===== Classic UI fork: SillyBunny-only rules from css/personas.css (auto-extracted, see tools/css-merge.mjs) ===== */
+/* ===== Classic UI fork: Homunculus-only rules from css/personas.css (auto-extracted, see tools/css-merge.mjs) ===== */
 
 
 #PersonaManagement .persona-workspace-tabs {

@@ -1,5 +1,5 @@
 /**
- * SillyBunny: generation requests that survive the connection dropping.
+ * Homunculus: generation requests that survive the connection dropping.
  *
  * The server keeps a copy of every tagged reply (src/resumable-generations.js). This wrapper tags
  * each generation request with an id and, when the connection dies or the page wakes up with a

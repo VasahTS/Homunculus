@@ -43,7 +43,7 @@ describe('entity last chat endpoints', () => {
     });
 
     beforeEach(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-last-chat-endpoints-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-last-chat-endpoints-'));
         directories = {
             root: tempRoot,
             backups: path.join(tempRoot, 'backups'),

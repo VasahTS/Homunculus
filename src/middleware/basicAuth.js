@@ -32,7 +32,7 @@ const basicAuthMiddleware = async function (request, response, callback) {
         res.vary('Authorization');
         res.vary('Cookie');
         const unauthorizedWebpage = safeReadFileSync(path.join(globalThis.DATA_ROOT, '_errors', 'unauthorized.html')) ?? '';
-        res.set('WWW-Authenticate', 'Basic realm="SillyBunny", charset="UTF-8"');
+        res.set('WWW-Authenticate', 'Basic realm="Homunculus", charset="UTF-8"');
         return res.status(401).send(unauthorizedWebpage);
     };
 

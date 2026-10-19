@@ -43,7 +43,7 @@ function onEditButtonClick() {
  */
 function onSelectAllButtonClick() {
     console.log('Bulk select all button clicked');
-    // SillyBunny: the shell's groups view shares the upstream bulk edit controls.
+    // Homunculus: the shell's groups view shares the upstream bulk edit controls.
     const characters = Array.from(document.querySelectorAll('#' + BulkEditOverlay.containerId + ' .' + BulkEditOverlay.characterClass + ', #' + BulkEditOverlay.containerId + ' .' + BulkEditOverlay.groupClass));
     let atLeastOneSelected = false;
     for (const character of characters) {
@@ -79,7 +79,7 @@ async function onDeleteButtonClick() {
  * Enables bulk selection by adding a checkbox next to each character.
  */
 function enableBulkSelect() {
-    // SillyBunny: group cards participate in bulk selection alongside character cards.
+    // Homunculus: group cards participate in bulk selection alongside character cards.
     $('#rm_print_characters_block .character_select, #rm_print_characters_block .group_select').each((i, el) => {
         // Prevent checkbox from adding multiple times (because of stage change callback)
         if ($(el).find('.bulk_select_checkbox').length > 0) {

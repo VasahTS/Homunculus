@@ -1,7 +1,7 @@
 /**
  * Bridge between the Character Expressions extension and the In-Chat Agents system.
  *
- * SillyBunny divergence: this module lets expression classification run as a companion
+ * Homunculus divergence: this module lets expression classification run as a companion
  * agent instead of blocking the main generation pipeline with a synchronous classifier.
  *
  * The expressions agent is a bundled companion template (`tpl-expressions-agent`).
@@ -334,7 +334,7 @@ export async function syncExpressionsAgentProfile() {
 /**
  * Read the expression label the companion agent stored for the latest assistant reply.
  *
- * @param {object} [context] - Optional SillyBunny context. Defaults to getContext().
+ * @param {object} [context] - Optional Homunculus context. Defaults to getContext().
  * @param {string[]} [allowedExpressions] - Optional list of valid expression labels.
  * @returns {Promise<string|null>} The classified expression label, or null if not ready.
  */

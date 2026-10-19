@@ -30,12 +30,12 @@ export function getGoogleApiBaseUrl(apiUrl, apiVersion) {
         const finalPathSegment = pathSegments[pathSegments.length - 1] || '';
 
         if (GOOGLE_API_VERSION_PATTERN.test(finalPathSegment)) {
-            // SillyBunny: some reverse proxies already expose a versioned Google base.
+            // Homunculus: some reverse proxies already expose a versioned Google base.
             url.pathname = url.pathname.replace(/\/$/, '');
             return url.toString();
         }
 
-        // SillyBunny: preserve custom proxy paths like /gemini before appending the requested version.
+        // Homunculus: preserve custom proxy paths like /gemini before appending the requested version.
         url.pathname = `${url.pathname.replace(/\/$/, '')}/${apiVersion}`;
         return url.toString();
     } catch {
@@ -273,7 +273,7 @@ router.post('/caption-image', async (request, response) => {
     try {
         const mimeType = request.body.image.split(';')[0].split(':')[1];
         const base64Data = request.body.image.split(',')[1];
-        // SillyBunny: use a current Gemini captioning default after Gemini 2.0 retirement.
+        // Homunculus: use a current Gemini captioning default after Gemini 2.0 retirement.
         const model = request.body.model || 'gemini-2.5-flash';
         const { url, headers, apiName, safetySettings } = await getGoogleApiConfig(request, model);
 

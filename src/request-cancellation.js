@@ -192,7 +192,7 @@ export function observeRequestCancellation(request, response = null, {
 
     const resumableGeneration = getResumableGeneration(request);
     if (resumableGeneration) {
-        // SillyBunny: a resumable generation outlives its client; only an explicit cancel aborts upstream.
+        // Homunculus: a resumable generation outlives its client; only an explicit cancel aborts upstream.
         cleanupCallbacks.push(
             resumableGeneration.onCancel(() => abort('resumable-cancel')),
             once(response, 'finish', cleanup),

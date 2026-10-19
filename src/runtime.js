@@ -1,6 +1,8 @@
 import process from 'node:process';
 
-export const APP_NAME = 'SillyBunny';
+export const APP_NAME = 'Homunculus';
+// Homunculus: name used before the rename (global-mode data folder fallback).
+export const LEGACY_APP_NAME = 'SillyBunny';
 
 export function isBunRuntime() {
     return typeof Bun !== 'undefined' || Boolean(process.versions?.bun);

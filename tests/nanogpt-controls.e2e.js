@@ -75,8 +75,8 @@ async function openApi(page) {
     if (await welcomeSave.isVisible()) await welcomeSave.click();
     await dismissOpenDialogIfPresent(page);
     await page.waitForFunction(async () => (await import('/script.js')).settingsReady);
-    await page.waitForFunction(() => typeof window.SillyBunnyShell?.openTab === 'function');
-    await page.evaluate(() => window.SillyBunnyShell.openTab('left', 'api'));
+    await page.waitForFunction(() => typeof window.HomunculusShell?.openTab === 'function');
+    await page.evaluate(() => window.HomunculusShell.openTab('left', 'api'));
     await expect(page.locator('#main_api')).toBeVisible();
 }
 

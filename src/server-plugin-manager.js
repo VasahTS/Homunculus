@@ -363,7 +363,7 @@ function acquireUpdateLock(updatesRoot, transactionId, ownerPid) {
     }
     try {
         if (fs.existsSync(lockPath)) {
-            fail(409, 'update_busy', 'Another server plugin update is already in progress. Restart SillyBunny to recover an abandoned transaction.');
+            fail(409, 'update_busy', 'Another server plugin update is already in progress. Restart Homunculus to recover an abandoned transaction.');
         }
         writeDurableFile(lockPath, JSON.stringify({
             schemaVersion: 1,
@@ -669,7 +669,7 @@ export async function stageServerPluginRelease({
     runCommand = runServerPluginCommand,
     allowFileRepositories = false,
     platform = process.platform,
-    lockOwnerPid = process.env.SILLYBUNNY_SUPERVISED === '1' ? process.ppid : process.pid,
+    lockOwnerPid = process.env.HOMUNCULUS_SUPERVISED === '1' ? process.ppid : process.pid,
 } = {}) {
     const version = String(targetVersion ?? '').trim();
     const pluginDirectoryName = String(directoryName ?? '').trim();

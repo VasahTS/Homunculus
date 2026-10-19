@@ -17,7 +17,7 @@ import { getTagsList } from './tags.js';
 import { groups, selected_group } from './group-chats.js';
 import { getCurrentLocale, t } from './i18n.js';
 import { importWorldInfo } from './world-info.js';
-import { mapSillyBunnyVersionToStEquivalent } from './sillybunny-version-map.js';
+import { mapHomunculusVersionToStEquivalent } from './homunculus-version-map.js';
 
 export const shiftUpByOne = (e, i, a) => a[i] = e + 1;
 export const shiftDownByOne = (e, i, a) => a[i] = e - 1;
@@ -2635,7 +2635,7 @@ export async function showFontAwesomePicker(customList = null) {
                         }
                     }
 
-                    // SillyBunny: keep matching icons at the front while preserving
+                    // Homunculus: keep matching icons at the front while preserving
                     // the full icon grid so keyboard navigation remains stable.
                     const ordered = query
                         ? [...result, ...faList.filter(fa => !resultSet.has(fa))]
@@ -2917,7 +2917,7 @@ export function textValueMatcher(params, data) {
  * Compares two version numbers, returning true if srcVersion >= minVersion
  * @param {string} srcVersion The current version.
  * @param {string} minVersion The target version number to test against
- * @param {{ mapSillyBunnyToSillyTavern?: boolean }} [options] Comparison options
+ * @param {{ mapHomunculusToSillyTavern?: boolean }} [options] Comparison options
  * @returns {boolean} True if srcVersion >= minVersion, false if not
  */
 export function versionCompare(srcVersion, minVersion, options = {}) {
@@ -2925,10 +2925,10 @@ export function versionCompare(srcVersion, minVersion, options = {}) {
     let s = (srcVersion || '0.0.0').replace(/^[vV]/, '');
     let m = (minVersion || '0.0.0').replace(/^[vV]/, '');
 
-    if (options.mapSillyBunnyToSillyTavern) {
-        const mappedVersion = mapSillyBunnyVersionToStEquivalent(s);
+    if (options.mapHomunculusToSillyTavern) {
+        const mappedVersion = mapHomunculusVersionToStEquivalent(s);
         if (mappedVersion !== s) {
-            console.debug(`[Version] Mapping SillyBunny ${s} to ST-equivalent ${mappedVersion} for compatibility check against ${m}`);
+            console.debug(`[Version] Mapping Homunculus ${s} to ST-equivalent ${mappedVersion} for compatibility check against ${m}`);
             s = mappedVersion;
         }
     }

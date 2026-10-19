@@ -15,7 +15,7 @@ import { getServerPluginReleaseDigest, SERVER_PLUGIN_RELEASE_MARKER } from '../s
 const tempDirectories = [];
 
 function createFixture({ preservePaths = ['.cursor-key'] } = {}) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sillybunny-server-plugin-helper-'));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'homunculus-server-plugin-helper-'));
     tempDirectories.push(root);
     const pluginsRoot = path.join(root, 'plugins');
     const pluginPath = path.join(pluginsRoot, 'ExamplePlugin');
@@ -225,7 +225,7 @@ describe('server plugin update helper', () => {
             pid: process.ppid,
         }));
 
-        expect(() => recoverInterruptedServerPluginUpdates(fixture.pluginsRoot)).toThrow('Another SillyBunny supervisor owns');
+        expect(() => recoverInterruptedServerPluginUpdates(fixture.pluginsRoot)).toThrow('Another Homunculus supervisor owns');
         expect(fs.existsSync(fixture.lockPath)).toBe(true);
         expect(fs.existsSync(fixture.journalPath)).toBe(true);
     });

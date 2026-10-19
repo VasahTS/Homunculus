@@ -1302,10 +1302,10 @@ function fixtureHtml(useLongLabel, duplicateCharacters = false) {
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/public/style.css">
-    <link rel="stylesheet" href="/public/css/sillybunny-theme.css">
+    <link rel="stylesheet" href="/public/css/homunculus-theme.css">
     <link rel="stylesheet" href="/public/css/mobile-styles.css" media="(max-width: 768px)">
-    <link rel="stylesheet" href="/public/css/sillybunny-tabs.css">
-    <link rel="stylesheet" href="/public/css/sillybunny-mobile-shell.css" media="(max-width: 768px)">
+    <link rel="stylesheet" href="/public/css/homunculus-tabs.css">
+    <link rel="stylesheet" href="/public/css/homunculus-mobile-shell.css" media="(max-width: 768px)">
     <link rel="stylesheet" href="/extension/style.css">
     <style>
         :root { --mainFontFamily: sans-serif; --sb-mobile-touch-target: 44px; }

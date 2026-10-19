@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const cssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-tabs.css'), 'utf8');
-const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const cssSource = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-tabs.css'), 'utf8');
+const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 const normalizedTabsSource = tabsSource.replace(/\r\n/g, '\n');
 
 function getFunctionSource(name) {
@@ -122,7 +122,7 @@ describe('topbar label tap cycle', () => {
 });
 
 describe('icons only top bar', () => {
-    const mobileCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-mobile-shell.css'), 'utf8');
+    const mobileCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-mobile-shell.css'), 'utf8');
 
     function getClustersSource() {
         const match = normalizedTabsSource.match(/const SB_TOPBAR_CLUSTERS = Object\.freeze\(\[[\s\S]*?\n\]\);/);

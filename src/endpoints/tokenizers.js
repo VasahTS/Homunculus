@@ -240,7 +240,7 @@ async function withWebTokenizerRuntimeLocation(callback) {
     const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'location');
 
     try {
-        // SillyBunny: some Bun/ARM server surfaces expose an empty location.href,
+        // Homunculus: some Bun/ARM server surfaces expose an empty location.href,
         // which makes @agnai/web-tokenizers pass '' to createRequire during WASM bootstrap.
         Object.defineProperty(globalThis, 'location', {
             value: { href: WEB_TOKENIZERS_MODULE_URL },
@@ -526,7 +526,7 @@ async function countSentencepieceTokens(tokenizer, text) {
  * @returns {Promise<number>} Number of tokens
  */
 async function countSentencepieceArrayTokens(tokenizer, array) {
-    // SillyBunny: Use convertClaudePrompt for consistent token counting across all tokenizers.
+    // Homunculus: Use convertClaudePrompt for consistent token counting across all tokenizers.
     // The previous implementation using Object.values().join('\n\n') overcounted tokens by
     // including metadata (role, name, tool_calls) and adding separators between every value.
     // This caused false "Pre-generation intercepts exceed context" errors at large context sizes.
@@ -1165,7 +1165,7 @@ router.post('/openai/count', async function (req, res) {
         const queryModel = String(req.query.model || '');
         const model = getTokenizerModel(queryModel);
 
-        // SillyBunny divergence from upstream: `per_message=1` answers with one count per
+        // Homunculus divergence from upstream: `per_message=1` answers with one count per
         // message instead of a single total, so a caller that would otherwise count a chat
         // history one message at a time can prime its cache in a single request. Each entry
         // is counted exactly as a single-message request would be, which keeps the values

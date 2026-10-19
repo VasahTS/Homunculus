@@ -299,7 +299,7 @@ export function getContext() {
                 has: existsGlobalVariable,
             },
         },
-        // SillyBunny: Pathfinder and Companion lorebook writes use the core APIs through extension context.
+        // Homunculus: Pathfinder and Companion lorebook writes use the core APIs through extension context.
         loadWorldInfo,
         charUpdateAddAuxWorld,
         createNewWorldInfo,

@@ -1,5 +1,5 @@
 // Build "classic" CSS: take SillyTavern's version of each shared CSS file and append
-// only the SillyBunny rules that target SillyBunny-only elements (selectors whose
+// only the Homunculus rules that target Homunculus-only elements (selectors whose
 // classes/ids never appear in upstream SillyTavern).
 import fs from 'fs';
 import path from 'path';
@@ -27,8 +27,8 @@ function isSbOnlyNode(n) {
   return false;
 }
 
-// subjectOnly: only the element the rule styles (last compound selector) decides, so SillyBunny
-// restyles of SillyTavern controls inside SillyBunny wrappers are dropped.
+// subjectOnly: only the element the rule styles (last compound selector) decides, so Homunculus
+// restyles of SillyTavern controls inside Homunculus wrappers are dropped.
 function selectorIsSbOnly(sel, subjectOnly = false) {
   let sbOnly = false;
   try {
@@ -92,7 +92,7 @@ for (const rel of files) {
   });
   sbAst.walkRules(rule => {
     if (rule.parent.type === 'atrule' && /keyframes$/.test(rule.parent.name)) return;
-    // SillyBunny's desktop split-pane layouts (World Info, Prompt Manager editors) are turned off in the classic UI.
+    // Homunculus's desktop split-pane layouts (World Info, Prompt Manager editors) are turned off in the classic UI.
     if (wrapperChain(rule).some(w => w.type === 'atrule' && /min-width:\s*961px/.test(w.params))) { dropped++; return; }
     const sels = rule.selectors.filter(sel => selectorIsSbOnly(sel, extractOnly));
     if (!sels.length) { dropped++; return; }
@@ -107,7 +107,7 @@ for (const rel of files) {
     if (node) out.append(node);
   });
 
-  let result = (stCss ? stCss.trimEnd() + '\n\n' : '') + `/* ===== Classic UI fork: SillyBunny-only rules from ${srcRel} (auto-extracted, see tools/css-merge.mjs) ===== */\n`;
+  let result = (stCss ? stCss.trimEnd() + '\n\n' : '') + `/* ===== Classic UI fork: Homunculus-only rules from ${srcRel} (auto-extracted, see tools/css-merge.mjs) ===== */\n`;
   if (extraVars.length) result += ':root {\n' + extraVars.join('\n') + '\n}\n';
   result += out.toString() + '\n';
   // @import must be at top

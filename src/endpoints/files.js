@@ -42,7 +42,7 @@ router.post('/upload', async (request, response) => {
             return response.status(400).send(validation.message);
 
         const pathToUpload = path.join(request.user.directories.files, request.body.name);
-        // SillyBunny: Bun before 1.4 ignores fs.writeSync string encodings, so decode before the atomic write.
+        // Homunculus: Bun before 1.4 ignores fs.writeSync string encodings, so decode before the atomic write.
         writeFileSyncAtomic(pathToUpload, Buffer.from(String(request.body.data), 'base64'));
         const url = clientRelativePath(request.user.directories.root, pathToUpload);
         console.info(`Uploaded file: ${url} from ${request.user.profile.handle}`);

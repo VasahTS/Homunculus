@@ -7,22 +7,22 @@ set "_need_git=0"
 set "_auto_update=1"
 
 if exist .git set "_need_git=1"
-if /I "%SILLYBUNNY_AUTO_UPDATE%"=="0" set "_auto_update=0"
-if /I "%SILLYBUNNY_AUTO_UPDATE%"=="false" set "_auto_update=0"
-if /I "%SILLYBUNNY_AUTO_UPDATE%"=="no" set "_auto_update=0"
-if /I "%SILLYBUNNY_AUTO_UPDATE%"=="off" set "_auto_update=0"
+if /I "%HOMUNCULUS_AUTO_UPDATE%"=="0" set "_auto_update=0"
+if /I "%HOMUNCULUS_AUTO_UPDATE%"=="false" set "_auto_update=0"
+if /I "%HOMUNCULUS_AUTO_UPDATE%"=="no" set "_auto_update=0"
+if /I "%HOMUNCULUS_AUTO_UPDATE%"=="off" set "_auto_update=0"
 
 set "_force_node=0"
-if /I "!SILLYBUNNY_USE_NODE!"=="1" set "_force_node=1"
-if /I "!SILLYBUNNY_USE_NODE!"=="true" set "_force_node=1"
-if /I "!SILLYBUNNY_USE_NODE!"=="yes" set "_force_node=1"
-if /I "!SILLYBUNNY_USE_NODE!"=="on" set "_force_node=1"
+if /I "!HOMUNCULUS_USE_NODE!"=="1" set "_force_node=1"
+if /I "!HOMUNCULUS_USE_NODE!"=="true" set "_force_node=1"
+if /I "!HOMUNCULUS_USE_NODE!"=="yes" set "_force_node=1"
+if /I "!HOMUNCULUS_USE_NODE!"=="on" set "_force_node=1"
 
 set "_force_bun=0"
-if /I "!SILLYBUNNY_USE_BUN!"=="1" set "_force_bun=1"
-if /I "!SILLYBUNNY_USE_BUN!"=="true" set "_force_bun=1"
-if /I "!SILLYBUNNY_USE_BUN!"=="yes" set "_force_bun=1"
-if /I "!SILLYBUNNY_USE_BUN!"=="on" set "_force_bun=1"
+if /I "!HOMUNCULUS_USE_BUN!"=="1" set "_force_bun=1"
+if /I "!HOMUNCULUS_USE_BUN!"=="true" set "_force_bun=1"
+if /I "!HOMUNCULUS_USE_BUN!"=="yes" set "_force_bun=1"
+if /I "!HOMUNCULUS_USE_BUN!"=="on" set "_force_bun=1"
 
 set "_server_runtime=bun"
 if "!_force_node!"=="1" set "_server_runtime=node"
@@ -37,7 +37,7 @@ if "!_force_node!"=="0" if "!_force_bun!"=="0" if "!_is_arm64!"=="1" (
         if !errorlevel! equ 0 (
             echo.
             echo [Homunculus] ARM64 detected. Bun may use excessive CPU on this platform.
-            echo [Homunculus] Switching to Node.js automatically. Use Start-Bun.bat or Start.bat with SILLYBUNNY_USE_BUN=1 to override.
+            echo [Homunculus] Switching to Node.js automatically. Use Start-Bun.bat or Start.bat with HOMUNCULUS_USE_BUN=1 to override.
             echo.
             set "_server_runtime=node"
         )
@@ -48,7 +48,7 @@ if "!_server_runtime!"=="node" (
     where node > nul 2>&1
     if !errorlevel! neq 0 (
         echo Node.js was requested but could not be found in PATH.
-        echo Install Node.js from https://nodejs.org/ or unset SILLYBUNNY_USE_NODE.
+        echo Install Node.js from https://nodejs.org/ or unset HOMUNCULUS_USE_NODE.
         goto end
     )
     where npm > nul 2>&1
@@ -105,7 +105,7 @@ if "%_need_git%"=="0" if "%_auto_update%"=="1" (
 
 set NODE_ENV=production
 set NODE_NO_WARNINGS=1
-set SILLYBUNNY_LAUNCHER=1
+set HOMUNCULUS_LAUNCHER=1
 set "_dependency_profile=!_server_runtime!-production"
 if exist node_modules\eslint\package.json set "_dependency_profile=!_server_runtime!-development"
 
@@ -186,16 +186,16 @@ if "!_server_runtime!"=="node" (
 )
 if !errorlevel! neq 0 goto end
 
-REM Normalise SILLYBUNNY_BUN_SMOL to a 0/1 flag so the accepted spellings match
+REM Normalise HOMUNCULUS_BUN_SMOL to a 0/1 flag so the accepted spellings match
 REM is_truthy in start.sh, rather than only the literal 1.
 set "_bun_smol=0"
-if /I "!SILLYBUNNY_BUN_SMOL!"=="1" set "_bun_smol=1"
-if /I "!SILLYBUNNY_BUN_SMOL!"=="true" set "_bun_smol=1"
-if /I "!SILLYBUNNY_BUN_SMOL!"=="yes" set "_bun_smol=1"
-if /I "!SILLYBUNNY_BUN_SMOL!"=="on" set "_bun_smol=1"
+if /I "!HOMUNCULUS_BUN_SMOL!"=="1" set "_bun_smol=1"
+if /I "!HOMUNCULUS_BUN_SMOL!"=="true" set "_bun_smol=1"
+if /I "!HOMUNCULUS_BUN_SMOL!"=="yes" set "_bun_smol=1"
+if /I "!HOMUNCULUS_BUN_SMOL!"=="on" set "_bun_smol=1"
 
 if "!_bun_smol!"=="1" if "!_server_runtime!"=="node" (
-    echo [Homunculus] SILLYBUNNY_BUN_SMOL is set, but Node.js was selected. --smol is a Bun flag and will be ignored.
+    echo [Homunculus] HOMUNCULUS_BUN_SMOL is set, but Node.js was selected. --smol is a Bun flag and will be ignored.
     echo [Homunculus] For Bun with --smol, use Start-Bun.bat.
 )
 
@@ -213,7 +213,7 @@ set "_server_exit=!errorlevel!"
 if "!_server_exit!"=="75" (
     echo.
     echo [Homunculus] Restarting server...
-    set SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH=1
+    set HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH=1
     goto server_loop
 )
 

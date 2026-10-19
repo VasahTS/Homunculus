@@ -199,7 +199,7 @@ function normalizeChatMessageExtraForComparison(extra) {
                 normalized.media_index = selectedIndex;
             }
         }
-        // SillyBunny: retain unknown media entries verbatim; comparison must not discard data or block saves.
+        // Homunculus: retain unknown media entries verbatim; comparison must not discard data or block saves.
         normalized.media = normalized.media.filter((media, index, allMedia) => !isPlainObject(media)
             || typeof media.url !== 'string' || !media.url
             || index === allMedia.findIndex(other => other?.url === media.url));
@@ -213,7 +213,7 @@ function normalizeChatMessageExtraForComparison(extra) {
         delete normalized.video;
     }
 
-    // SillyBunny: clean up empty hydration containers so on-disk chats without media/files
+    // Homunculus: clean up empty hydration containers so on-disk chats without media/files
     // compare identical to in-memory hydrated chats whose media/files arrays were initialized to [].
     if (Array.isArray(normalized.media) && normalized.media.length === 0) {
         delete normalized.media;
@@ -263,7 +263,7 @@ function normalizeChatMessageForComparison(message, chatMetadata, messageCount) 
         if (!isPlainObject(normalized.swipe_info[index])) {
             normalized.swipe_info[index] = createSwipeInfo();
         } else {
-            // SillyBunny: normalize extra inside all swipe_info records symmetrically with message.extra.
+            // Homunculus: normalize extra inside all swipe_info records symmetrically with message.extra.
             normalized.swipe_info[index].extra = normalizeChatMessageExtraForComparison(normalized.swipe_info[index].extra);
         }
     }
@@ -306,7 +306,7 @@ function getChatSaveComparisonRecords(data, { ignoreDerivedMetadata = true } = {
         }
     }
 
-    // SillyBunny: chat loads retain chat_metadata but discard and recreate the outer header envelope.
+    // Homunculus: chat loads retain chat_metadata but discard and recreate the outer header envelope.
     return [
         { chat_metadata: chatMetadata },
         ...messages.map(message => normalizeChatMessageForComparison(message, chatMetadata, messages.length)),
@@ -319,7 +319,7 @@ function isSameChatSaveContent(left, right, options = {}) {
     return leftRecords !== null && rightRecords !== null && isDeepStrictEqual(leftRecords, rightRecords);
 }
 
-// SillyBunny: true when the incoming save keeps the existing metadata and every message unchanged
+// Homunculus: true when the incoming save keeps the existing metadata and every message unchanged
 // and in order, so it can only append without rolling back another client's metadata changes.
 function isChatSaveExtension(newSerializedChat, existingSerializedChat, options = {}) {
     const incomingRecords = getChatSaveComparisonRecords(newSerializedChat, options);
@@ -527,7 +527,7 @@ function getDestructiveChatSaveReason(newData, existingSerializedChat) {
  */
 const backupFunctions = new Map();
 
-// SillyBunny: track active deferred save sequences (e.g. multi-step in-chat agent runs).
+// Homunculus: track active deferred save sequences (e.g. multi-step in-chat agent runs).
 // A deferred run captures one pre-write snapshot of the pre-run on-disk state before the first
 // intermediate mutation, and suppresses redundant pre-write churn during subsequent in-flight passes (#373).
 const deferredPreWriteBackupSequences = new Map();
@@ -1044,7 +1044,7 @@ export async function getChatInfo(pathToFile, additionalData = {}, withMetadata 
                 const jsonData = tryParse(lastLine);
                 if (jsonData && (jsonData.name || jsonData.character_name || jsonData.chat_metadata)) {
                     chatData.chat_items = (itemCounter - 1);
-                    // SillyBunny: expose a cheap chat length indicator for chat selectors.
+                    // Homunculus: expose a cheap chat length indicator for chat selectors.
                     chatData.token_estimate = Math.round(messageCharacters / 4);
                     chatData.mes = jsonData.mes || '[The message is empty]';
                     chatData.last_mes = jsonData.send_date || new Date(Math.round(stats.mtimeMs)).toISOString();
@@ -1089,7 +1089,7 @@ export async function getListableGroupChatInfo(chatFilePath, id) {
     const fallbackFileId = path.parse(fallbackFileName).name;
     const normalizedChatInfo = chatInfo && typeof chatInfo === 'object' ? chatInfo : {};
 
-    // SillyBunny: keep corrupted group chats visible so chat selectors do not enter empty-list retry storms.
+    // Homunculus: keep corrupted group chats visible so chat selectors do not enter empty-list retry storms.
     return {
         ...normalizedChatInfo,
         file_id: String(normalizedChatInfo.file_id ?? '').trim() || fallbackFileId,
@@ -1122,7 +1122,7 @@ class InvalidChatDataError extends Error {
     }
 }
 
-// SillyBunny: a save that would destroy an existing chat is rejected unless the client forces it.
+// Homunculus: a save that would destroy an existing chat is rejected unless the client forces it.
 class DestructiveChatSaveError extends Error {
     constructor(reason, ...params) {
         super(...params);
@@ -1166,7 +1166,7 @@ function createChatRecoveryTarget(request, isGroup, fileName) {
 }
 
 function sendChatLoadResponse(response, target, { allowCreate = false } = {}) {
-    // SillyBunny: never let malformed JSONL fall through to the fresh-chat save path.
+    // Homunculus: never let malformed JSONL fall through to the fresh-chat save path.
     const result = isBackupEnabled
         ? loadActiveChatWithRecovery(target)
         : readChatJsonlStrict(target.activePath);
@@ -1235,7 +1235,7 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
         ...savedChatSizeDetails,
     });
 
-    // SillyBunny: set when the payload represents the same loaded chat apart from the rotating
+    // Homunculus: set when the payload represents the same loaded chat apart from the rotating
     // integrity slug and the discarded outer header envelope. The save then keeps the exact bytes
     // already on disk, so the recovery snapshot and regular backup mirror the authoritative file.
     let unchangedChatData = null;
@@ -1286,7 +1286,7 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
 
         const currentChatData = currentSnapshot?.data ?? null;
         if (doIntegrityCheck && currentChatData) {
-            // SillyBunny accepts legacy leading blank lines; validate the same header used by its integrity reader.
+            // Homunculus accepts legacy leading blank lines; validate the same header used by its integrity reader.
             const headerLine = currentChatData.split('\n').find(line => line.trim()) ?? '';
             const header = tryParse(headerLine.replace(/^\uFEFF/, ''));
             if (!isPlainObject(header)) {
@@ -1296,7 +1296,7 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
         const existingIntegrity = currentChatData === null ? '' : getSerializedChatIntegrity(currentChatData);
         const destructiveReason = currentChatData ? getDestructiveChatSaveReason(savedChatData, currentChatData) : '';
 
-        // SillyBunny: classify a history-destroying save before the integrity check, so the client is
+        // Homunculus: classify a history-destroying save before the integrity check, so the client is
         // told what is actually wrong with it. A client that lost its slug and a client sending an
         // unloaded chat both fail the slug comparison, but only the second is destructive, and
         // reporting it as a slug mismatch sends the client into a reload loop it cannot resolve:
@@ -1307,7 +1307,7 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
             throw new DestructiveChatSaveError(destructiveReason, `Refused a destructive chat save for "${cardName}" (${destructiveReason}): incoming payload has ${savedChatData.length} JSONL rows, existing file has ${countSerializedChatLines(currentChatData)} rows.`);
         }
 
-        // SillyBunny: the slug rotates on every save and only reaches the client in the response
+        // Homunculus: the slug rotates on every save and only reaches the client in the response
         // body, so a dropped response leaves a remote client holding the previous slug forever.
         // Accept that retry when it merely appends to what is on disk, because a superset save
         // cannot lose history; a genuinely divergent save still fails the check.
@@ -1319,7 +1319,7 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
         if (currentChatData) {
             const existingLines = countSerializedChatLines(currentChatData);
 
-            // SillyBunny: compare parsed records because loading canonicalizes legacy JSONL formatting.
+            // Homunculus: compare parsed records because loading canonicalizes legacy JSONL formatting.
             // Replacing equivalent content through atomic temp-and-rename would swap the file identity
             // for no gain. Legacy chats remain slugless until their first genuine content change.
             backupDecision = getDeferredPreWriteBackupDecision({
@@ -1354,14 +1354,14 @@ function trySaveChatLocked(chatData, filePath, skipIntegrityCheck = false, handl
         }
     }
 
-    // SillyBunny: the regular backup still runs for an unchanged save. An agent run defers every
+    // Homunculus: the regular backup still runs for an unchanged save. An agent run defers every
     // backup and closes with one non-deferred save, which can land unchanged; skipping it there would
     // leave the whole run without a backup. isDuplicateRegularChatBackup collapses the steady state.
     const persistedChatData = unchangedChatData ?? jsonlData;
     let hasRecoverySnapshot = false;
 
     if (isBackupEnabled && recoveryTarget) {
-        // SillyBunny: exact snapshots are immediate and are not subject to history backup throttling.
+        // Homunculus: exact snapshots are immediate and are not subject to history backup throttling.
         // Destructive payloads are rejected above, so this cannot mirror a chat-destroying write.
         try {
             const snapshot = writeLatestChatSnapshot(recoveryTarget, persistedChatData);
@@ -1565,7 +1565,7 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
                 );
             }
 
-            // SillyBunny: atomic renames prevent interrupted chat renames from leaving cloned files behind.
+            // Homunculus: atomic renames prevent interrupted chat renames from leaving cloned files behind.
             const renameResult = renameChatFile(pathToOriginalFile, pathToRenamedFile);
             clearDeferredPreWriteBackupSequence(pathToOriginalFile);
             if (isBackupEnabled) {
@@ -1621,7 +1621,7 @@ router.post('/delete', validateAvatarUrlMiddleware, function (request, response)
         try {
             chatFileDeleted = tryDeleteFile(chatFilePath);
         } finally {
-            // SillyBunny: a chat that survived the delete must not keep a tombstone blocking its recovery.
+            // Homunculus: a chat that survived the delete must not keep a tombstone blocking its recovery.
             if (isBackupEnabled && !chatFileDeleted) {
                 runChatRecoveryBestEffort(
                     () => seedLatestChatSnapshot(recoveryTarget),
@@ -1906,7 +1906,7 @@ router.post('/group/delete', (request, response) => {
         try {
             chatFileDeleted = tryDeleteFile(chatFilePath);
         } finally {
-            // SillyBunny: a chat that survived the delete must not keep a tombstone blocking its recovery.
+            // Homunculus: a chat that survived the delete must not keep a tombstone blocking its recovery.
             if (isBackupEnabled && !chatFileDeleted) {
                 runChatRecoveryBestEffort(
                     () => seedLatestChatSnapshot(recoveryTarget),
@@ -2184,7 +2184,7 @@ router.post('/recent', async function (request, response) {
 
             sortedChatFiles.slice(0, limit).forEach(addChat);
 
-            // SillyBunny: include the same recent depth per filter so Individual does not disappear behind a busy Groups list.
+            // Homunculus: include the same recent depth per filter so Individual does not disappear behind a busy Groups list.
             let groupCount = 0;
             let individualCount = 0;
 

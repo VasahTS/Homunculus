@@ -8,8 +8,8 @@ import {
     DEFAULT_BRANCH_ID,
     DEFAULT_SETTINGS,
     MAX_THREAD_MESSAGES,
-} from '../../public/scripts/sillybunny-conversation/constants.js';
-import { safeParseThread } from '../../public/scripts/sillybunny-conversation/thread-store-utils.js';
+} from '../../public/scripts/homunculus-conversation/constants.js';
+import { safeParseThread } from '../../public/scripts/homunculus-conversation/thread-store-utils.js';
 import {
     getObject,
     getOwnRecord,

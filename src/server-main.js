@@ -260,7 +260,7 @@ function isSecureCookieRequest(request) {
     return Boolean(request.secure || request.protocol === 'https' || forwardedProto === 'https');
 }
 
-// SillyBunny: Clear cookies & cache must also expire HttpOnly cookie-session data.
+// Homunculus: Clear cookies & cache must also expire HttpOnly cookie-session data.
 app.post('/api/cookies/clear', express.json(), (request, response) => {
     const sessionName = getCookieSessionName();
     const cookieNames = new Set([
@@ -449,7 +449,7 @@ if (cliArgs.enableCorsProxy) {
 
 // File uploads
 const uploadsPath = path.join(cliArgs.dataRoot, UPLOADS_DIRECTORY);
-// SillyBunny: avoid Bun's recursive mkdir bug on ReadOnly Windows directories.
+// Homunculus: avoid Bun's recursive mkdir bug on ReadOnly Windows directories.
 const uploadStorage = createUploadStorage(uploadsPath);
 app.use(multer({ storage: uploadStorage, limits: { fieldSize: 500 * 1024 * 1024 } }).single('avatar'));
 app.use(multerMonkeyPatch);
@@ -523,7 +523,7 @@ async function preSetupTasks() {
     registerGracefulShutdown(exitProcess);
 
     // Set up event listeners for a graceful shutdown
-    // SillyBunny: signal handlers pass signal names, but process.exit needs numeric codes in Bun.
+    // Homunculus: signal handlers pass signal names, but process.exit needs numeric codes in Bun.
     process.on('SIGINT', () => exitProcess(0));
     process.on('SIGTERM', () => exitProcess(0));
     process.on('SIGHUP', () => exitProcess(0));
@@ -549,7 +549,7 @@ async function preSetupTasks() {
         }
     }
     process.on('uncaughtException', (err) => {
-        // SillyBunny: ignore expected stream disconnects from cancelled generations.
+        // Homunculus: ignore expected stream disconnects from cancelled generations.
         if (isBenignStreamAbort(err)) {
             console.warn('Ignored streaming disconnect error:', err?.message ?? err);
             return;
@@ -559,7 +559,7 @@ async function preSetupTasks() {
         exitProcess();
     });
     process.on('unhandledRejection', (reason) => {
-        // SillyBunny: ignore expected stream disconnects from cancelled generations.
+        // Homunculus: ignore expected stream disconnects from cancelled generations.
         if (isBenignStreamAbort(reason)) {
             console.warn('Ignored streaming disconnect rejection:', reason?.message ?? reason);
             return;
@@ -616,7 +616,7 @@ async function postSetupTasks(result) {
     const browserLaunchHostname = await cliArgs.getBrowserLaunchHostname(result);
     const browserLaunchUrl = cliArgs.getBrowserLaunchUrl(browserLaunchHostname);
     const browserLaunchApp = String(getConfigValue('browserLaunch.browser', 'default') ?? '');
-    const skipBrowserAutoLaunch = process.env.SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH === '1';
+    const skipBrowserAutoLaunch = process.env.HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH === '1';
 
     if (cliArgs.browserLaunchEnabled) {
         if (skipBrowserAutoLaunch) {

@@ -569,7 +569,7 @@ function counterWrapperOpenAIAsync(text) {
 }
 
 export function getTokenizerModel() {
-    // SillyBunny: both native OpenAI API modes use the selected model for token counting.
+    // Homunculus: both native OpenAI API modes use the selected model for token counting.
     if ([chat_completion_sources.OPENAI, chat_completion_sources.OPENAI_RESPONSES].includes(oai_settings.chat_completion_source)) {
         return oai_settings.openai_model;
     }
@@ -846,7 +846,7 @@ export function countTokensOpenAI(messages, full = false) {
 
 /**
  * Posts messages to the OpenAI token counting endpoint.
- * SillyBunny: jQuery rejects with the jqXHR object, which has no message or stack.
+ * Homunculus: jQuery rejects with the jqXHR object, which has no message or stack.
  * If that escapes into an async jQuery ready callback, jQuery rethrows it and the
  * whole startup aborts with an unreadable "[object Object]" error, so failures are
  * downgraded to the guesstimate fallback used everywhere else in this module.
@@ -922,7 +922,7 @@ export async function countTokensOpenAIAsync(messages, full = false) {
 
 /**
  * Counts several messages in one request and stores the results in the token cache.
- * SillyBunny addition: countTokensOpenAIAsync is awaited once per message by its callers,
+ * Homunculus addition: countTokensOpenAIAsync is awaited once per message by its callers,
  * so on a remotely hosted server each message costs a full round trip. Priming the cache
  * first collapses those into a single request; every entry it writes is the same value the
  * unbatched path would have cached. Failures are swallowed - callers then count individually.
@@ -991,7 +991,7 @@ export async function primeOpenAITokenCache(messages) {
 export async function countChatCompletionPayloadTokensOpenAIAsync(messages) {
     const tokenizerEndpoint = `/api/tokenizers/openai/count?model=${getTokenizerModel()}`;
 
-    // SillyBunny: count post-intercept payloads in one request so backend-specific
+    // Homunculus: count post-intercept payloads in one request so backend-specific
     // per-payload padding is applied once instead of once per message.
     const tokenCount = await requestOpenAITokenCount(tokenizerEndpoint, messages);
 

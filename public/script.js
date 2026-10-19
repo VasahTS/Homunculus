@@ -49,7 +49,7 @@ import {
 } from './scripts/chat-reload-guard.js';
 import { getChatBackupSaveOptions } from './scripts/chat-backup-sequence.js';
 import { getCharacterDefinitionFormValues, getSuspiciousEmptyCharacterDefinitionSave } from './scripts/character-save-guard.js';
-// SillyBunny: keep model-produced chat filenames behind a strict, independently tested parser.
+// Homunculus: keep model-produced chat filenames behind a strict, independently tested parser.
 import { CHAT_LABEL_TITLE_LIMIT, extractGeneratedChatLabel, normalizeGeneratedChatLabel, truncateChatLabelText } from './scripts/chat-label.js';
 
 import {
@@ -501,7 +501,7 @@ export let converter;
 
 // array for prompt token calculations
 
-export const systemUserName = 'SillyBunny System';
+export const systemUserName = 'Homunculus System';
 export const neutralCharacterName = 'Assistant';
 let default_user_name = 'User';
 export let name1 = default_user_name;
@@ -536,9 +536,9 @@ export let isChatSaving = false;
 export let firstRun = false;
 export let settingsReady = false;
 let currentVersion = '0.0.0';
-const SILLYBUNNY_UI_VERSION = 'Homunculus v1.0.0'; // Homunculus: shown in the UI (based on SillyBunny v1.8.0)
+const HOMUNCULUS_UI_VERSION = 'Homunculus v1.0.0'; // Homunculus: shown in the UI (based on SillyBunny v1.8.0)
 
-export let displayVersion = SILLYBUNNY_UI_VERSION;
+export let displayVersion = HOMUNCULUS_UI_VERSION;
 
 let generation_started = new Date();
 /** @type {Character[]} */
@@ -551,41 +551,41 @@ export let this_chid;
 let saveCharactersPage = 0;
 let characterMenuEntityView = 'characters';
 export const default_avatar = 'img/ai4.png';
-const SILLYBUNNY_FRONTEND_ICON_STORAGE_KEY = 'sb-frontend-icon';
-const SILLYBUNNY_FRONTEND_ICON_DEFAULT = 'pixel';
-const SILLYBUNNY_FRONTEND_ICONS = Object.freeze({
+const HOMUNCULUS_FRONTEND_ICON_STORAGE_KEY = 'sb-frontend-icon';
+const HOMUNCULUS_FRONTEND_ICON_DEFAULT = 'pixel';
+const HOMUNCULUS_FRONTEND_ICONS = Object.freeze({
     pixel: 'img/homunculus-logo.png', // Homunculus: app icon
     badge: 'img/homunculus-logo.png',
 });
-let appliedSillyBunnyFrontendIconId = '';
+let appliedHomunculusFrontendIconId = '';
 
-function normalizeSillyBunnyFrontendIcon(iconId) {
-    return Object.hasOwn(SILLYBUNNY_FRONTEND_ICONS, String(iconId)) ? String(iconId) : SILLYBUNNY_FRONTEND_ICON_DEFAULT;
+function normalizeHomunculusFrontendIcon(iconId) {
+    return Object.hasOwn(HOMUNCULUS_FRONTEND_ICONS, String(iconId)) ? String(iconId) : HOMUNCULUS_FRONTEND_ICON_DEFAULT;
 }
 
-function getStoredSillyBunnyFrontendIcon() {
+function getStoredHomunculusFrontendIcon() {
     try {
-        return normalizeSillyBunnyFrontendIcon(localStorage.getItem(SILLYBUNNY_FRONTEND_ICON_STORAGE_KEY));
+        return normalizeHomunculusFrontendIcon(localStorage.getItem(HOMUNCULUS_FRONTEND_ICON_STORAGE_KEY));
     } catch {
-        return SILLYBUNNY_FRONTEND_ICON_DEFAULT;
+        return HOMUNCULUS_FRONTEND_ICON_DEFAULT;
     }
 }
 
-export function getSillyBunnyFrontendIconSrc({ absolute = false } = {}) {
-    const src = SILLYBUNNY_FRONTEND_ICONS[getStoredSillyBunnyFrontendIcon()];
+export function getHomunculusFrontendIconSrc({ absolute = false } = {}) {
+    const src = HOMUNCULUS_FRONTEND_ICONS[getStoredHomunculusFrontendIcon()];
     return absolute ? `/${src}` : src;
 }
 
-export let system_avatar = getSillyBunnyFrontendIconSrc();
+export let system_avatar = getHomunculusFrontendIconSrc();
 export const comment_avatar = 'img/quill.png';
 export const default_user_avatar = 'img/user-default.png';
-export let CLIENT_VERSION = 'SillyBunny:v1.8.0'; // For Horde header
+export let CLIENT_VERSION = 'Homunculus:v1.8.0'; // For Horde header
 
-function applySillyBunnyFrontendIcon(iconId = getStoredSillyBunnyFrontendIcon()) {
-    const normalizedIconId = normalizeSillyBunnyFrontendIcon(iconId);
-    const src = SILLYBUNNY_FRONTEND_ICONS[normalizedIconId];
+function applyHomunculusFrontendIcon(iconId = getStoredHomunculusFrontendIcon()) {
+    const normalizedIconId = normalizeHomunculusFrontendIcon(iconId);
+    const src = HOMUNCULUS_FRONTEND_ICONS[normalizedIconId];
     const absoluteSrc = `/${src}`;
-    const iconAlreadyApplied = appliedSillyBunnyFrontendIconId === normalizedIconId;
+    const iconAlreadyApplied = appliedHomunculusFrontendIconId === normalizedIconId;
     system_avatar = src;
 
     document.documentElement.dataset.sbFrontendIcon = normalizedIconId;
@@ -603,19 +603,19 @@ function applySillyBunnyFrontendIcon(iconId = getStoredSillyBunnyFrontendIcon())
         }
     }
 
-    appliedSillyBunnyFrontendIconId = normalizedIconId;
+    appliedHomunculusFrontendIconId = normalizedIconId;
 }
 
-window.SillyBunnyFrontendIcon = Object.assign(window.SillyBunnyFrontendIcon || {}, {
-    getId: getStoredSillyBunnyFrontendIcon,
-    getSrc: ({ absolute = true } = {}) => getSillyBunnyFrontendIconSrc({ absolute }),
-    apply: applySillyBunnyFrontendIcon,
+window.HomunculusFrontendIcon = Object.assign(window.HomunculusFrontendIcon || {}, {
+    getId: getStoredHomunculusFrontendIcon,
+    getSrc: ({ absolute = true } = {}) => getHomunculusFrontendIconSrc({ absolute }),
+    apply: applyHomunculusFrontendIcon,
 });
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => applySillyBunnyFrontendIcon(), { once: true });
+    document.addEventListener('DOMContentLoaded', () => applyHomunculusFrontendIcon(), { once: true });
 } else {
-    applySillyBunnyFrontendIcon();
+    applyHomunculusFrontendIcon();
 }
 let optionsPopper = Popper.createPopper(document.getElementById('options_button'), document.getElementById('options'), {
     placement: 'top-start',
@@ -715,7 +715,7 @@ export const saveSettingsDebounced = debounce((loopCounter = 0) => saveSettings(
 let pendingCharacterSaveTimer = null;
 let characterSavePromise = Promise.resolve();
 
-// SillyBunny: the custom editor shell needs to wait for autosaves before reopening stale form data.
+// Homunculus: the custom editor shell needs to wait for autosaves before reopening stale form data.
 function queueCharacterSave() {
     characterSavePromise = characterSavePromise
         .catch(error => console.warn('Previous character save failed before queued save.', error))
@@ -843,7 +843,7 @@ async function getClientVersion() {
         const data = await response.json();
         CLIENT_VERSION = data.agent;
         currentVersion = data.pkgVersion;
-        displayVersion = SILLYBUNNY_UI_VERSION;
+        displayVersion = HOMUNCULUS_UI_VERSION;
 
         $('#version_display').text(displayVersion);
         $('#version_display_welcome').text(displayVersion);
@@ -945,7 +945,7 @@ let this_edit_mes_id = undefined;
 
 //settings
 export let settings;
-// SillyBunny: version-tokened settings saves avoid stale overwrites across open devices/tabs.
+// Homunculus: version-tokened settings saves avoid stale overwrites across open devices/tabs.
 let lastServerSettingsVersion = 0;
 let settingsSaveQueue = Promise.resolve();
 let settingsConflictReloadRequired = false;
@@ -1008,7 +1008,7 @@ export function getRequestHeaders({ omitContentType = false } = {}) {
  */
 export async function refreshCsrfToken() {
     if (!csrfTokenRefreshPromise) {
-        // SillyBunny: recover from server restarts that rotate the CSRF secret without a full page reload.
+        // Homunculus: recover from server restarts that rotate the CSRF secret without a full page reload.
         csrfTokenRefreshPromise = (async () => {
             const tokenResponse = await fetch('/csrf-token', {
                 cache: 'no-store',
@@ -1067,7 +1067,7 @@ export async function pingServer() {
     }
 }
 
-function registerSillyBunnyServiceWorker() {
+function registerHomunculusServiceWorker() {
     if (!('serviceWorker' in navigator) || !window.isSecureContext) {
         return;
     }
@@ -1075,10 +1075,10 @@ function registerSillyBunnyServiceWorker() {
     const register = () => {
         navigator.serviceWorker.register('/sw.js?v=20260622g', { updateViaCache: 'none' }).then((registration) => {
             return registration.update().catch((error) => {
-                console.warn('Failed to update SillyBunny service worker.', error);
+                console.warn('Failed to update Homunculus service worker.', error);
             });
         }).catch((error) => {
-            console.warn('Failed to register SillyBunny service worker.', error);
+            console.warn('Failed to register Homunculus service worker.', error);
         });
     };
 
@@ -1119,7 +1119,7 @@ async function firstLoadInit() {
     initLoaderOverlay.classList.add('splash-screen');
 
     const splashLogo = document.createElement('img');
-    splashLogo.src = getSillyBunnyFrontendIconSrc({ absolute: true });
+    splashLogo.src = getHomunculusFrontendIconSrc({ absolute: true });
     splashLogo.alt = 'Homunculus';
     splashLogo.className = 'splash-logo';
     splashLogo.ariaLabel = t`Homunculus`;
@@ -1161,7 +1161,7 @@ async function firstLoadInit() {
         initLibraryShims();
         addShowdownPatch(showdown);
         addDOMPurifyHooks();
-        // SillyBunny: card script detection - see #94.
+        // Homunculus: card script detection - see #94.
         eventSource.on(event_types.CHAT_CHANGED, forgetAllCardScripts);
         configureCardScriptRuntime({
             getPowerUser: () => power_user,
@@ -1170,7 +1170,7 @@ async function firstLoadInit() {
         initCardScriptRuntime();
         reloadMarkdownProcessor();
         applyBrowserFixes();
-        // SillyBunny: version data and localized secret controls are independent startup reads.
+        // Homunculus: version data and localized secret controls are independent startup reads.
         await Promise.all([
             getClientVersion(),
             (async () => {
@@ -1236,7 +1236,7 @@ async function firstLoadInit() {
         scheduleStartupLoaderCleanup('app ready');
     } catch (error) {
         console.error('Application initialization failed.', error);
-        toastr.error(t`SillyBunny couldn't finish starting. Please refresh the page.`, t`Startup Error`, { timeOut: 0, extendedTimeOut: 0, preventDuplicates: true });
+        toastr.error(t`Homunculus couldn't finish starting. Please refresh the page.`, t`Startup Error`, { timeOut: 0, extendedTimeOut: 0, preventDuplicates: true });
         throw error;
     } finally {
         await releaseStartupLoader('startup finally');
@@ -1839,7 +1839,7 @@ async function getExistingCharacterChats(characterId, fileName = '') {
     });
 
     if (!response.ok) {
-        // SillyBunny: an unreadable chat list must not look like a character with no chats.
+        // Homunculus: an unreadable chat list must not look like a character with no chats.
         throw new Error(`Could not list existing chats: ${response.statusText}`);
     }
 
@@ -1866,7 +1866,7 @@ async function resolveCharacterChatForLoad(characterId, { allowCreate = false, a
     }
 
     const existingChats = await getExistingCharacterChats(characterId, persistedChat);
-    // SillyBunny: avoid recreating stale character.chat filenames as new files.
+    // Homunculus: avoid recreating stale character.chat filenames as new files.
     const resolvedChat = resolveCharacterChatNameForLoad({
         persistedChat,
         existingChats,
@@ -1953,7 +1953,7 @@ export async function deleteCharacterChatByName(characterId, fileName) {
     }
 
     await eventSource.emit(event_types.CHAT_DELETED, fileName);
-    // SillyBunny: Home only clears pinned state after a confirmed deletion.
+    // Homunculus: Home only clears pinned state after a confirmed deletion.
     return true;
 }
 
@@ -2015,7 +2015,7 @@ function isChatLoadBottomLockActive() {
 
 function clearChatLoadBottomLock() {
     chatLoadBottomLockUntil = 0;
-    // SillyBunny: leaving the load lock means user intent took over; do not let the scroll handler immediately re-arm autoscroll.
+    // Homunculus: leaving the load lock means user intent took over; do not let the scroll handler immediately re-arm autoscroll.
     scrollLockImmunityUntil = 0;
 
     if (chatLoadBottomPinFrame) {
@@ -2433,7 +2433,7 @@ function getChatRenderLifecycleRolloutStorage() {
 }
 
 function isChatRenderLifecycleRolloutEnabled(route = null) {
-    // SillyBunny: explicit overrides remain global; defaults are per-route for one-route-at-a-time rollout.
+    // Homunculus: explicit overrides remain global; defaults are per-route for one-route-at-a-time rollout.
     return resolveChatRenderLifecycleRollout({
         queryValue: getChatRenderLifecycleRolloutQueryValue(),
         route,
@@ -2504,7 +2504,7 @@ function applyStreamingVisibleWrite(messageId, {
     }
 
     if (messageTextDom instanceof HTMLElement) {
-        // SillyBunny: only format the surviving frame write, after checking its message/run ownership.
+        // Homunculus: only format the surviving frame write, after checking its message/run ownership.
         const formattedText = formatText();
         if (shouldUseStreamFadeIn) {
             applyStreamFadeIn(messageTextDom, formattedText, { bypassFadeIn });
@@ -2604,7 +2604,7 @@ async function applyChatMessageResizeAction(element, entry, metadata) {
         return;
     }
 
-    // SillyBunny: streaming progress owns the live message's scroll lane; skip resize scrolls for that block.
+    // Homunculus: streaming progress owns the live message's scroll lane; skip resize scrolls for that block.
     if (isActiveStreamingMessageResizeBlock(element)) {
         refreshChatMessageResizeState(element, metadata, entry);
         return;
@@ -2619,7 +2619,7 @@ async function applyChatMessageResizeAction(element, entry, metadata) {
     });
 
     if (shouldApplyChatBottomScrollAction(action)) {
-        // SillyBunny: coalesce media resize pins with the shared bottom-scroll rAF lane.
+        // Homunculus: coalesce media resize pins with the shared bottom-scroll rAF lane.
         // ponytail: growth right after a completed tap is user-caused, not late media; pinning then drags the view. Keyboard-toggled details still pin, and late media landing inside the 400 ms window won't.
         if (!isRecentChatTap()) {
             scrollChatToBottom({ waitForFrame: true, isNearBottom: true });
@@ -2865,12 +2865,12 @@ const CHAT_HISTORY_NEWER_BUTTON_ID = 'show_newer_messages';
 const CHAT_HISTORY_WINDOW_CONTROL_SELECTOR = `#${CHAT_HISTORY_OLDER_BUTTON_ID}, #${CHAT_HISTORY_NEWER_BUTTON_ID}`;
 
 function getChatRenderWindowSize(requestedSize = power_user.chat_truncation) {
-    // SillyBunny: aggressive DOM unloading for low-memory devices (e.g., iPhones crashing on long streams)
+    // Homunculus: aggressive DOM unloading for low-memory devices (e.g., iPhones crashing on long streams)
     if (power_user.aggressive_dom_unload) {
         const aggressiveSize = power_user.aggressive_dom_window_size || 5;
         return normalizeChatRenderWindowSize(aggressiveSize, { maxSize: aggressiveSize });
     }
-    // SillyBunny: prevent long chats from using 0/huge truncation values to render every message into the DOM.
+    // Homunculus: prevent long chats from using 0/huge truncation values to render every message into the DOM.
     return normalizeChatRenderWindowSize(requestedSize);
 }
 
@@ -2953,7 +2953,7 @@ function pruneRenderedChatMessagesToWindow({ windowSize, pruneFrom }) {
         return;
     }
 
-    // SillyBunny: pin the first visible message so a top prune cannot shift the view.
+    // Homunculus: pin the first visible message so a top prune cannot shift the view.
     const anchor = pruneFrom === 'start' ? captureVisibleChatMessageAnchor() : null;
 
     const removedMessages = pruneFrom === 'end'
@@ -2977,7 +2977,7 @@ function removeRenderedChatMessages() {
     removeChatHistoryWindowControls();
 }
 
-// SillyBunny: frame yields permit both replacement renders and same-chat index changes.
+// Homunculus: frame yields permit both replacement renders and same-chat index changes.
 function createChatRenderTransaction(messages, firstMessageId, sourceChat = chat) {
     const version = ++chatRenderVersion;
     const originGeneration = chatGeneration;
@@ -3270,7 +3270,7 @@ function scrollLoadedChatToBottomThroughLifecycle() {
 }
 
 function scrollLoadedChatToBottom() {
-    // SillyBunny: previous-chat taps can leave the mobile manual-scroll guard active.
+    // Homunculus: previous-chat taps can leave the mobile manual-scroll guard active.
     const latestSettleDelay = Math.max(...CHAT_LOAD_SCROLL_SETTLE_DELAYS_MS);
     const bottomLockDurationMs = latestSettleDelay + CHAT_LOAD_BOTTOM_LOCK_EXTRA_MS;
     beginChatLoadBottomLock({ durationMs: bottomLockDurationMs });
@@ -3635,7 +3635,7 @@ export async function deleteMessage(id, swipeDeletionIndex = undefined, askConfi
 
     const startIndex = firstMessageId <= minId ? firstMessageId : null;
     updateViewMessageIds(startIndex);
-    // SillyBunny: this shrink is the user's own deletion, not an accidental overwrite.
+    // Homunculus: this shrink is the user's own deletion, not an accidental overwrite.
     saveChatDebounced({ allowShrink: true });
 
     if (this_edit_mes_id === id) {
@@ -3659,7 +3659,7 @@ export async function reloadCurrentChatUnsafe() {
     const targetChatId = getCurrentChatId();
     const targetChid = this_chid;
     const targetGroup = selected_group;
-    // SillyBunny: cooperative bounded abort barrier if generation/streaming is active
+    // Homunculus: cooperative bounded abort barrier if generation/streaming is active
     const hadActiveGeneration = shouldAbortReloadForActiveGeneration({
         isSendPressed: is_send_press,
         hasActiveGenerationRun: Boolean(activeGenerationRun),
@@ -3693,7 +3693,7 @@ export async function reloadCurrentChatUnsafe() {
                 return;
             }
 
-            // SillyBunny: abort can yield to navigation; never save another chat under this target.
+            // Homunculus: abort can yield to navigation; never save another chat under this target.
             if (
                 shouldDiscardReloadTarget({ initialChatId: targetChatId, currentChatId: getCurrentChatId() }) ||
                 this_chid !== targetChid ||
@@ -3703,7 +3703,7 @@ export async function reloadCurrentChatUnsafe() {
                 return;
             }
 
-            // SillyBunny: persist any partial assistant message from the aborted generation.
+            // Homunculus: persist any partial assistant message from the aborted generation.
             const saved = targetGroup
                 ? await saveGroupChat(targetGroup, true)
                 : targetChid !== undefined
@@ -3726,7 +3726,7 @@ export async function reloadCurrentChatUnsafe() {
         }
     }
 
-    // SillyBunny: flush pending user edits before re-reading from disk (fail-closed)
+    // Homunculus: flush pending user edits before re-reading from disk (fail-closed)
     let flushed = false;
     try {
         flushed = await flushPendingChatSavesForNavigation();
@@ -3747,7 +3747,7 @@ export async function reloadCurrentChatUnsafe() {
         return;
     }
 
-    // SillyBunny: validate full target identity after flush and before any fetch or mutation
+    // Homunculus: validate full target identity after flush and before any fetch or mutation
     if (
         shouldDiscardReloadTarget({ initialChatId: targetChatId, currentChatId: getCurrentChatId() }) ||
         this_chid !== targetChid ||
@@ -3810,7 +3810,7 @@ export async function reloadCurrentChatUnsafe() {
         return;
     }
 
-    // SillyBunny: validate that user is still on the same chat BEFORE mutating globals or clearing DOM
+    // Homunculus: validate that user is still on the same chat BEFORE mutating globals or clearing DOM
     if (
         shouldDiscardReloadTarget({ initialChatId: targetChatId, currentChatId: getCurrentChatId() }) ||
         this_chid !== targetChid ||
@@ -3908,7 +3908,7 @@ export async function sendTextareaMessage() {
     return generation;
 }
 
-// SillyBunny: Extracted message text preparation from messageFormatting for mobile streaming performance.
+// Homunculus: Extracted message text preparation from messageFormatting for mobile streaming performance.
 // Allows plain-text preview rendering without full markdown/sanitizer pipeline on Android.
 function prepareMessageDisplayText(mes, ch_name, isSystem, isUser, messageId, isReasoning = false) {
     const resolvedMessageId = messageId !== null && messageId !== undefined && messageId !== ''
@@ -3937,7 +3937,7 @@ function prepareMessageDisplayText(mes, ch_name, isSystem, isUser, messageId, is
     }
 
     // Prompt bias replacement should be applied on the raw message
-    // SillyBunny: read the prefill actually in effect, which is Kimi K3's own field on K3.
+    // Homunculus: read the prefill actually in effect, which is Kimi K3's own field on K3.
     const promptBiasSource = getEffectivePromptBias();
     const replacedPromptBias = promptBiasSource && substituteParams(promptBiasSource);
     if (!power_user.show_user_prompt_bias && ch_name && !isUser && !isSystem && replacedPromptBias && mes.startsWith(replacedPromptBias)) {
@@ -3996,7 +3996,7 @@ function prepareMessageDisplayText(mes, ch_name, isSystem, isUser, messageId, is
     return { mes, isSystem, showdownSource };
 }
 
-// SillyBunny: Extracted markdown balancing for streaming preview optimization.
+// Homunculus: Extracted markdown balancing for streaming preview optimization.
 function balanceStreamingMarkdown(text) {
     let balancedText = text;
     for (const char of ['*', '"', '```', '~~~']) {
@@ -4008,7 +4008,7 @@ function balanceStreamingMarkdown(text) {
     return balancedText;
 }
 
-// SillyBunny: Extracted HTML sanitization to allow reuse in streaming and final render paths.
+// Homunculus: Extracted HTML sanitization to allow reuse in streaming and final render paths.
 function sanitizeMessageHtml(mes, sanitizerOverrides = {}) {
     /** @type {DOMPurify.Config} */
     const config = {
@@ -4159,7 +4159,7 @@ export function messageFormatting(mes, ch_name, isSystem, isUser, messageId, san
     }
 
     mes = restoreOocBlocksForDisplay(mes, oocBlocks);
-    // SillyBunny: card script detection - see #94.
+    // Homunculus: card script detection - see #94.
     mes = markCardScriptHtml(mes, messageId, originalMessageHtml);
     return sanitizeMessageHtml(mes, sanitizerOverrides);
 }
@@ -4198,7 +4198,7 @@ function notifyCardScriptStripped(messageElement, messageId) {
     }
 
     markCardScriptToastShown(toastKey);
-    toastr.warning(t`This message contains card scripts. SillyBunny does not run them by default.`, t`Card scripts blocked`, { timeOut: 6000, preventDuplicates: true });
+    toastr.warning(t`This message contains card scripts. Homunculus does not run them by default.`, t`Card scripts blocked`, { timeOut: 6000, preventDuplicates: true });
 }
 
 /**
@@ -4211,7 +4211,7 @@ function notifyCardScriptStripped(messageElement, messageId) {
  * @returns {HTMLImageElement} The image element (not yet in the DOM)
  */
 export function createModelIcon(apiName, modelName = '') {
-    // SillyBunny: LinkAPI aggregates providers, so select its SVG from the model name.
+    // Homunculus: LinkAPI aggregates providers, so select its SVG from the model name.
     const iconName = apiName === chat_completion_sources.LINKAPI
         ? inferCustomModelIconName(modelName) || 'generic'
         : apiName;
@@ -4623,7 +4623,7 @@ export function appendMediaToMessage(mes, messageElement, scrollBehavior = SCROL
     const chatHeight = (hasMedia || hasFiles) ? chatElement.prop('scrollHeight') : 0;
     const scrollPosition = (hasMedia || hasFiles) ? chatElement.scrollTop() : 0;
     const doAdjustScroll = () => {
-        // SillyBunny: the block's resize observer already keeps the viewport; a late relative restore would revert it.
+        // Homunculus: the block's resize observer already keeps the viewport; a late relative restore would revert it.
         if (chatMessageResizeStates.has(getMessageBlockElement(messageElement))) {
             return;
         }
@@ -4883,7 +4883,7 @@ export function appendMediaToMessage(mes, messageElement, scrollBehavior = SCROL
 export function addCopyToCodeBlocks(messageElement) {
     const codeBlocks = $(messageElement).find('pre code');
     for (let i = 0; i < codeBlocks.length; i++) {
-        // SillyBunny: metadata-only refreshes keep the code node and its existing copy handler.
+        // Homunculus: metadata-only refreshes keep the code node and its existing copy handler.
         if (codeBlocks.get(i).querySelector(':scope > .code-copy')) {
             continue;
         }
@@ -5055,14 +5055,14 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
  */
 export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE } = {}) {
     let avatarImg = getThumbnailUrl('persona', user_avatar);
-    // SillyBunny: Add mobile thumbnail tracking for viewport-aware avatar rendering (mobile performance).
+    // Homunculus: Add mobile thumbnail tracking for viewport-aware avatar rendering (mobile performance).
     let mobileAvatarImg = getMobileThumbnailUrl('persona', user_avatar);
     let originalAvatarImg = getFullAvatarUrl('persona', user_avatar);
 
     //for non-user messages
     if (!mes.is_user) {
         if (mes.force_avatar) {
-            // SillyBunny: getAvatarRenderSources provides desktop/mobile/original variants for performance.
+            // Homunculus: getAvatarRenderSources provides desktop/mobile/original variants for performance.
             ({ desktop: avatarImg, mobile: mobileAvatarImg, original: originalAvatarImg } = getAvatarRenderSources(mes.force_avatar));
         } else if (this_chid === undefined) {
             avatarImg = system_avatar;
@@ -5070,7 +5070,7 @@ export function updateMessageElement(mes, { messageId = chat.length - 1, message
             originalAvatarImg = system_avatar;
         } else if (characters[this_chid] && characters[this_chid].avatar !== 'none') {
             avatarImg = getThumbnailUrl('avatar', characters[this_chid].avatar);
-            // SillyBunny: Mobile thumbnail for character avatars reduces payload on mobile devices.
+            // Homunculus: Mobile thumbnail for character avatars reduces payload on mobile devices.
             mobileAvatarImg = getMobileThumbnailUrl('avatar', characters[this_chid].avatar);
             originalAvatarImg = getFullAvatarUrl('avatar', characters[this_chid].avatar);
         } else {
@@ -5084,7 +5084,7 @@ export function updateMessageElement(mes, { messageId = chat.length - 1, message
         //characterName = mes.is_system || mes.force_avatar ? mes.name : name2;
     } else if (mes.is_user && mes.force_avatar) {
         // Special case for persona images.
-        // SillyBunny: getAvatarRenderSources provides desktop/mobile/original variants for performance.
+        // Homunculus: getAvatarRenderSources provides desktop/mobile/original variants for performance.
         ({ desktop: avatarImg, mobile: mobileAvatarImg, original: originalAvatarImg } = getAvatarRenderSources(mes.force_avatar));
     }
     const momentDate = timestampToMoment(mes.send_date);
@@ -5382,7 +5382,7 @@ export function scrollChatToBottom({ waitForFrame, force = false, isNearBottom =
     }
 
     const doScroll = () => {
-        // SillyBunny: guarded lifecycle route keeps the legacy path available during rollout.
+        // Homunculus: guarded lifecycle route keeps the legacy path available during rollout.
         if (isChatRenderLifecycleRolloutEnabled(CHAT_RENDER_LIFECYCLE_ROUTE.BOTTOM_SCROLL)) {
             const action = resolveChatBottomScrollAction({
                 force,
@@ -5399,7 +5399,7 @@ export function scrollChatToBottom({ waitForFrame, force = false, isNearBottom =
             return;
         }
 
-        // SillyBunny: mobile browsers can fight streaming autoscroll during touch and momentum scrolling.
+        // Homunculus: mobile browsers can fight streaming autoscroll during touch and momentum scrolling.
         if (!force && shouldSuppressMobileChatAutoScroll()) {
             requestId = null;
             return;
@@ -5787,7 +5787,7 @@ export async function generateQuietPrompt({ quietPrompt = '', quietToLoud = fals
             TempResponseLength.restore(main_api);
             TempResponseLength.removeEventHook(main_api, eventHook);
         }
-        // SillyBunny: guarantee the send buttons are reactivated after quiet
+        // Homunculus: guarantee the send buttons are reactivated after quiet
         // generation, regardless of whether Generate succeeded, failed, threw,
         // or returned null data. Without this, memory refresh and other quiet
         // generation callers can leave the chat input locked. (#527)
@@ -6238,7 +6238,7 @@ function showStopButton() {
 function hideStopButton({ emitGenerationEnded = true } = {}) {
     const generationContext = activeGenerationRun?.context;
     // prevent NOOP, because hideStopButton() gets called multiple times
-    // SillyBunny: read visibility before dropping the class. On mobile, mobile-styles.css forces
+    // Homunculus: read visibility before dropping the class. On mobile, mobile-styles.css forces
     // `#send_form:not(.sb-generating-controls) #mes_stop` to display:none !important, so checking
     // after removeClass always reads 'none' and GENERATION_ENDED would never be emitted.
     const wasVisible = $('#mes_stop').css('display') !== 'none';
@@ -6302,7 +6302,7 @@ class StreamingProcessor {
      * @param {GenerateOptions} [requestControls] Controls for this request and its owned successors
      */
     constructor(type, forceName2, timeStarted, continueMessage, promptReasoning, requestControls = {}) {
-        // SillyBunny: stream writes belong to one run and message, not a reusable chat index.
+        // Homunculus: stream writes belong to one run and message, not a reusable chat index.
         this.originRun = activeGenerationRun;
         this.originChatId = getCurrentChatId();
         this.originChatGeneration = chatGeneration;
@@ -6327,7 +6327,7 @@ class StreamingProcessor {
         this.isFinished = false;
         this.generator = this.nullStreamingGeneration;
         this.abortController = new AbortController();
-        // SillyBunny: a prose limit closes the transport, not the generation lifecycle.
+        // Homunculus: a prose limit closes the transport, not the generation lifecycle.
         this.requestAbortController = new AbortController();
         this.abortController.signal.addEventListener('abort', () => this.requestAbortController.abort(this.abortController.signal.reason), { once: true });
         this.requestControls = requestControls;
@@ -6416,7 +6416,7 @@ class StreamingProcessor {
         const cachedMessageTextDomInvalid = this.messageTextDom != null && !this.messageTextDom.isConnected;
 
         if (cachedMessageDomInvalid || cachedMessageTextDomInvalid) {
-            // SillyBunny: refresh stale stream targets after chat-window pruning or tail-gap re-renders.
+            // Homunculus: refresh stale stream targets after chat-window pruning or tail-gap re-renders.
             this.messageDom = null;
             this.messageTextDom = null;
             this.messageTimerDom = null;
@@ -6660,7 +6660,7 @@ class StreamingProcessor {
             }
         }
 
-        // SillyBunny: instant intermediate pins visibly jump on reduced-work mobile platforms; settle once when streaming finishes.
+        // Homunculus: instant intermediate pins visibly jump on reduced-work mobile platforms; settle once when streaming finishes.
         if (shouldReduceIntermediateStreamingWork && shouldUseMobileStreamingPin) {
             return;
         }
@@ -6915,7 +6915,7 @@ class StreamingProcessor {
                 if (logprobs) {
                     this.messageLogprobs.push(...(Array.isArray(logprobs) ? logprobs : [logprobs]));
                 }
-                // SillyBunny: keep full reasoning regex/DOM work on UI ticks. Reasoning-heavy
+                // Homunculus: keep full reasoning regex/DOM work on UI ticks. Reasoning-heavy
                 // streams like DeepSeek and GLM can otherwise overwhelm iOS WebKit.
                 this.pendingReasoning = typeof state?.reasoning === 'string' ? state.reasoning : null;
                 const reachedLimit = this.#applyProseLimit(state);
@@ -7091,7 +7091,7 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
             externalSignal.addEventListener('abort', abortFromExternalSignal, { once: true });
         }
     }
-    // SillyBunny: route preserved budgets before TempResponseLength can overwrite the preset.
+    // Homunculus: route preserved budgets before TempResponseLength can overwrite the preset.
     const responseLengthCustomized = !preserveReasoningBudget && typeof responseLength === 'number' && responseLength > 0;
     const requestControls = preserveReasoningBudget ? { responseLength, preserveReasoningBudget } : {};
     let eventHook = () => { };
@@ -7407,7 +7407,7 @@ let pendingUserMessageExtra = null;
 let agentGenerationContextProvider = null;
 let activeGenerationRun = null;
 
-// SillyBunny: the extension registers its getter without a host-to-extension import cycle.
+// Homunculus: the extension registers its getter without a host-to-extension import cycle.
 export function setAgentGenerationContextProvider(provider) {
     agentGenerationContextProvider = typeof provider === 'function' ? provider : null;
 }
@@ -7445,7 +7445,7 @@ function consumePendingUserMessageExtra(message) {
 export async function Generate(type, { automatic_trigger, force_name2, quiet_prompt, quietToLoud, skipWIAN, force_chid, signal, quietImage, quietName, jsonSchema = null, depth = 0, suppressUserMessage = false, cacheScope = null, preserveLastMessage = false, companionHistoryTarget = null, suppressAutoContinue = false, maxOutputTokens = 0, responseLength = null, preserveReasoningBudget = false } = {}, dryRun = false) {
     if (!dryRun && signal?.aborted) return;
 
-    // SillyBunny: keep cancellation and terminal cleanup attached to this invocation,
+    // Homunculus: keep cancellation and terminal cleanup attached to this invocation,
     // not to a successor group member, tool pass, or a newly selected chat.
     const parentRun = activeGenerationRun;
     const isAuxiliaryGeneration = type === 'quiet' && Boolean(parentRun && !parentRun.isGroupDispatch);
@@ -7553,7 +7553,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
                 textareaText = '';
                 if (chat.length && lastMessage.is_user) {
                 //do nothing? why does this check exist?
-                    // SillyBunny: retain continuation targets and Guided Correction regeneration context.
+                    // Homunculus: retain continuation targets and Guided Correction regeneration context.
                 } else if (type !== 'quiet' && type !== 'swipe' && type !== 'continue' && !isImpersonate && !dryRun && !depth && chat.length && !(type === 'regenerate' && preserveLastMessage) && (!suppressUserMessage || type === 'regenerate')) {
                     if (type === 'regenerate') {
                         requestMobileChatBottomPin();
@@ -7668,7 +7668,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         // We can't do anything because we're not in a chat right now. (Unless it's a dry run, in which case we need to
         // assemble the prompt so we can count its tokens regardless of whether a chat is active.)
         if (!dryRun && !hasBackendConnection) {
-        // SillyBunny: reactivate send buttons on early exit so the UI is not
+        // Homunculus: reactivate send buttons on early exit so the UI is not
         // left locked when there is no backend connection. (#527)
             unblockGeneration(type);
             return Promise.resolve();
@@ -7818,7 +7818,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
                 : originalMessage;
             const isConsolidatedCompanionHost = chatItem === consolidatedCompanionHistoryHost;
             const hiddenCompanionHistory = chatItem.is_system && isConsolidatedCompanionHost;
-            // SillyBunny: project opted-in companion notes into prompt history without changing stored chat text.
+            // Homunculus: project opted-in companion notes into prompt history without changing stored chat text.
             const retainedContributions = isConsolidatedCompanionHost
                 ? consolidatedRetainedContributions.map(item => item.contribution).filter(contribution => contribution.content)
                 : [];
@@ -7828,7 +7828,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             let regexType = chatItem.is_user ? regex_placement.USER_INPUT : regex_placement.AI_OUTPUT;
             let options = { isPrompt: true, depth: (coreChat.length - index - (isContinue ? 2 : 1)) };
 
-            // SillyBunny: apply in-chat agent regex scripts (e.g. CYOA "Trim Choices") in prompt mode
+            // Homunculus: apply in-chat agent regex scripts (e.g. CYOA "Trim Choices") in prompt mode
             const agentRegexScripts = resolveRegexScriptsForSnapshot(chatItem?.extra?.inChatAgents);
             if (agentRegexScripts.length > 0) {
                 const agentPlacement = chatItem.is_user ? AGENT_REGEX_PLACEMENT.USER_INPUT : AGENT_REGEX_PLACEMENT.AI_OUTPUT;
@@ -7909,12 +7909,12 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             };
         }));
         if (!isCurrent()) return;
-        // SillyBunny: ICA prompt-only regexes must not remove stored chat text from World Info scans.
+        // Homunculus: ICA prompt-only regexes must not remove stored chat text from World Info scans.
         const worldInfoOnlyChat = coreChat.filter(chatItem => {
             const variant = worldInfoMessageVariants.get(chatItem.index);
             return variant && !hasPromptPayload(chatItem) && hasPromptPayload({ ...chatItem, mes: variant.worldInfo });
         });
-        // SillyBunny: preserve an interrupted reasoning-only prefix when continuing.
+        // Homunculus: preserve an interrupted reasoning-only prefix when continuing.
         coreChat = coreChat.filter((chatItem, index) => hasPromptPayload(
             chatItem,
             isContinue && index === coreChat.length - 1,
@@ -8969,7 +8969,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
                     clearStreamingProcessorIfCurrent(activeStreamingProcessor);
                     return;
                 } finally {
-                // SillyBunny: Safety net - every streaming exit path must leave the UI idle.
+                // Homunculus: Safety net - every streaming exit path must leave the UI idle.
                 // Cancelled streams used to skip unblockGeneration(), leaving is_send_press stuck.
                     if (isCurrent() && is_send_press && streamingProcessor === null && !startedSuccessorGeneration) {
                         unblockGeneration(type);
@@ -8992,7 +8992,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             if (delegatedGeneration) return data;
             if (!isCurrent()) return;
             if (!data) {
-            // SillyBunny: unblock generation on null/falsy data so the send
+            // Homunculus: unblock generation on null/falsy data so the send
             // buttons are not left locked. (#527)
                 if (!isAuxiliaryGeneration) unblockGeneration(type, { force: true });
                 return;
@@ -9029,7 +9029,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
             const swipes = extractMultiSwipes(data, type);
 
-            // SillyBunny: non-streaming reasoners keep their preset allowance; only separated prose is capped locally.
+            // Homunculus: non-streaming reasoners keep their preset allowance; only separated prose is capped locally.
             const reasoningPrefix = promptReasoning.prefixIncomplete && !reasoning ? promptReasoning.prefixReasoningFormatted : '';
             const limitedOutput = limitGenerationProse(getMessage, maxOutputTokens, power_user.reasoning, reasoningPrefix);
             limitedOutput.limited ||= Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 && isGenerationLengthFinish(data);
@@ -9314,14 +9314,14 @@ function flushWIInjections() {
  * @param {boolean} [options.force=false] Whether to bypass stream-wait guards.
  */
 function unblockGeneration(type, { emitGenerationEnded = true, force = false } = {}) {
-    // SillyBunny: a nested quiet helper must not end its owning main generation.
+    // Homunculus: a nested quiet helper must not end its owning main generation.
     if (type === 'quiet' && activeGenerationRun && !force
         && (activeGenerationRun.type !== 'quiet' || abortController !== activeGenerationRun.controller)) return;
     const unblockState = resolveGenerationUnblockState({
         type,
         hasStreamingProcessor: Boolean(streamingProcessor),
         isStreamingFinished: Boolean(streamingProcessor?.isFinished),
-        // SillyBunny: explicit Stop must always release the UI lock so users can retry.
+        // Homunculus: explicit Stop must always release the UI lock so users can retry.
         forceUnblock: force,
     });
 
@@ -9430,7 +9430,7 @@ export function triggerAutoContinue(messageChunk, isImpersonate, options = {}) {
         return;
     }
 
-    // SillyBunny: Auto-swipe can take the generation lock before this callback resumes.
+    // Homunculus: Auto-swipe can take the generation lock before this callback resumes.
     if (is_send_press || is_group_generating || streamingProcessor) {
         console.debug('Auto-continue skipped: a generation is already in progress');
         return;
@@ -9465,7 +9465,7 @@ export function getBiasStrings(textareaText, type) {
         }
     }
 
-    // SillyBunny: Kimi K3 draws its prefill from its own preset-scoped field instead of the
+    // Homunculus: Kimi K3 draws its prefill from its own preset-scoped field instead of the
     // global Start Reply With, so that value stops leaking into every other model.
     const userPromptBias = getEffectivePromptBias();
     promptBias = messageBias || promptBias || userPromptBias || '';
@@ -10055,7 +10055,7 @@ export function extractMessageFromData(data, activeApi = null) {
                     || normalizeContentText(data?.text)
                     || normalizeContentText(data?.message?.content)
                     || normalizeContentText(data?.message?.tool_plan)
-                    // SillyBunny: an empty reply must not fall back to Gemini's thinking parts.
+                    // Homunculus: an empty reply must not fall back to Gemini's thinking parts.
                     || normalizeContentText(Array.isArray(data?.responseContent?.parts)
                         ? data.responseContent.parts.filter(part => !part?.thought)
                         : data?.responseContent?.parts)
@@ -10235,7 +10235,7 @@ export function cleanUpMessage({ getMessage, isImpersonate, isContinue, displayI
     }
 
     // Add the prompt bias before anything else
-    // SillyBunny: a partial-mode model returns only the continuation, so this has to prepend
+    // Homunculus: a partial-mode model returns only the continuation, so this has to prepend
     // the same prefill that was sent -- Kimi K3's own field on K3, the global one elsewhere.
     const userPromptBias = getEffectivePromptBias();
     if (
@@ -10442,7 +10442,7 @@ export async function saveReply({ type, getMessage, fromStreaming = false, title
         lastMessage.is_user)) {
         type = 'normal';
     }
-    // SillyBunny: asynchronous attachment/token work must retain its message, not the new chat tail.
+    // Homunculus: asynchronous attachment/token work must retain its message, not the new chat tail.
     const replyIndex = ['swipe', 'append', 'continue', 'appendFinal'].includes(type) ? chat.length - 1 : chat.length;
     let replyMessage = lastMessage;
     const isReplyCurrent = () => isCurrent() && chat[replyIndex] === replyMessage;
@@ -11205,7 +11205,7 @@ export function saveChatDebounced(options = {}) {
     chatSaveTimeout = setTimeout(async () => {
         chatSaveTimeout = null;
 
-        // SillyBunny: keep debounced saves bound to the file they were scheduled for.
+        // Homunculus: keep debounced saves bound to the file they were scheduled for.
         const abortReason = getDebouncedChatSaveAbortReason({
             scheduledGroupId: selectedGroup,
             currentGroupId: selected_group,
@@ -11239,7 +11239,7 @@ function hasPendingChatSave() {
 
 /**
  * Waits for saves already queued on the serial chat save queue to settle.
- * SillyBunny: hasPendingChatSave() only sees the debounce timer, so queued saves need a separate drain.
+ * Homunculus: hasPendingChatSave() only sees the debounce timer, so queued saves need a separate drain.
  * @returns {Promise<void>}
  */
 async function waitForQueuedChatSaves() {
@@ -11254,7 +11254,7 @@ async function waitForQueuedChatSaves() {
 
 export async function flushPendingChatSavesForNavigation() {
     if (hasPendingChatSave()) {
-        // SillyBunny: preserve swipe/message edits before navigation clears the active chat.
+        // Homunculus: preserve swipe/message edits before navigation clears the active chat.
         const didFlush = await flushPendingChatSaves({ silent: true });
         if (!didFlush) {
             toastr.error(t`Could not save the current chat before switching chats. Try again in a moment.`, t`Chat save failed`);
@@ -11262,7 +11262,7 @@ export async function flushPendingChatSavesForNavigation() {
         }
     }
 
-    // SillyBunny: let queued saves land instead of refusing to navigate while one is in flight.
+    // Homunculus: let queued saves land instead of refusing to navigate while one is in flight.
     await waitForQueuedChatSaves();
     await waitForQueuedGroupChatSaves();
     return true;
@@ -11337,7 +11337,7 @@ export function saveChat(...saveChatArguments) {
     const [firstArgument] = saveChatArguments;
     let options = firstArgument && typeof firstArgument === 'object' ? firstArgument : {};
     if (saveChatArguments.length > 0 && (typeof firstArgument !== 'object' || firstArgument === null)) {
-        // SillyBunny: legacy extension calls need the same enqueue-time snapshot and lifecycle guard.
+        // Homunculus: legacy extension calls need the same enqueue-time snapshot and lifecycle guard.
         console.trace('saveChat called with positional arguments. Please use an object instead.');
         const [chatName, withMetadata, mesId, force, throwOnError] = saveChatArguments;
         options = { chatName, withMetadata, mesId, force, throwOnError };
@@ -11417,7 +11417,7 @@ async function saveChatImmediately(...args) {
         throw new Error('saveChat called for a group chat');
     }
 
-    // SillyBunny: abort saves whose identity or generation changed while queued to prevent chat cloning.
+    // Homunculus: abort saves whose identity or generation changed while queued to prevent chat cloning.
     const abortReason = getQueuedChatSaveAbortReason({
         scheduledGroupId,
         currentGroupId: selected_group,
@@ -11645,7 +11645,7 @@ function getAvatarRenderSources(rawSrc) {
  * @param {string} rawSrc Avatar image source.
  * @returns {{ type: 'avatar' | 'persona' | null, file: string, original: string, preset?: string | null } | null}
  */
-// SillyBunny: exported so sillybunny-tabs.js reuses this parser instead of keeping a divergent copy
+// Homunculus: exported so homunculus-tabs.js reuses this parser instead of keeping a divergent copy
 // that skipped the pathname decode and re-encoded file names into "%2520".
 export function parseAvatarSource(rawSrc) {
     if (!rawSrc) {
@@ -11915,7 +11915,7 @@ export async function getChat({ allowMissingPersisted = false, switchMenu = true
             chat.splice(0, chat.length);
             chat_metadata = {};
         }
-        // SillyBunny: a chat with no integrity slug is treated as intact by the server, which mints
+        // Homunculus: a chat with no integrity slug is treated as intact by the server, which mints
         // one on the first real save. Stamping one in here only dirtied legacy chats on load, and a
         // dirty chat is one that gets rewritten to disk for no reason.
         await getChatResult({ emitCreated: resolvedChat.created, switchMenu });
@@ -11930,7 +11930,7 @@ export async function getChat({ allowMissingPersisted = false, switchMenu = true
         });
         return true;
     } catch (error) {
-        // SillyBunny: a failed strict load must not be replaced with a newly saved greeting.
+        // Homunculus: a failed strict load must not be replaced with a newly saved greeting.
         console.log(error);
         toastr.error(t`Could not load chat data. Try reloading the page.`);
         return false;
@@ -11947,7 +11947,7 @@ async function getChatResult({ emitCreated = false, switchMenu = true } = {}) {
             freshChat = true;
         }
         // Make sure the chat appears on the server
-        // SillyBunny: never persist a message-less chat over a file this load did not create.
+        // Homunculus: never persist a message-less chat over a file this load did not create.
         if (emitCreated || freshChat) {
             await saveChatConditional();
         }
@@ -12015,7 +12015,7 @@ export async function openCharacterChat(file_name) {
         $('#selected_chat_pole').val(previousChatName);
         return;
     }
-    // SillyBunny: reopening the chat that is already recorded has nothing to persist.
+    // Homunculus: reopening the chat that is already recorded has nothing to persist.
     if (file_name !== previousChatName) {
         await updateRemoteChatName(this_chid, file_name);
     }
@@ -12193,7 +12193,7 @@ async function promptSettingsConflictReload() {
     }
 
     if (settingsConflictPromptDismissed) {
-        toastr.warning(t`Settings saves are blocked until you reload SillyBunny.`, t`Settings save blocked`, { preventDuplicates: true });
+        toastr.warning(t`Settings saves are blocked until you reload Homunculus.`, t`Settings save blocked`, { preventDuplicates: true });
         return;
     }
 
@@ -12202,7 +12202,7 @@ async function promptSettingsConflictReload() {
     try {
         const confirmation = await Popup.show.confirm(
             t`Settings changed on another device`,
-            t`Another device or browser tab saved newer settings. Reload SillyBunny before saving again to prevent overwriting those changes.`,
+            t`Another device or browser tab saved newer settings. Reload Homunculus before saving again to prevent overwriting those changes.`,
             {
                 okButton: t`Reload now`,
                 cancelButton: t`Keep editing`,
@@ -12215,7 +12215,7 @@ async function promptSettingsConflictReload() {
         }
 
         settingsConflictPromptDismissed = true;
-        toastr.warning(t`Settings saves are blocked until you reload SillyBunny.`, t`Settings save blocked`, { preventDuplicates: true });
+        toastr.warning(t`Settings saves are blocked until you reload Homunculus.`, t`Settings save blocked`, { preventDuplicates: true });
     } finally {
         settingsConflictPromptOpen = false;
     }
@@ -12379,7 +12379,7 @@ export async function saveSettings(loopCounter = 0, { returnResult = false } = {
     const saveTask = settingsSaveQueue.then(() => saveSettingsInner(loopCounter));
     settingsSaveQueue = saveTask.catch(() => {});
     const saved = await saveTask;
-    // SillyBunny: acknowledgement is opt-in; extensions rely on the default undefined result.
+    // Homunculus: acknowledgement is opt-in; extensions rely on the default undefined result.
     return returnResult ? saved : undefined;
 }
 
@@ -12501,7 +12501,7 @@ export async function clearFrontendCache({ skipConfirmation = false, saveBeforeC
     if (!skipConfirmation) {
         const confirmation = await Popup.show.confirm(
             t`Clear all cache?`,
-            t`This removes browser cache, service worker data, temporary session data, and IndexedDB cache stores for SillyBunny, then reloads the page. Saved settings and account data stay intact.`,
+            t`This removes browser cache, service worker data, temporary session data, and IndexedDB cache stores for Homunculus, then reloads the page. Saved settings and account data stay intact.`,
             {
                 okButton: t`Clear cache`,
                 cancelButton: t`Cancel`,
@@ -12549,10 +12549,10 @@ export async function clearFrontendCache({ skipConfirmation = false, saveBeforeC
 
     if (globalThis.navigator?.serviceWorker && typeof globalThis.navigator.serviceWorker.getRegistrations === 'function') {
         try {
-            // SillyBunny: on iOS WebKit the controlling service worker stays attached to this
+            // Homunculus: on iOS WebKit the controlling service worker stays attached to this
             // page after unregister() until the page unloads. Without an explicit purge the SW
             // re-fills its caches during the reload navigation, undoing the clear. We message
-            // the controller to delete all sillybunny-cache-* caches before unregistering.
+            // the controller to delete all homunculus-cache-* caches before unregistering.
             const controller = globalThis.navigator.serviceWorker.controller;
             if (controller) {
                 await new Promise((resolve) => {
@@ -12587,7 +12587,7 @@ export async function clearFrontendCache({ skipConfirmation = false, saveBeforeC
 
     droppedStores.forEach((result, index) => {
         if (result.status === 'rejected') {
-            // SillyBunny: IDB drops are best-effort. iOS WebKit with ITP or storage pressure
+            // Homunculus: IDB drops are best-effort. iOS WebKit with ITP or storage pressure
             // can reject localforage.dropInstance() — log but don't abort the clear so that
             // cookie expiry and the reload still happen.
             console.warn(`Failed to clear IndexedDB cache store: ${FRONTEND_CACHE_INSTANCE_NAMES[index]}`, result.reason);
@@ -12597,7 +12597,7 @@ export async function clearFrontendCache({ skipConfirmation = false, saveBeforeC
     try {
         sessionStorage.clear();
     } catch (error) {
-        // SillyBunny: sessionStorage may be blocked by iOS ITP in private browsing; non-fatal.
+        // Homunculus: sessionStorage may be blocked by iOS ITP in private browsing; non-fatal.
         console.warn('Failed to clear session storage', error);
     }
 
@@ -12611,7 +12611,7 @@ export async function clearFrontendCache({ skipConfirmation = false, saveBeforeC
 
 
 if (typeof window !== 'undefined') {
-    window.SillyBunnyClearFrontendCache = clearFrontendCache;
+    window.HomunculusClearFrontendCache = clearFrontendCache;
 }
 
 async function clearAllCacheAndReload() {
@@ -12621,7 +12621,7 @@ async function clearAllCacheAndReload() {
         return false;
     }
 
-    toastr.success(t`Cache cleared. Reloading SillyBunny...`, t`Cache cleared`);
+    toastr.success(t`Cache cleared. Reloading Homunculus...`, t`Cache cleared`);
     window.setTimeout(() => window.location.reload(), 1000);
     return true;
 }
@@ -12647,7 +12647,7 @@ async function maybeAutoClearCacheOnVersionChange(isVersionChanged) {
         return false;
     }
 
-    toastr.info(t`SillyBunny updated. Clearing cached UI data and reloading...`, t`Update detected`);
+    toastr.info(t`Homunculus updated. Clearing cached UI data and reloading...`, t`Update detected`);
     window.setTimeout(() => window.location.reload(true), 1000);
     return true;
 }
@@ -12934,7 +12934,7 @@ async function renderMessageScreenshotWithBoundedSvg(html2canvas, surface, captu
         return await html2canvas(surface, captureOptions);
     }
 
-    const svgMarker = '__sillybunny_html2canvas_foreign_object__';
+    const svgMarker = '__homunculus_html2canvas_foreign_object__';
     const markedSvgDataUrl = `data:image/svg+xml;charset=utf-8,${svgMarker}`;
     const existingCloneContainers = new Set(document.querySelectorAll('.html2canvas-container'));
     let serializedSvg = '';
@@ -13079,7 +13079,7 @@ async function renderMessageScreenshotCanvas(startId, endId) {
     surface.replaceChildren(...screenshotElements);
     shell.appendChild(surface);
 
-    // Keep the capture under #chat so chat-scoped SillyBunny layout rules apply to cloned messages.
+    // Keep the capture under #chat so chat-scoped Homunculus layout rules apply to cloned messages.
     const captureParent = chatElement[0] instanceof HTMLElement
         ? chatElement[0]
         : document.getElementById('chat') ?? document.body;
@@ -13472,7 +13472,7 @@ export async function messageEdit(editMessageId) {
         markMobileChatManualScroll();
     }
 
-    // SillyBunny: on desktop the message resize observer owns the edit-open layout change and focus already has preventScroll; restoring here reverts it.
+    // Homunculus: on desktop the message resize observer owns the edit-open layout change and focus already has preventScroll; restoring here reverts it.
     const shouldRestoreChatScroll = shouldGuardMobileChatScroll();
     const restoreChatScroll = () => {
         if (shouldRestoreChatScroll) {
@@ -14444,7 +14444,7 @@ async function displayChats(searchQuery, currentChat, displayName, avatarImg, se
             $('#select_chat_div').append(template);
 
             if (Array.isArray(highlightNames) && highlightNames.includes(chat.file_name)) {
-                // SillyBunny: Chat History scrolls the popup on mobile and the list on desktop.
+                // Homunculus: Chat History scrolls the popup on mobile and the list on desktop.
                 template[0].scrollIntoView({ block: 'nearest' });
                 flashHighlight(template, debounce_timeout.extended);
             }
@@ -14688,7 +14688,7 @@ export function select_rm_info(type, charId, previousCharId = null) {
         return;
     }
     const rightNavPanel = document.getElementById('right-nav-panel');
-    const keepSillyBunnyImportTab = rightNavPanel?.dataset.menuType === 'import' && ['char_import', 'char_import_no_toast'].includes(type);
+    const keepHomunculusImportTab = rightNavPanel?.dataset.menuType === 'import' && ['char_import', 'char_import_no_toast'].includes(type);
 
     if (type !== 'group_create') {
         var displayName = String(charId).replace('.png', '');
@@ -14711,16 +14711,16 @@ export function select_rm_info(type, charId, previousCharId = null) {
         toastr.success(t`Character Imported: ${displayName}`);
     }
 
-    if (!keepSillyBunnyImportTab) {
+    if (!keepHomunculusImportTab) {
         selectRightMenuWithAnimation('rm_characters_block');
     } else {
-        document.dispatchEvent(new CustomEvent('sillybunny:character-import-tab-preserve'));
+        document.dispatchEvent(new CustomEvent('homunculus:character-import-tab-preserve'));
     }
 
     // Set a timeout so multiple flashes don't overlap
     clearTimeout(importFlashTimeout);
     importFlashTimeout = setTimeout(function () {
-        if (keepSillyBunnyImportTab) {
+        if (keepHomunculusImportTab) {
             return;
         }
 
@@ -14771,7 +14771,7 @@ export function select_rm_info(type, charId, previousCharId = null) {
             const perPage = Number(accountStorage.getItem('Characters_PerPage')) || per_page_default;
             const page = Math.floor(charIndex / perPage) + 1;
             $('#rm_print_characters_pagination').pagination('go', page);
-            // SillyBunny: match the rendered group card and tolerate it disappearing during navigation.
+            // Homunculus: match the rendered group card and tolerate it disappearing during navigation.
             const selector = `#rm_print_characters_block [data-grid="${charId}"]`;
             try {
                 waitUntilCondition(() => document.querySelector(selector) !== null, 1000, 100, { rejectOnTimeout: false }).then(() => {
@@ -15273,7 +15273,7 @@ export function isMessageSwipeable(messageId, message = undefined) {
     }
 }
 
-// SillyBunny: one-click recovery for replacing a failed current swipe.
+// Homunculus: one-click recovery for replacing a failed current swipe.
 function canDeleteAddSwipe(messageId, message = chat[messageId]) {
     if (!message) {
         return false;
@@ -15504,7 +15504,7 @@ export async function saveChatConditional(options = {}) {
             ? await saveGroupChat(selected_group, true, false, options.throwOnError ?? false, options)
             : await saveChat(options);
 
-        // SillyBunny: strict callers must also see saves declined without an exception.
+        // Homunculus: strict callers must also see saves declined without an exception.
         if (saved !== true) {
             if (options.throwOnError) {
                 throw new Error('Chat was not saved');
@@ -15879,7 +15879,7 @@ export async function createOrEditCharacter(e) {
             if (suspiciousEmptyDefinitionSave) {
                 const fieldList = suspiciousEmptyDefinitionSave.emptiedFieldLabels.join(', ');
                 const confirmation = await callGenericPopup(
-                    t`SillyBunny is about to save this character with previously populated definition fields empty: ${fieldList}. This can happen after a stale frontend load. Reload the page unless you intentionally cleared these fields. Continue saving?`,
+                    t`Homunculus is about to save this character with previously populated definition fields empty: ${fieldList}. This can happen after a stale frontend load. Reload the page unless you intentionally cleared these fields. Continue saving?`,
                     POPUP_TYPE.CONFIRM,
                 );
 
@@ -16120,12 +16120,12 @@ export async function swipe(event, direction, { source, repeated, message = chat
     async function standardSwipe(newSwipeId) {
         //If swipe_id has changed, or the source is being deleted.
         if (newSwipeId !== originalSwipeId || source == SWIPE_SOURCE.DELETE || source == SWIPE_SOURCE.BACK) {
-            // SillyBunny: invalidate pending debounced saves and queued saves from previous swipes.
+            // Homunculus: invalidate pending debounced saves and queued saves from previous swipes.
             incrementChatGeneration();
             //Update the chat.
             await loadFromSwipeId(mesId, newSwipeId);
             //Transition to the new chat.
-            // SillyBunny: skip the slide-out so the target swipe's content renders to the DOM instantly,
+            // Homunculus: skip the slide-out so the target swipe's content renders to the DOM instantly,
             // rather than lagging behind the previous message until the slide-out completes.
             await animateSwipe(false, true);
         }
@@ -16287,7 +16287,7 @@ export async function swipe(event, direction, { source, repeated, message = chat
     /**
      * Anime a swipe, optionally running a generation.
      * @param {boolean} run_generate
-     * @param {boolean} [skipSwipeOut=false] SillyBunny: callers now pass `true` so the DOM swaps instantly
+     * @param {boolean} [skipSwipeOut=false] Homunculus: callers now pass `true` so the DOM swaps instantly
      *     (the message is blanked/replaced immediately), keeping only the slide-in enter animation.
      */
     async function animateSwipe(run_generate = false, skipSwipeOut = false) {
@@ -16303,7 +16303,7 @@ export async function swipe(event, direction, { source, repeated, message = chat
             await updateSwipeCounter(mesId);
             //shows "..." while generating
             thisMesDiv.find('.mes_text').html('...');
-            // SillyBunny: keep data in sync so MESSAGE_SWIPED listeners cannot re-render stale swipe text.
+            // Homunculus: keep data in sync so MESSAGE_SWIPED listeners cannot re-render stale swipe text.
             chat[mesId].mes = '...';
             if (Array.isArray(chat[mesId].swipes) && chat[mesId].swipe_id < chat[mesId].swipes.length) {
                 chat[mesId].swipes[chat[mesId].swipe_id] = '...';
@@ -16316,7 +16316,7 @@ export async function swipe(event, direction, { source, repeated, message = chat
             //console.log('showing previously generated swipe candidate, or "..."');
             //console.log('onclick right swipe calling addOneMessage');
 
-            // SillyBunny: route display-only swipe replacement scroll handling through the guarded lifecycle seam.
+            // Homunculus: route display-only swipe replacement scroll handling through the guarded lifecycle seam.
             const isLastMessageSwipe = (mesId == chat.length - 1);
             const useLifecycleRoute = source !== SWIPE_SOURCE.DELETE && source !== SWIPE_SOURCE.BACK && !isOverswipeReplacement;
             swipeViewportUpdate = getSwipeReplacementViewportUpdate({ isLastMessageSwipe, useLifecycleRoute });
@@ -16444,7 +16444,7 @@ export async function swipe(event, direction, { source, repeated, message = chat
                 clearMessageData(chat[mesId]);
                 let run_generate = true;
                 //Generate.
-                // SillyBunny: skip the slide-out so the message blanks to "..." instantly on regenerate,
+                // Homunculus: skip the slide-out so the message blanks to "..." instantly on regenerate,
                 // instead of keeping the previous generation visible during the slide-out animation.
                 await animateSwipe(run_generate, true);
                 await endSwipe();
@@ -16761,7 +16761,7 @@ export async function renameGroupOrCharacterChat({ characterId, groupId, oldFile
         };
 
         const actualNewFileName = await sendRenameRequest(body);
-        // SillyBunny: update only the lightweight active-chat pointer, never rewrite the full card.
+        // Homunculus: update only the lightweight active-chat pointer, never rewrite the full card.
         const shouldUpdateCharacterPointer = !isGroupRename
             && characterId !== undefined
             && getChatBaseName(targetCharacter?.chat) === getChatBaseName(oldFileName);
@@ -16879,7 +16879,7 @@ export async function updateRemoteChatName(characterId, newName) {
     if (!character) {
         throw new Error(`Character not found for ID: ${characterId}`);
     }
-    // SillyBunny: the last opened chat lives in a sidecar, not the card, so
+    // Homunculus: the last opened chat lives in a sidecar, not the card, so
     // switching chats no longer rewrites the character file.
     const response = await fetch('/api/characters/last-chat', {
         method: 'POST',
@@ -17217,7 +17217,7 @@ jQuery(async function () {
 
     $(document).on('click', '.api_loading', () => {
         cancelStatusCheck('Canceled because connecting was manually canceled');
-        // SillyBunny: manual cancellation owns cleanup; stale requests must not stop a newer check.
+        // Homunculus: manual cancellation owns cleanup; stale requests must not stop a newer check.
         resultCheckStatus();
     });
 
@@ -17369,16 +17369,16 @@ jQuery(async function () {
 
     $(document).on('click', '.character_select', async function () {
         const isCharactersBlockClick = $(this).closest('#rm_print_characters_block').length > 0;
-        const shouldCloseCharacterMenu = isCharactersBlockClick && (window.SillyBunnyShell?.isMobileViewport?.() ?? true);
+        const shouldCloseCharacterMenu = isCharactersBlockClick && (window.HomunculusShell?.isMobileViewport?.() ?? true);
         const id = Number($(this).attr('data-chid'));
-        // SillyBunny: drawer selection flashes Editor instead of opening it.
+        // Homunculus: drawer selection flashes Editor instead of opening it.
         const didSelectCharacter = await selectCharacterById(id, { switchMenu: false });
         if (didSelectCharacter && isCharactersBlockClick) {
             pulseSelectedEntityCard(this);
-            window.SillyBunnyShell?.highlightCharacterEditorTab?.();
+            window.HomunculusShell?.highlightCharacterEditorTab?.();
         }
         if (shouldCloseCharacterMenu) {
-            window.SillyBunnyShell?.closeCharacters?.();
+            window.HomunculusShell?.closeCharacters?.();
         }
         scheduleUiSurfaceFocus(document.getElementById('right-nav-panel'));
     });
@@ -17440,7 +17440,7 @@ jQuery(async function () {
         refreshObservedChatMessageResizeViewportStates();
 
         if (isChatLoadBottomLockActive() && !isChatScrolledNearBottom()) {
-            // SillyBunny: load pins only ever land at the bottom; sitting above the last pin means the user (or a jump) took over.
+            // Homunculus: load pins only ever land at the bottom; sitting above the last pin means the user (or a jump) took over.
             if (chatElementScroll.scrollTop < chatLastBottomPinScrollTop) {
                 clearChatLoadBottomLock();
             } else {
@@ -17967,7 +17967,7 @@ jQuery(async function () {
             chatElement.find(`.mes[mesid="${this_del_mes}"]`).remove();
             chat.length = this_del_mes;
             chat_metadata.tainted = true;
-            // SillyBunny: this shrink is the user's own deletion, not an accidental overwrite.
+            // Homunculus: this shrink is the user's own deletion, not an accidental overwrite.
             await saveChatConditional({ allowShrink: true });
             chatElement.scrollTop(chatElement[0].scrollHeight);
             await eventSource.emit(event_types.MESSAGE_DELETED, chat.length);
@@ -18936,7 +18936,7 @@ jQuery(async function () {
         await eventSource.emit(event_types.OPEN_CHARACTER_LIBRARY);
     });
 
-    registerSillyBunnyServiceWorker();
+    registerHomunculusServiceWorker();
 
     // Added here to prevent execution before script.js is loaded and get rid of quirky timeouts
     await firstLoadInit();

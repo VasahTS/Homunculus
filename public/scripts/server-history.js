@@ -82,7 +82,7 @@ function onServerConnectClick() {
 }
 
 export function initServerHistory() {
-    // SillyBunny: inactive provider inputs do not need autocomplete menus at startup.
+    // Homunculus: inactive provider inputs do not need autocomplete menus at startup.
     $(document).on('focusin', '[data-server-history]', function () {
         if ($(this).autocomplete('instance')) return;
         createServerAutocomplete.call(this);

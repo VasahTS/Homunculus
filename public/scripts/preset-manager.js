@@ -164,7 +164,7 @@ function snapshotAllPresetManagers() {
 }
 
 function registerPresetDirtySnapshots() {
-    // SillyBunny: keep preset dirty-state tracking aligned with the extra
+    // Homunculus: keep preset dirty-state tracking aligned with the extra
     // text fields and template drawers added outside the upstream preset UI.
     eventSource.on(event_types.SETTINGS_LOADED, snapshotAllPresetManagers);
     eventSource.on(event_types.APP_READY, snapshotAllPresetManagers);
@@ -215,7 +215,7 @@ class PresetManager {
         this._presetSelectPointerCancelHandler = (event) => this._handlePresetSelectPointerCancel(event);
         this._presetSelectPointerLeaveHandler = (event) => this._handlePresetSelectPointerLeave(event);
         this._presetSelectClickHandler = (event) => this._handlePresetSelectClick(event);
-        // SillyBunny: snapshot and guard all connected text fields before preset
+        // Homunculus: snapshot and guard all connected text fields before preset
         // changes so unsaved changes in fork-specific drawers can still warn.
         this._bindDirtyGuard();
     }
@@ -529,7 +529,7 @@ class PresetManager {
     }
 
     _isMobilePresetSelectTouchGuardEnabled() {
-        return globalThis.SillyBunnyShell?.isMobileViewport?.()
+        return globalThis.HomunculusShell?.isMobileViewport?.()
             ?? Boolean(globalThis.matchMedia?.('(max-width: 768px)')?.matches);
     }
 

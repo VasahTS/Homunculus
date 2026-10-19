@@ -606,7 +606,7 @@ export function recoverInterruptedServerPluginUpdates(pluginsRoot) {
             ) {
                 // Another supervisor owns this shared plugin root. Never recover
                 // or delete its in-flight transaction.
-                throw new Error('Another SillyBunny supervisor owns the server plugin update transaction.');
+                throw new Error('Another Homunculus supervisor owns the server plugin update transaction.');
             }
         }
 
@@ -616,7 +616,7 @@ export function recoverInterruptedServerPluginUpdates(pluginsRoot) {
             const record = validateRecoveryRecord(readLatestJournal(journalPath), root, journalPath);
             recoverTransaction(record);
             recovered.push(record.transactionId);
-            console.warn(`[SillyBunny] Recovered interrupted server plugin update ${record.transactionId}.`);
+            console.warn(`[Homunculus] Recovered interrupted server plugin update ${record.transactionId}.`);
         }
 
         // A worker can exit during clone/npm before its journal is written. At

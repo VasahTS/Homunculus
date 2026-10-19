@@ -113,16 +113,16 @@ function isEditableFocusTarget(element) {
 function addDocumentViewportAnchorPatch({ suspendWhileEditing = false } = {}) {
     let resetScheduled = false;
 
-    // SillyBunny: the legacy shell inset keeps the caret visible, so old iOS
+    // Homunculus: the legacy shell inset keeps the caret visible, so old iOS
     // force-scroll can be anchored immediately instead of waiting for blur.
     const isComposerHeldAboveKeyboard = () => isLegacyIOSWebKitPlatform()
         && document.documentElement.classList.contains('sb-ios-composer-keyboard-inset-active');
 
-    // SillyBunny: this anchor undoes the caret-reveal scroll a virtual keyboard
+    // Homunculus: this anchor undoes the caret-reveal scroll a virtual keyboard
     // provokes, which only stays safe while the focused field remains visible
     // without it. Resetting a load-bearing scroll makes the browser reveal the
     // caret again, and the two fight for the whole edit. Keyboard thresholds
-    // mirror MOBILE_IOS_KEYBOARD_MIN_HEIGHT_PX in sillybunny-tabs.js, which
+    // mirror MOBILE_IOS_KEYBOARD_MIN_HEIGHT_PX in homunculus-tabs.js, which
     // cannot be imported here: it pulls in script.js, which imports this file.
     const wouldResetHideFocusedEditable = () => {
         const viewport = window.visualViewport;
@@ -290,7 +290,7 @@ function applyBrowserFixes() {
                 return;
             }
 
-            // SillyBunny: do not force the viewport fix while the mobile shell is
+            // Homunculus: do not force the viewport fix while the mobile shell is
             // actively editing an input; that can disrupt IME composition and text fixes.
             // Avoid force-pinning the root while Android IMEs are actively
             // editing text. That can break replacement/correction targets and
@@ -333,7 +333,7 @@ function applyBrowserFixes() {
             lastOffsetLeft = currentOffsetLeft;
             lastScale = currentScale;
 
-            // SillyBunny: detect visual-viewport scale change from pinch-zoom
+            // Homunculus: detect visual-viewport scale change from pinch-zoom
             // or double-tap-zoom (Firefox mobile ignores user-scalable=no and
             // touch-action). Reset scroll and transient position fixes so the
             // app re-anchors to the layout viewport.
@@ -342,7 +342,7 @@ function applyBrowserFixes() {
                 return;
             }
 
-            // SillyBunny: detect horizontal visual-viewport drift from pinch-zoom
+            // Homunculus: detect horizontal visual-viewport drift from pinch-zoom
             // panning (Android Firefox ignores user-scalable=no). Reset scroll and
             // transient position fixes so the app re-anchors to the layout viewport.
             if (offsetLeftDelta > 4) {
@@ -398,7 +398,7 @@ function applyBrowserFixes() {
         }, true);
         window.addEventListener('sb-mobile-viewport-reset', handleMobileViewportReset);
 
-        // SillyBunny: Firefox mobile ignores touch-action CSS and user-scalable=no
+        // Homunculus: Firefox mobile ignores touch-action CSS and user-scalable=no
         // in the viewport meta for pinch-zoom. Intercept multi-touch events at the
         // touch level and preventDefault to block the browser's zoom gesture before
         // it can change visualViewport.scale and drift the app layout.

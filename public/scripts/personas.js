@@ -149,7 +149,7 @@ export function getUserAvatar(avatarImg) {
     return `${USER_AVATAR_PATH}${encodeURIComponent(avatarImg)}`;
 }
 
-// SillyBunny: Added to support mobile thumbnail optimization and viewport-aware avatar rendering.
+// Homunculus: Added to support mobile thumbnail optimization and viewport-aware avatar rendering.
 // Returns all avatar source variants (desktop thumbnail, mobile thumbnail, original) for performance.
 /**
  * Gets every source used to render a persona avatar.
@@ -287,7 +287,7 @@ function composePersonaDescription(avatarId = user_avatar) {
     for (const appendix of getActivePersonaAppendices(avatarId)) {
         const description = String(appendix.description ?? '').trim();
         if (description) {
-            // SillyBunny: wrap the appendix label in parentheses instead of square brackets.
+            // Homunculus: wrap the appendix label in parentheses instead of square brackets.
             // Mirrors the Conversation Mode change so the persona shape is consistent across
             // modes and avoids colliding with any square-bracket command grammar downstream.
             chunks.push(`(${appendix.name})\n${description}`);
@@ -387,7 +387,7 @@ export async function setUserAvatar(imgfile, { toastPersonaNameChange = true, na
     await eventSource.emit(event_types.PERSONA_CHANGED, user_avatar);
 }
 
-// SillyBunny: Added avatar source tracking functions for mobile thumbnail optimization.
+// Homunculus: Added avatar source tracking functions for mobile thumbnail optimization.
 // These helpers enable efficient avatar updates across desktop and mobile viewports.
 function messageUsesPersonaAvatar(avatarImg, avatarId) {
     return ['src', 'data-thumbnail-src', 'data-original-src'].some((attribute) => {
@@ -921,7 +921,7 @@ export async function convertPersonaToCharacter(avatarId = user_avatar) {
     formData.append('scenario', '');
     formData.append('first_mes', '');
     formData.append('creator_notes', t`Created from persona: ${personaName}`);
-    formData.append('creator', 'SillyBunny Persona Converter');
+    formData.append('creator', 'Homunculus Persona Converter');
     formData.append('tags', 'persona-converted');
     formData.append('fav', 'false');
     formData.append('extensions', JSON.stringify({}));
@@ -941,7 +941,7 @@ export async function convertPersonaToCharacter(avatarId = user_avatar) {
 
     const characterAvatarId = (await response.text()).trim();
     if (!characterAvatarId) {
-        toastr.error(t`Character card was created, but SillyBunny could not find its avatar id.`, t`Persona Management`);
+        toastr.error(t`Character card was created, but Homunculus could not find its avatar id.`, t`Persona Management`);
         return false;
     }
 
@@ -1157,7 +1157,7 @@ function renderPersonaAppendices() {
         renderPersonaAppendixChips(activeChips, activeAppendices);
     }
 
-    // SillyBunny: retain open notes through list refreshes, but not persona switches.
+    // Homunculus: retain open notes through list refreshes, but not persona switches.
     const expandedIds = new Set(list.dataset.avatarId === user_avatar
         ? Array.from(list.querySelectorAll('details[open]'), details => details.closest('.persona-appendix-card').dataset.appendixId)
         : []);

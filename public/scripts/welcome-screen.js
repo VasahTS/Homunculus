@@ -47,7 +47,7 @@ const DEFAULT_NEUTRAL_ASSISTANT_NAME = 'Assistant';
 
 const AGENT_MESSAGE_EXTRA_KEY = 'inChatAgents';
 const AGENT_PROMPT_TRANSFORM_HISTORY_KEY = 'inChatAgentTransformHistory';
-const STARTER_PACK_PRESET_NAME_SILLYBUNNY = 'Pura\'s Director Preset 15.1 (SillyBunny)';
+const STARTER_PACK_PRESET_NAME_HOMUNCULUS = 'Pura\'s Director Preset 15.1 (SillyBunny)';
 const STARTER_PACK_PRESET_TITLE = 'Pura\'s Director Preset';
 const TLD_PRESET_NAME = 'TLD Card Conversion Preset (Standalone)';
 const STARTER_PACK_SITE_URL = 'https://platberlitz.github.io/';
@@ -121,7 +121,7 @@ const STARTER_PACK_EXTENSIONS = Object.freeze({
 const WELCOME_TUTORIAL_STEPS = Object.freeze([
     {
         title: 'Your homepage',
-        body: 'The Home Page is your personal launchpad. You can quickly access various essential functions of SillyBunny here. For full access to this program\'s functionality, please use the top bar for further navigation and configuration.',
+        body: 'The Home Page is your personal launchpad. You can quickly access various essential functions of Homunculus here. For full access to this program\'s functionality, please use the top bar for further navigation and configuration.',
         hint: 'If you just want to directly chat with your chosen model, clicking Temporary Chat will get you started.',
         actions: Object.freeze([
             Object.freeze({ label: 'Open Workspace', type: 'open-tab', value: 'left:presets' }),
@@ -132,7 +132,7 @@ const WELCOME_TUTORIAL_STEPS = Object.freeze([
     {
         title: 'Connect a model',
         body: 'You will need to connect a large language model (LLM) to actually utilize the functionalities of this program. Open the API sub-tab found in Workspace to get started.',
-        hint: 'Not sure what provider to use? OpenRouter is a good place to start. SillyBunny needs at least one working connection before you can chat.',
+        hint: 'Not sure what provider to use? OpenRouter is a good place to start. Homunculus needs at least one working connection before you can chat.',
         actions: Object.freeze([
             Object.freeze({ label: 'Open API', type: 'open-tab', value: 'left:api' }),
             Object.freeze({ label: 'Open Sampling', type: 'open-tab', value: 'left:sampling' }),
@@ -150,7 +150,7 @@ const WELCOME_TUTORIAL_STEPS = Object.freeze([
     {
         title: 'Load a character',
         body: 'Now that you\'ve gotten the pre-requisites out of the way, you\'re close to being able to chat! Open the Characters menu and select a character to get started on your RP/storywriting journey.',
-        hint: 'You will need to source your own character cards from online (or create your own!) if you want more than just the bundled characters. SillyBunny supports all cards following the V2/V3 format.',
+        hint: 'You will need to source your own character cards from online (or create your own!) if you want more than just the bundled characters. Homunculus supports all cards following the V2/V3 format.',
         actions: Object.freeze([
             Object.freeze({ label: 'Open Characters', type: 'open-characters-menu' }),
             Object.freeze({ label: 'Open Personas', type: 'open-tab', value: 'characters:persona' }),
@@ -159,7 +159,7 @@ const WELCOME_TUTORIAL_STEPS = Object.freeze([
     },
     {
         title: 'Customize your workspace',
-        body: 'Congrats, you\'re done! If you wish to delve into all the functionality and customization that SillyBunny can offer, please explore our UI from the top bar. A good starting point is SillyBunny\'s vast extension ecosystem. For more information: check out the UI Handbook tab!',
+        body: 'Congrats, you\'re done! If you wish to delve into all the functionality and customization that Homunculus can offer, please explore our UI from the top bar. A good starting point is Homunculus\'s vast extension ecosystem. For more information: check out the UI Handbook tab!',
         hint: 'The world of AI creative writing is vast and seemingly neverending. We recommend asking our built-in assistants for more help if you\'re confused!',
         actions: Object.freeze([
             Object.freeze({ label: 'Open UI Handbook', type: 'open-deck-view', value: 'basics' }),
@@ -184,7 +184,7 @@ const WELCOME_GUIDE_CARDS = Object.freeze([
     },
     {
         title: 'Customize Menu',
-        body: 'Open the Customize button in the top bar when you want to change any setting related to SillyBunny itself. This includes app settings, extensions, backgrounds, and visual settings.',
+        body: 'Open the Customize button in the top bar when you want to change any setting related to Homunculus itself. This includes app settings, extensions, backgrounds, and visual settings.',
         icon: 'fa-screwdriver-wrench',
         actions: Object.freeze([
             Object.freeze({ label: 'Open the Customize menu', type: 'open-tab', value: 'right:settings' }),
@@ -243,19 +243,19 @@ const WELCOME_BUNDLED_ASSISTANTS = Object.freeze([
         portraitAlt: 'Pixel-art bunny guide portrait',
         characterName: DEFAULT_NEUTRAL_ASSISTANT_NAME,
         title: 'Bunny Guide',
-        body: 'Our bundled bunny assistant. It can explain what an LLM is, what providers and models mean, how SillyBunny differs from stock SillyTavern, and where presets, personas, and world info reside in the context of your RP or story.',
+        body: 'Our bundled bunny assistant. It can explain what an LLM is, what providers and models mean, how Homunculus differs from stock SillyTavern, and where presets, personas, and world info reside in the context of your RP or story.',
         credit: 'Created by purachina.',
         creator: 'purachina',
         creatorNotes: 'Automatically created bundled Bunny Guide character. Feel free to edit.',
-        description: 'A calm built-in bunny assistant for explaining SillyBunny, SillyTavern, model providers, presets, personas, and related basics in plain English.',
+        description: 'A calm built-in bunny assistant for explaining Homunculus, SillyTavern, model providers, presets, personas, and related basics in plain English.',
         personality: 'Patient, beginner-friendly, calm, and practical.',
-        scenario: 'You are the built-in Bunny Guide for SillyBunny. Help the user understand the interface, APIs, presets, prompt settings, personas, and world info in plain, approachable language.',
-        firstMessage: 'Hi. I\'m the Bunny Guide. If anything in SillyBunny feels confusing, ask in plain English and I\'ll walk through it with you step by step.',
+        scenario: 'You are the built-in Bunny Guide for Homunculus. Help the user understand the interface, APIs, presets, prompt settings, personas, and world info in plain, approachable language.',
+        firstMessage: 'Hi. I\'m the Bunny Guide. If anything in Homunculus feels confusing, ask in plain English and I\'ll walk through it with you step by step.',
         questions: Object.freeze([
             'What is an LLM, in plain English?',
             'What is a character card?',
             'What does a preset actually change?',
-            'How is SillyBunny different from base SillyTavern?',
+            'How is Homunculus different from base SillyTavern?',
         ]),
         actionLabel: 'Open Bunny Guide',
         actionIcon: 'fa-user-graduate',
@@ -276,10 +276,10 @@ const WELCOME_BUNDLED_ASSISTANTS = Object.freeze([
         body: 'Assistant Nahida is one of our bundled assistants: with a gentle, metaphor-laden demeanour for all kinds of queries. She has the same capabilities as our Bunny Assistant, but with a more philosophical lens.',
         credit: 'Created by Geechan.',
         creator: 'Geechan',
-        creatorNotes: 'Bundled with SillyBunny. Created by Geechan. Feel free to edit.',
-        description: 'Assistant Nahida is one of our bundled SillyBunny helpers. She can help explain prompts, token budgeting, presets, context setup, and workflow choices in calm, beginner-friendly language.',
+        creatorNotes: 'Bundled with Homunculus. Created by Geechan. Feel free to edit.',
+        description: 'Assistant Nahida is one of our bundled Homunculus helpers. She can help explain prompts, token budgeting, presets, context setup, and workflow choices in calm, beginner-friendly language.',
         personality: 'Patient, observant, encouraging, thoughtful, and concise.',
-        scenario: 'You are Assistant Nahida, a bundled helper for SillyBunny. Guide the user through prompts, token budgeting, presets, reasoning settings, context size, and general workflow questions with calm clarity.',
+        scenario: 'You are Assistant Nahida, a bundled helper for Homunculus. Guide the user through prompts, token budgeting, presets, reasoning settings, context size, and general workflow questions with calm clarity.',
         firstMessage: 'Hello. I\'m Assistant Nahida, a bundled helper made by Geechan. If you want, we can sort out prompts, presets, context size, or any confusing settings together.',
         questions: Object.freeze([
             'Can you help me make sense of my current system prompt?',
@@ -297,7 +297,7 @@ const WELCOME_DECK_VIEWS = Object.freeze([
     {
         id: 'tour',
         title: 'Starting Tutorial',
-        summary: 'New to SillyBunny? Start here!',
+        summary: 'New to Homunculus? Start here!',
         icon: 'fa-route',
     },
     {
@@ -712,7 +712,7 @@ function isWelcomePanelMode(mode) {
 }
 
 function getWelcomePanelMode() {
-    const storedMode = getWelcomeUiPreference(welcomePanelModeKey) || (globalThis.SillyBunnyClassicUi ? WELCOME_PANEL_MODES.compact : WELCOME_PANEL_MODES.full); // Classic UI fork
+    const storedMode = getWelcomeUiPreference(welcomePanelModeKey) || (globalThis.HomunculusClassicUi ? WELCOME_PANEL_MODES.compact : WELCOME_PANEL_MODES.full); // Classic UI fork
     return isWelcomePanelMode(storedMode) ? storedMode : WELCOME_PANEL_MODES.full;
 }
 
@@ -864,12 +864,12 @@ function buildExtensionStarterPackItem({ title, body, icon, extensionName }) {
 
 function buildPresetStarterPackItem() {
     const presetManager = getPresetManager('openai');
-    const sillyBunnyPreset = presetManager?.findPreset(STARTER_PACK_PRESET_NAME_SILLYBUNNY);
+    const homunculusPreset = presetManager?.findPreset(STARTER_PACK_PRESET_NAME_HOMUNCULUS);
     const isOpenAiStyleApi = main_api === 'openai';
     const selectedPresetName = isOpenAiStyleApi ? presetManager?.getSelectedPresetName() : '';
-    const isSelected = selectedPresetName === STARTER_PACK_PRESET_NAME_SILLYBUNNY;
-    const hasBundledPreset = Boolean(sillyBunnyPreset);
-    const body = 'Purachina\'s Director v15.1 preset is fully bundled with SillyBunny as a preset option. This preset is ideal if you want the LLM to have maximum control over the story, the characters, *and* your persona. Simply go to the Presets menu to find it. If you wish to see more of Pura\'s character cards and other projects, check out the link below!';
+    const isSelected = selectedPresetName === STARTER_PACK_PRESET_NAME_HOMUNCULUS;
+    const hasBundledPreset = Boolean(homunculusPreset);
+    const body = 'Purachina\'s Director v15.1 preset is fully bundled with Homunculus as a preset option. This preset is ideal if you want the LLM to have maximum control over the story, the characters, *and* your persona. Simply go to the Presets menu to find it. If you wish to see more of Pura\'s character cards and other projects, check out the link below!';
 
     if (!isOpenAiStyleApi) {
         return {
@@ -895,7 +895,7 @@ function buildPresetStarterPackItem() {
             actionIcon: 'fa-wand-magic-sparkles',
             actionLabel: 'Apply preset',
             actionType: 'apply-preset',
-            actionValue: STARTER_PACK_PRESET_NAME_SILLYBUNNY,
+            actionValue: STARTER_PACK_PRESET_NAME_HOMUNCULUS,
             secondaryActionLabel: 'Visit site',
             secondaryActionIcon: 'fa-arrow-up-right-from-square',
             secondaryActionType: 'open-link',
@@ -920,7 +920,7 @@ function buildGeechanStarterPackItem() {
     const presetManager = getPresetManager('openai');
     const isOpenAiStyleApi = main_api === 'openai';
     const isSelected = isOpenAiStyleApi && presetManager?.getSelectedPresetName() === GEECHAN_PRESET_NAME;
-    const body = 'Geechan\'s Universal Roleplay v5.2 and Universal Chatroom presets are also fully bundled with SillyBunny as a preset option. The Universal Roleplay preset is ideal if you want a traditional roleplay and storywriting experience with an LLM, while your persona and general story direction remain completely in your own hands. If you wish to see more of Geechan\'s character cards, presets, and guides, check out the link below!';
+    const body = 'Geechan\'s Universal Roleplay v5.2 and Universal Chatroom presets are also fully bundled with Homunculus as a preset option. The Universal Roleplay preset is ideal if you want a traditional roleplay and storywriting experience with an LLM, while your persona and general story direction remain completely in your own hands. If you wish to see more of Geechan\'s character cards, presets, and guides, check out the link below!';
 
     return {
         title: 'Geechan\'s Universal Roleplay',
@@ -988,7 +988,7 @@ function buildStarterPackItems() {
             }),
             buildExtensionStarterPackItem({
                 title: 'Moonlit Echoes Theme',
-                body: 'A popular CSS theme originally designed for SillyTavern with a clean and modern design, adapted for use in SillyBunny.',
+                body: 'A popular CSS theme originally designed for SillyTavern with a clean and modern design, adapted for use in Homunculus.',
                 icon: 'fa-moon',
                 extensionName: STARTER_PACK_EXTENSIONS.moonlitEchoes.id,
             }),
@@ -1018,19 +1018,19 @@ function buildStarterPackItems() {
             }),
             buildExtensionStarterPackItem({
                 title: 'Bot Searcher',
-                body: 'Adds a character-card browser to SillyBunny. It can search supported card sites, show the details each site provides, and import any selected card. Note: this requires a server plugin to use.',
+                body: 'Adds a character-card browser to Homunculus. It can search supported card sites, show the details each site provides, and import any selected card. Note: this requires a server plugin to use.',
                 icon: 'fa-magnifying-glass',
                 extensionName: STARTER_PACK_EXTENSIONS.botSearcher.id,
             }),
             buildExtensionStarterPackItem({
                 title: 'Macro Enhanced',
-                body: 'Adds a wide variety of new, heavily customizable macros to SillyBunny\'s STScript engine. View all macros with /help macros.',
+                body: 'Adds a wide variety of new, heavily customizable macros to Homunculus\'s STScript engine. View all macros with /help macros.',
                 icon: 'fa-code',
                 extensionName: STARTER_PACK_EXTENSIONS.macroEnhanced.id,
             }),
             buildExtensionStarterPackItem({
                 title: 'Prompt Tags',
-                body: 'Adds automatic XML tags to SillyBunny\'s prompt sections. This can be useful if you want to implement XML prompting without modifying any existing presets, personas, lorebooks, or character cards.',
+                body: 'Adds automatic XML tags to Homunculus\'s prompt sections. This can be useful if you want to implement XML prompting without modifying any existing presets, personas, lorebooks, or character cards.',
                 icon: 'fa-tags',
                 extensionName: STARTER_PACK_EXTENSIONS.promptTags.id,
             }),
@@ -1062,7 +1062,7 @@ function buildStarterPackItems() {
             }),
             buildExtensionStarterPackItem({
                 title: 'ADHDBunny UI',
-                body: 'An optional CSS theme for SillyBunny which further simplifies the graphical shell and user interface. Developed by Jimmy.',
+                body: 'An optional CSS theme for Homunculus which further simplifies the graphical shell and user interface. Developed by Jimmy.',
                 icon: 'fa-rabbit',
                 extensionName: STARTER_PACK_EXTENSIONS.adhdBunnyUi.id,
             }),
@@ -1135,8 +1135,8 @@ async function highlightLaunchpadItem(extensionId) {
     return true;
 }
 
-globalThis.SillyBunnyShell = /** @type {any} */ (globalThis.SillyBunnyShell || {});
-globalThis.SillyBunnyShell.highlightLaunchpadItem = highlightLaunchpadItem;
+globalThis.HomunculusShell = /** @type {any} */ (globalThis.HomunculusShell || {});
+globalThis.HomunculusShell.highlightLaunchpadItem = highlightLaunchpadItem;
 
 /**
  * Gets the filter bucket used by the Recent Chats tabs.
@@ -1265,7 +1265,7 @@ function handleLinearNavigation(event, buttons, activeButton, activate) {
 }
 
 function openShellTab(route) {
-    // SillyBunny: accept historical launcher routes while opening relocated
+    // Homunculus: accept historical launcher routes while opening relocated
     // World Info in the Characters panel instead of the old left shell.
     const normalizedRoute = route === 'left:world-info' ? 'characters:world-info' : route;
     const [shellKey, tabId] = String(normalizedRoute || '').split(':');
@@ -1274,8 +1274,8 @@ function openShellTab(route) {
         return false;
     }
 
-    if (globalThis.SillyBunnyShell?.openTab) {
-        globalThis.SillyBunnyShell.openTab(shellKey, tabId);
+    if (globalThis.HomunculusShell?.openTab) {
+        globalThis.HomunculusShell.openTab(shellKey, tabId);
         return true;
     }
 
@@ -1328,7 +1328,7 @@ function prefillSendTextarea(sendTextArea, value, { skipIOSFocus = false } = {})
     focusSendTextarea(sendTextArea, { skipIOS: skipIOSFocus });
 }
 
-// SillyBunny divergence: suppress the legacy chat shell briefly while Conversation Mode takes over from welcome-screen recent-chat entry points.
+// Homunculus divergence: suppress the legacy chat shell briefly while Conversation Mode takes over from welcome-screen recent-chat entry points.
 const conversationWelcomeOpeningVisibilityKey = 'sbConversationWelcomeOpeningVisibility';
 
 function setConversationWelcomeOpeningSuppressed(suppressed) {
@@ -1560,7 +1560,7 @@ function setTutorialUiState(panel, index, expanded, { persist = true } = {}) {
 }
 
 async function openRoleplayWorkspaceFromWelcome() {
-    const conversationModule = await import('./sillybunny-conversation.js');
+    const conversationModule = await import('./homunculus-conversation.js');
     const avatar = conversationModule.getRoleplayAvatarForWelcome?.();
     const characterId = avatar ? characters.findIndex(character => character?.avatar === avatar) : -1;
     if (characterId === -1) {
@@ -1638,18 +1638,18 @@ async function handleWelcomeAction(button, sendTextArea) {
             await openRoleplayWorkspaceFromWelcome();
             break;
         case 'open-conversation': {
-            const conversationModule = await import('./sillybunny-conversation.js');
+            const conversationModule = await import('./homunculus-conversation.js');
             conversationModule.openConversationWorkspaceFromWelcome?.();
             break;
         }
         case 'open-characters-menu':
-            globalThis.SillyBunnyShell?.openCharacters?.();
+            globalThis.HomunculusShell?.openCharacters?.();
             break;
         case 'open-global-search':
-            globalThis.SillyBunnyShell?.openGlobalSearch?.({ focusInput: true });
+            globalThis.HomunculusShell?.openGlobalSearch?.({ focusInput: true });
             break;
         case 'open-import-characters': {
-            globalThis.SillyBunnyShell?.openCharacters?.();
+            globalThis.HomunculusShell?.openCharacters?.();
             const importButton = document.getElementById('character_import_button')
                 || document.getElementById('character_import_paste_button')
                 || document.querySelector('.open_characters_library');
@@ -1987,7 +1987,7 @@ async function sendWelcomePanel(chats, expand = false) {
                 updateRecentChatFilterView(root);
             }
         });
-        window.SillyBunnyFrontendIcon?.apply?.();
+        window.HomunculusFrontendIcon?.apply?.();
         if (expand) {
             chatElement.querySelectorAll('button.showMoreChats').forEach((button) => {
                 if (button instanceof HTMLButtonElement) {
@@ -2047,7 +2047,7 @@ async function openRecentConversationChat(avatarId, groupId = '', branchId = '')
 
     try {
         setConversationWelcomeOpeningSuppressed(true);
-        const conversationModule = await import('./sillybunny-conversation.js');
+        const conversationModule = await import('./homunculus-conversation.js');
         const opened = conversationModule.openConversationWorkspaceForAvatar?.(avatarId, {
             branchId,
             groupId: groupId || null,
@@ -2082,7 +2082,7 @@ async function renameRecentConversationChat(avatarId, groupId, branchId, branchN
             return;
         }
 
-        const conversationModule = await import('./sillybunny-conversation.js');
+        const conversationModule = await import('./homunculus-conversation.js');
         const renamed = conversationModule.renameConversationBranch?.(avatarId, branchId, newName, { groupId });
         if (!renamed) {
             toastr.warning(t`Failed to rename Conversation chat.`);
@@ -2114,7 +2114,7 @@ async function deleteRecentConversationChat(avatarId, groupId, branchId, recentC
             return;
         }
 
-        const conversationModule = await import('./sillybunny-conversation.js');
+        const conversationModule = await import('./homunculus-conversation.js');
         const result = conversationModule.deleteConversationWelcomeBranch?.(avatarId, branchId, { groupId });
         const deleted = Boolean(result?.deleted);
         if (!deleted) {
@@ -2454,7 +2454,7 @@ async function getRecentChats() {
         }));
     const getConversationChats = async () => {
         try {
-            const conversationModule = await import('./sillybunny-conversation.js');
+            const conversationModule = await import('./homunculus-conversation.js');
             const conversationChats = conversationModule.getConversationWelcomeChats?.({ max: settings.maxDisplayed }) || [];
             return conversationChats;
         } catch (error) {

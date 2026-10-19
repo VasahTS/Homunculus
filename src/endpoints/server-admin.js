@@ -78,7 +78,7 @@ const THUMBNAIL_CONFIG_DEFAULTS = Object.freeze({
         persona: Object.freeze([864, 1280]),
     }),
 });
-const SILLYBUNNY_RECOMMENDED_THUMBNAILS = Object.freeze({
+const HOMUNCULUS_RECOMMENDED_THUMBNAILS = Object.freeze({
     enabled: true,
     format: 'png',
     quality: 100,
@@ -98,7 +98,7 @@ const THUMBNAIL_MOBILE_CONFIG_DEFAULTS = Object.freeze({
         persona: Object.freeze([320, 480]),
     }),
 });
-const SILLYBUNNY_RECOMMENDED_THUMBNAILS_MOBILE = Object.freeze({
+const HOMUNCULUS_RECOMMENDED_THUMBNAILS_MOBILE = Object.freeze({
     enabled: true,
     format: 'jpg',
     quality: 82,
@@ -382,7 +382,7 @@ function getZipUpdatePayload(stagedUpdate) {
         // Clear inherited supervision markers so the helper's replacement
         // process starts a fresh supervisor after the old process tree exits.
         envPatch: {
-            SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH: '1',
+            HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH: '1',
             [RESTART_SUPERVISED_ENV]: '',
             [RESTART_LAUNCHER_ENV]: '',
         },
@@ -551,7 +551,7 @@ async function restoreGeneratedInstallFileChanges(git, gitStatus) {
         await git.raw(['checkout', '--', ...generatedPaths]);
     }
 
-    // SillyBunny: Windows launchers can rewrite install metadata while recovering from stale Bun locks.
+    // Homunculus: Windows launchers can rewrite install metadata while recovering from stale Bun locks.
     console.info(`Restored generated install file changes before checking for updates: ${generatedPaths.join(', ')}.`);
 
     return await git.status();
@@ -765,7 +765,7 @@ router.post('/config/save', requireAdminMiddleware, async (request, response) =>
                 restarting: true,
                 path: configPath,
                 lastModifiedMs: nextStat.mtimeMs,
-                message: 'Config saved. Restarting SillyBunny now.',
+                message: 'Config saved. Restarting Homunculus now.',
             });
         }
 
@@ -818,7 +818,7 @@ router.post('/config/chat-completions/save', requireAdminMiddleware, async (requ
                 path: configPath,
                 lastModifiedMs: nextStat.mtimeMs,
                 settings: nextSettings,
-                message: 'Chat completion server config saved. Restarting SillyBunny now.',
+                message: 'Chat completion server config saved. Restarting Homunculus now.',
             });
         }
 
@@ -857,8 +857,8 @@ router.post('/config/thumbnail-settings/get', requireAdminMiddleware, async (_re
                 ...getThumbnailMobileRuntimeSettings(),
                 dimensions: getThumbnailMobileDimensions(),
             },
-            recommended: SILLYBUNNY_RECOMMENDED_THUMBNAILS,
-            recommendedMobile: SILLYBUNNY_RECOMMENDED_THUMBNAILS_MOBILE,
+            recommended: HOMUNCULUS_RECOMMENDED_THUMBNAILS,
+            recommendedMobile: HOMUNCULUS_RECOMMENDED_THUMBNAILS_MOBILE,
         });
     } catch (error) {
         console.error('Failed to read thumbnail config settings.', error);
@@ -957,7 +957,7 @@ router.post('/server-plugins/apply-release', requireAdminMiddleware, async (requ
             return response.status(503).json({
                 error: capabilities.safeRestart
                     ? 'Git and npm are required for automatic server plugin updates.'
-                    : 'This SillyBunny process is not managed by the built-in supervisor.',
+                    : 'This Homunculus process is not managed by the built-in supervisor.',
                 code: capabilities.safeRestart ? 'tooling_unavailable' : 'safe_restart_unavailable',
             });
         }
@@ -977,7 +977,7 @@ router.post('/server-plugins/apply-release', requireAdminMiddleware, async (requ
                 currentVersion: stagedUpdate.currentVersion,
                 targetVersion: stagedUpdate.targetVersion,
                 serverBootId: getServerBootId(),
-                message: `Server plugin v${stagedUpdate.targetVersion} is installed. Restarting SillyBunny to activate it.`,
+                message: `Server plugin v${stagedUpdate.targetVersion} is installed. Restarting Homunculus to activate it.`,
             });
         }
 
@@ -992,7 +992,7 @@ router.post('/server-plugins/apply-release', requireAdminMiddleware, async (requ
             tag: stagedUpdate.tag,
             commit: stagedUpdate.commit,
             serverBootId: getServerBootId(),
-            message: `Server plugin ${stagedUpdate.tag} staged. Restarting SillyBunny to replace it safely.`,
+            message: `Server plugin ${stagedUpdate.tag} staged. Restarting Homunculus to replace it safely.`,
         });
     } catch (error) {
         if (cancelHandoff) {
@@ -1057,7 +1057,7 @@ router.post('/zip-update', requireAdminMiddleware, async (_request, response) =>
         response.status(202).json({
             updated: true,
             restarting: true,
-            message: `ZIP release v${release.latestVersion} downloaded. Restarting SillyBunny to replace app files safely.`,
+            message: `ZIP release v${release.latestVersion} downloaded. Restarting Homunculus to replace app files safely.`,
             version,
             repository,
             release: {
@@ -1103,7 +1103,7 @@ router.post('/update', requireAdminMiddleware, async (_request, response) => {
                 return response.status(409).json({ error: repository.message || 'Local changes are present, so auto-update is blocked.', repository });
             }
             try {
-                await git.stash(['push', '-u', '-m', 'SillyBunny auto-stash before update']);
+                await git.stash(['push', '-u', '-m', 'Homunculus auto-stash before update']);
                 stashed = true;
                 console.info('Local changes, including untracked files, stashed before update.');
             } catch (stashError) {
@@ -1166,7 +1166,7 @@ router.post('/update', requireAdminMiddleware, async (_request, response) => {
             restarting: true,
             stashed,
             stashPopWarning,
-            message: stashPopWarning || `Update applied from ${repository.trackingBranch}. Restarting SillyBunny now.`,
+            message: stashPopWarning || `Update applied from ${repository.trackingBranch}. Restarting Homunculus now.`,
             version: nextVersion,
             repository: nextRepository,
             install: installResult ? {
@@ -1176,13 +1176,13 @@ router.post('/update', requireAdminMiddleware, async (_request, response) => {
             } : null,
         });
     } catch (error) {
-        console.error('Failed to update SillyBunny.', error);
+        console.error('Failed to update Homunculus.', error);
         let stashPopWarning = null;
         if (stashed && git) {
             stashPopWarning = await restoreAutoStash(git, { reason: 'after update failure' });
         }
         response.status(500).json({
-            error: error.message || 'Failed to update SillyBunny.',
+            error: error.message || 'Failed to update Homunculus.',
             stashed,
             stashPopWarning,
         });
@@ -1300,7 +1300,7 @@ router.post('/switch-branch', requireAdminMiddleware, async (request, response) 
             stashed: hasLocalChanges && autoStash,
             stashRestored,
             restarting: true,
-            message: `Switched to branch "${branch}". Restarting SillyBunny now.`,
+            message: `Switched to branch "${branch}". Restarting Homunculus now.`,
         });
     } catch (error) {
         console.error('Failed to switch branch.', error);

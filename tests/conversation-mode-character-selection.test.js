@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const scriptSource = readFileSync(path.join(repoRoot, 'public', 'script.js'), 'utf8').replace(/\r\n/g, '\n');
-const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8').replace(/\r\n/g, '\n');
+const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8').replace(/\r\n/g, '\n');
 
 describe('Conversation mode character selection', () => {
     test('opens the selected character card in Conversation mode', () => {

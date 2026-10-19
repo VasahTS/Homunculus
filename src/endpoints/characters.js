@@ -54,7 +54,7 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0
 const getPngFileName = fileName => path.extname(fileName).toLowerCase() === '.png'
     ? fileName
     : `${fileName}.png`;
-// SillyBunny: allow POSIX-valid character names while keeping avatar access inside the character folder.
+// Homunculus: allow POSIX-valid character names while keeping avatar access inside the character folder.
 export const sanitiseFilenameForWindows = (filename) => process.platform === 'win32'
     ? sanitize(filename, { replacement: sanitizeSafeCharacterReplacements }) || 'character'
     : filename;
@@ -297,7 +297,7 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
         const getInputImage = async () => {
             try {
                 let rawImage;
-                // SillyBunny: metadata-only card edits must not rebuild an existing PNG through Jimp.
+                // Homunculus: metadata-only card edits must not rebuild an existing PNG through Jimp.
                 const editsExistingCard = typeof inputFile === 'string' && isSameFile(inputFile, outputImagePath);
                 if (editsExistingCard && (crop === undefined || crop === null)) {
                     rawImage = await fsPromises.readFile(inputFile);
@@ -428,7 +428,7 @@ async function mergeCharacterUpdate(avatarPath, avatar, updateData, request, sho
     applyUnsetSentinels(character, update);
     deleteUnsetSentinels(character);
 
-    // SillyBunny: writing re-encodes the whole PNG and drops the character caches,
+    // Homunculus: writing re-encodes the whole PNG and drops the character caches,
     // so a merge that changed nothing must not touch the file.
     if (_.isEqual(character, beforeMerge)) {
         return { ok: true, unchanged: true };
@@ -847,7 +847,7 @@ function charaFormatData(data, directories) {
  */
 function convertWorldInfoToCharacterBook(name, entries, extensions = {}) {
     /** @type {{ entries: object[]; name: string; extensions: object }} */
-    // SillyBunny: native book metadata, including waypoint layouts, travels with embedded cards.
+    // Homunculus: native book metadata, including waypoint layouts, travels with embedded cards.
     const result = { entries: [], name, extensions: structuredClone(extensions ?? {}) };
     const sortedEntries = Object.values(entries).sort((a, b) => (a.displayIndex ?? a.uid ?? 0) - (b.displayIndex ?? b.uid ?? 0));
 
@@ -1310,7 +1310,7 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
         if (rawOldData === undefined) throw new Error('Failed to read character file');
 
         const oldData = getCharaCardV2(JSON.parse(rawOldData), request.user.directories);
-        // SillyBunny: carry the sidecar's last opened chat onto the new avatar name,
+        // Homunculus: carry the sidecar's last opened chat onto the new avatar name,
         // falling back to the card for installs that predate the sidecar.
         prepareEntityLastChatMove(dateAddedRoot, oldAvatarName, newAvatarName, oldData?.chat);
         _.set(oldData, 'data.name', newName);
@@ -1392,7 +1392,7 @@ router.post('/edit', validateAvatarUrlMiddleware, async function (request, respo
             if (suspiciousEmptyFields.length > 0) {
                 const fieldList = suspiciousEmptyFields.map(field => field.label).join(', ');
                 const message = [
-                    'SillyBunny blocked this character save because previously populated definition fields were submitted empty:',
+                    'Homunculus blocked this character save because previously populated definition fields were submitted empty:',
                     `${fieldList}.`,
                     'Reload the page before editing this character again, or confirm the save if you intentionally cleared those fields.',
                 ].join(' ');
@@ -1610,7 +1610,7 @@ router.post('/merge-attributes', getFileNameValidationFunction('avatar'), async 
     }
 });
 
-// SillyBunny: recording which chat a character last had open must not rewrite the
+// Homunculus: recording which chat a character last had open must not rewrite the
 // card. Upstream routes this through /merge-attributes, which re-encodes the PNG
 // on every chat switch and resets the file's timestamps.
 router.post('/last-chat', getFileNameValidationFunction('avatar'), async function (request, response) {
@@ -1804,7 +1804,7 @@ router.post('/all', async function (request, response) {
             fileStat: fileStats.get(file),
         }));
         const data = (await Promise.all(processingPromises)).filter(c => c.name);
-        // SillyBunny: the sidecar owns the last opened chat; the card's own value is
+        // Homunculus: the sidecar owns the last opened chat; the card's own value is
         // only a fallback for installs that predate it.
         const lastChatByFile = readEntityLastChats(getEntityDateAddedRoot(request.user.directories));
         for (const character of data) {
@@ -1848,7 +1848,7 @@ router.post('/get', validateAvatarUrlMiddleware, async function (request, respon
         if (data.date_added === undefined) {
             return response.sendStatus(404);
         }
-        // SillyBunny: see the sidecar overlay in POST /all.
+        // Homunculus: see the sidecar overlay in POST /all.
         data.chat = getEntityLastChat(getEntityDateAddedRoot(request.user.directories), item) ?? data.chat;
 
         return response.send(data);
@@ -1908,7 +1908,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
         const validFiles = chatData.filter(i => i.file_name);
 
         if (recoveryTarget && !validFiles.some(file => file.file_name === requestedFileName)) {
-            // SillyBunny: retain the persisted target so the strict load endpoint can recover or reject it.
+            // Homunculus: retain the persisted target so the strict load endpoint can recover or reject it.
             const requestedChat = readChatJsonlStrict(recoveryTarget.activePath);
             const hasRecoverableSnapshot = isChatBackupEnabled && isChatRecoverable(recoveryTarget);
             if ((requestedChat.status === 'corrupt' && requestedChat.data !== null) || hasRecoverableSnapshot) {
@@ -1918,7 +1918,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
 
         return response.send(validFiles);
     } catch (error) {
-        // SillyBunny: a listing failure must be distinguishable from a character that has no chats yet.
+        // Homunculus: a listing failure must be distinguishable from a character that has no chats yet.
         console.error(error);
         return response.status(500).send({ error: true });
     }
@@ -1931,7 +1931,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
  * @returns {string} - The name for the uploaded PNG file
  */
 function getPngName(file, directories) {
-    // SillyBunny: Windows forbids <>:"/\|?* in file names, so sanitise imports there. POSIX keeps pipes.
+    // Homunculus: Windows forbids <>:"/\|?* in file names, so sanitise imports there. POSIX keeps pipes.
     file = sanitiseFilenameForWindows(file);
     let i = 1;
     const baseName = file;
@@ -1951,7 +1951,7 @@ function getPreservedName(request) {
     if (typeof request.body.preserved_name !== 'string' || request.body.preserved_name.length === 0) {
         return undefined;
     }
-    // SillyBunny: preserved names bypass getPngName, so sanitise them for Windows too.
+    // Homunculus: preserved names bypass getPngName, so sanitise them for Windows too.
     return sanitiseFilenameForWindows(path.parse(request.body.preserved_name).name) || undefined;
 }
 

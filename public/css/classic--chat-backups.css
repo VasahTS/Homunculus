@@ -53,7 +53,7 @@
     font-size: var(--mainFontSize);
 }
 
-/* ===== Classic UI fork: SillyBunny-only rules from css/chat-backups.css (auto-extracted, see tools/css-merge.mjs) ===== */
+/* ===== Classic UI fork: Homunculus-only rules from css/chat-backups.css (auto-extracted, see tools/css-merge.mjs) ===== */
 
 #select_chat_popup.chatBackupsOpen {
     height: 100%;

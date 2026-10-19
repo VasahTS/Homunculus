@@ -32,7 +32,7 @@ describe('TTS quoted-only filtering', () => {
 
     test('excludes quoted text inside asterisk actions when both filters are enabled', () => {
         const filterTtsAsterisksStart = ttsSource.indexOf('function filterTtsAsterisks(');
-        const filterTtsAsterisksEnd = ttsSource.indexOf('// SillyBunny: discard semantic blocks', filterTtsAsterisksStart);
+        const filterTtsAsterisksEnd = ttsSource.indexOf('// Homunculus: discard semantic blocks', filterTtsAsterisksStart);
 
         expect(filterTtsAsterisksStart).toBeGreaterThanOrEqual(0);
         expect(filterTtsAsterisksEnd).toBeGreaterThan(filterTtsAsterisksStart);

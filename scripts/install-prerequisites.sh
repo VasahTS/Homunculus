@@ -33,7 +33,7 @@ BUN_INSTALL_DIR="${BUN_INSTALL:-$HOME/.bun}"
 TERMUX_PREFIX_DEFAULT='/data/data/com.termux/files/usr'
 TERMUX_PREFIX="${PREFIX:-$TERMUX_PREFIX_DEFAULT}"
 TERMUX_GLIBC_ROOT="${GLIBC_ROOT:-$TERMUX_PREFIX/glibc}"
-TERMUX_BUN_WRAPPER_MARKER='SillyBunny Termux Bun wrapper'
+TERMUX_BUN_WRAPPER_MARKER='Homunculus Termux Bun wrapper'
 # Pinned to bun-termux-manager v1.0.1. This script is piped into bash, so it is
 # tracked by commit rather than by branch.
 TERMUX_BUN_MANAGER_COMMIT='b9f47733b0198d59dc9775a487a8a731cde322cb'
@@ -319,12 +319,12 @@ REAL_BUN="$bun_real_path"
 GLIBC_RUNNER="$glibc_runner"
 
 if [[ ! -x "\$REAL_BUN" ]]; then
-    echo "SillyBunny could not find the Termux Bun runtime at '\$REAL_BUN'." >&2
+    echo "Homunculus could not find the Termux Bun runtime at '\$REAL_BUN'." >&2
     exit 1
 fi
 
 if [[ ! -x "\$GLIBC_RUNNER" ]]; then
-    echo "SillyBunny could not find Termux glibc-runner at '\$GLIBC_RUNNER'." >&2
+    echo "Homunculus could not find Termux glibc-runner at '\$GLIBC_RUNNER'." >&2
     exit 1
 fi
 
@@ -453,7 +453,7 @@ install_bun() {
         fi
 
         echo "Termux Bun installation finished, but a Termux-compatible Bun wrapper is still unavailable in this session." >&2
-        echo "SillyBunny uses bun-termux on native Termux so Bun can install packages and run from normal home-directory checkouts." >&2
+        echo "Homunculus uses bun-termux on native Termux so Bun can install packages and run from normal home-directory checkouts." >&2
         echo "If it still fails, rerun with network access or install manually via:" >&2
         echo "curl -fsSL '$TERMUX_BUN_MANAGER_URL' | bash -s install" >&2
         exit 1

@@ -1,11 +1,11 @@
-// Classic UI fork: replaces SillyBunny's graphical shell (sillybunny-tabs.js) with the
-// original SillyTavern top-bar drawers. Everything else in SillyBunny (agents, companions,
+// Classic UI fork: replaces Homunculus's graphical shell (homunculus-tabs.js) with the
+// original SillyTavern top-bar drawers. Everything else in Homunculus (agents, companions,
 // conversation mode, bundled extensions) keeps running unchanged; this module only provides
 // the small shell API those modules expect and routes their requests to classic drawers.
 
 const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
 
-/** Drawer ids for shell routes used by SillyBunny modules ("shellKey:tabId"). */
+/** Drawer ids for shell routes used by Homunculus modules ("shellKey:tabId"). */
 const ROUTES = Object.freeze({
     'left:presets': 'ai-config-button',
     'left:sampling': 'ai-config-button',
@@ -71,7 +71,7 @@ function dispatchTabActivated(shellKey, tabId) {
 }
 
 /**
- * SillyBunny modules notify the shell when a panel becomes visible (agents refresh their token
+ * Homunculus modules notify the shell when a panel becomes visible (agents refresh their token
  * counter and tool registrations, World Info closes its pop-out). Mirror that for classic drawers.
  */
 function bindDrawerActivationEvents() {
@@ -98,11 +98,11 @@ function bindDrawerActivationEvents() {
     }
 }
 
-/* ---------- Character editor sections (SillyBunny's inline replacement for the ADV popup) ---------- */
+/* ---------- Character editor sections (Homunculus's inline replacement for the ADV popup) ---------- */
 
 const EDITOR_SUB_TABS = ['char-info', 'definitions', 'greetings', 'metadata'];
 const EDITOR_SPOILER_FREE_VISIBLE_TABS = ['char-info', 'metadata'];
-// Same key SillyBunny's shell uses, so the remembered section carries over.
+// Same key Homunculus's shell uses, so the remembered section carries over.
 const EDITOR_SUB_TAB_STORAGE_KEY = 'sb-character-editor-sub-tab';
 
 function normalizeEditorSubTab(tabId) {
@@ -148,7 +148,7 @@ function bindEditorSubTabs() {
             return;
         }
         const tabId = button.dataset.sbCharacterEditorTab;
-        // A deliberate click on a spoiler-hidden section reveals the fields, as in SillyBunny.
+        // A deliberate click on a spoiler-hidden section reveals the fields, as in Homunculus.
         if (isEditorSubTabSpoilerHidden(tabId)) {
             const { setCharacterSpoilerFreeFieldsHidden } = await import('./power-user.js');
             setCharacterSpoilerFreeFieldsHidden(false);
@@ -225,7 +225,7 @@ async function syncExtensionMessageButtons(root = document) {
     }
 }
 
-/* ---------- Sections SillyBunny collapses by default: show them like SillyTavern does ---------- */
+/* ---------- Sections Homunculus collapses by default: show them like SillyTavern does ---------- */
 
 function expandInlineDrawer(drawer) {
     const icon = drawer.querySelector(':scope > .inline-drawer-header .inline-drawer-icon, :scope > .inline-drawer-toggle .inline-drawer-icon');
@@ -238,7 +238,7 @@ function expandInlineDrawer(drawer) {
     icon?.classList.add('up', 'fa-circle-chevron-up');
 }
 
-async function expandSillyBunnySections() {
+async function expandHomunculusSections() {
     // Chat Completion settings groups: respect a state the user picked, otherwise open.
     const { accountStorage } = await import('./util/AccountStorage.js');
     for (const drawer of document.querySelectorAll('.sb-openai-settings-drawer[id]')) {
@@ -279,7 +279,7 @@ function bindAppEvents() {
             .then(module => module.injectSillyTavernImportCard())
             .catch(error => console.error('[Classic UI] Could not set up Import & Restore:', error));
         bindEditorSubTabs();
-        void expandSillyBunnySections();
+        void expandHomunculusSections();
         void syncExtensionMessageButtons();
     });
     return true;
@@ -302,10 +302,10 @@ const classicShell = {
 };
 
 // welcome-screen.js may already have attached helpers (e.g. highlightLaunchpadItem); keep them.
-globalThis.SillyBunnyShell = Object.assign(globalThis.SillyBunnyShell || {}, classicShell);
+globalThis.HomunculusShell = Object.assign(globalThis.HomunculusShell || {}, classicShell);
 document.documentElement.dataset.sbClassicUi = 'true';
 
-/** World Info entry status: SillyTavern's compact emoji markers instead of SillyBunny's words. */
+/** World Info entry status: SillyTavern's compact emoji markers instead of Homunculus's words. */
 function useCompactWorldInfoStatus() {
     const labels = { constant: '\u{1F535}', normal: '\u{1F7E2}', vectorized: '\u{1F517}' };
     for (const option of document.querySelectorAll('#entry_edit_template select[name="entryStateSelector"] option')) {
@@ -315,7 +315,7 @@ function useCompactWorldInfoStatus() {
     }
 }
 
-/** User Settings: SillyBunny nests the third column inside the second; put it back beside them. */
+/** User Settings: Homunculus nests the third column inside the second; put it back beside them. */
 function restoreUserSettingsColumns() {
     const content = document.getElementById('user-settings-block-content');
     const thirdColumn = document.getElementById('power-user-options-block');
@@ -339,7 +339,7 @@ function moveCharacterPromptOverrides() {
 /**
  * Character editor in SillyTavern's arrangement: avatar beside one row of icon buttons and "More...",
  * tags underneath, Creator's Notes below the tags, and First message right after Description.
- * Nodes are moved (not cloned), so SillyBunny's event handlers keep working.
+ * Nodes are moved (not cloned), so Homunculus's event handlers keep working.
  */
 function arrangeCharacterEditor() {
     const identity = document.getElementById('avatar-and-name-block');
@@ -391,7 +391,7 @@ function arrangeCharacterEditor() {
     }
 }
 
-/* ---------- Lock for the AI Response Configuration panel (SillyTavern feature SillyBunny removed) ---------- */
+/* ---------- Lock for the AI Response Configuration panel (SillyTavern feature Homunculus removed) ---------- */
 
 async function addLeftPanelLock() {
     const panel = document.getElementById('left-nav-panel');

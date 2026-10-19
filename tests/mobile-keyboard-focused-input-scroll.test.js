@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'sillybunny-tabs.js'), 'utf8');
+const tabsSource = readFileSync(path.join(repoRoot, 'public', 'scripts', 'homunculus-tabs.js'), 'utf8');
 const indexHtml = readFileSync(path.join(repoRoot, 'public', 'index.html'), 'utf8');
 const loginHtml = readFileSync(path.join(repoRoot, 'public', 'login.html'), 'utf8');
 
@@ -30,7 +30,7 @@ describe('mobile keyboard focused-input scroll wiring', () => {
     });
 
     test('applies the iOS keyboard inset to mobile drawer scroller padding', () => {
-        const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-mobile-shell.css'), 'utf8');
+        const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-mobile-shell.css'), 'utf8');
 
         expect(mobileShellCss).toContain('var(--sb-ios-keyboard-bottom-inset, 0px)');
         expect(mobileShellCss).toContain('html.sb-ios-keyboard-inset-active #right-nav-panel.openDrawer > .scrollableInner,');

@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 import { openQuietChatForSmoke, waitForAnimationFrames } from './chat-scroll-regression-helpers.js';
 
 // Mobile shell smoke pack: pins the current open/close contracts of the
-// SillyBunny mobile shell (drawers, hamburger nav, chat tools, character
-// panel) so the Phase 1 decomposition of sillybunny-tabs.js has a net.
-// Run with: SILLYBUNNY_TEST_BASE_URL=http://127.0.0.1:<port> npx playwright test mobile-shell-smoke.e2e.js
+// Homunculus mobile shell (drawers, hamburger nav, chat tools, character
+// panel) so the Phase 1 decomposition of homunculus-tabs.js has a net.
+// Run with: HOMUNCULUS_TEST_BASE_URL=http://127.0.0.1:<port> npx playwright test mobile-shell-smoke.e2e.js
 
 test.describe.configure({ mode: 'serial' });
 
@@ -103,7 +103,7 @@ function getDocumentOverflow(page) {
 }
 
 function getIsMobileShellViewport(page) {
-    return page.evaluate(() => window.SillyBunnyShell.isMobileViewport());
+    return page.evaluate(() => window.HomunculusShell.isMobileViewport());
 }
 
 async function expectNoDocumentOverflow(page) {
@@ -155,7 +155,7 @@ async function waitForNavOpenGrace(page) {
 }
 
 function openLeftShell(page) {
-    return page.evaluate(() => window.SillyBunnyShell.openTab('left', 'presets'));
+    return page.evaluate(() => window.HomunculusShell.openTab('left', 'presets'));
 }
 
 // While any drawer or overlay is open, the mobile modal policy marks the page
@@ -316,7 +316,7 @@ test.describe('mobile shell smoke at iPhone 390x844', () => {
         await waitForNavOpenGrace(page);
 
         // openMobileChatTools closes the nav, both shells, and the character panel.
-        await page.evaluate(() => window.SillyBunnyShell.openChatTools());
+        await page.evaluate(() => window.HomunculusShell.openChatTools());
 
         await expect.poll(() => getOverlayStateSnapshot(page)).toEqual({
             navOpen: false,
@@ -329,7 +329,7 @@ test.describe('mobile shell smoke at iPhone 390x844', () => {
         await captureCheckpoint(page, testInfo, 'chat-tools');
 
         // toggleCharacterPanel routes through closeAllDropdowns({ except: 'characters' }).
-        await page.evaluate(() => window.SillyBunnyShell.openCharacters());
+        await page.evaluate(() => window.HomunculusShell.openCharacters());
 
         await expect.poll(() => getOverlayStateSnapshot(page)).toEqual({
             navOpen: false,
@@ -360,7 +360,7 @@ test.describe('mobile shell smoke at iPhone 390x844', () => {
         });
 
         for (const tabId of ['presets', 'api', 'sampling', 'advanced-formatting', 'agents']) {
-            await page.evaluate(tab => window.SillyBunnyShell.openTab('left', tab), tabId);
+            await page.evaluate(tab => window.HomunculusShell.openTab('left', tab), tabId);
             await checkpoint(`Workspace · ${tabId}`);
         }
         const textareaFullscreenToggle = page.locator('#left-nav-panel .ica--textarea-fullscreen-toggle').first();
@@ -375,17 +375,17 @@ test.describe('mobile shell smoke at iPhone 390x844', () => {
         await checkpoint('Workspace · closed');
 
         for (const tabId of ['settings', 'extensions', 'background', 'server', 'console-logs']) {
-            await page.evaluate(tab => window.SillyBunnyShell.openTab('right', tab), tabId);
+            await page.evaluate(tab => window.HomunculusShell.openTab('right', tab), tabId);
             await checkpoint(`Customize · ${tabId}`);
         }
         await closeOpenShell();
         await checkpoint('Customize · closed');
 
         for (const tabId of ['characters', 'groups', 'editor', 'world-info', 'persona', 'import']) {
-            await page.evaluate(tab => window.SillyBunnyShell.openTab('characters', tab), tabId);
+            await page.evaluate(tab => window.HomunculusShell.openTab('characters', tab), tabId);
             await checkpoint(`Characters · ${tabId}`);
         }
-        await page.evaluate(() => window.SillyBunnyShell.closeCharacters());
+        await page.evaluate(() => window.HomunculusShell.closeCharacters());
         await checkpoint('Characters · closed');
         await page.evaluate(async () => {
             const { AutoComplete } = await import('/scripts/autocomplete/AutoComplete.js');
@@ -403,12 +403,12 @@ test.describe('mobile shell smoke at iPhone 390x844', () => {
         await page.evaluate(() => document.querySelector('#sb-mobile-nav .sb-mobile-panel-close')?.click());
         await checkpoint('Mobile nav · closed');
 
-        await page.evaluate(() => window.SillyBunnyShell.openChatTools());
+        await page.evaluate(() => window.HomunculusShell.openChatTools());
         await checkpoint('Chat tools · open');
         await page.evaluate(() => document.querySelector('#sb-mobile-chat-tools .sb-mobile-panel-close')?.click());
         await checkpoint('Chat tools · closed');
 
-        await page.evaluate(() => window.SillyBunnyShell.openGlobalSearch());
+        await page.evaluate(() => window.HomunculusShell.openGlobalSearch());
         await checkpoint('Global search · open');
         await page.keyboard.press('Escape');
         await checkpoint('Global search · closed');
@@ -854,7 +854,7 @@ test.describe('compact desktop smoke at 820x1180', () => {
 
         // openChatTools routes to the desktop chat sidebar above 768px; the
         // mobile chat tools overlay must stay closed.
-        await page.evaluate(() => window.SillyBunnyShell.openChatTools());
+        await page.evaluate(() => window.HomunculusShell.openChatTools());
         await waitForAnimationFrames(page, 2);
 
         await expect.poll(async () => {
@@ -872,7 +872,7 @@ test.describe('desktop MovingUI containment at 1264x800', () => {
 
     test('clamps an active panel drag at every viewport edge', async ({ page }) => {
         await openQuietChatForSmoke(page, { selectCharacter: false });
-        await page.evaluate(() => window.SillyBunnyShell.openTab('left', 'presets'));
+        await page.evaluate(() => window.HomunculusShell.openTab('left', 'presets'));
         await waitForAnimationFrames(page, 2);
 
         const original = await page.evaluate(async () => {
@@ -955,7 +955,7 @@ test.describe('desktop MovingUI containment at 1264x800', () => {
 
     test('contains corrupt persisted panel geometry before it can enlarge the document', async ({ page }) => {
         await openQuietChatForSmoke(page, { selectCharacter: false });
-        await page.evaluate(() => window.SillyBunnyShell.openTab('left', 'presets'));
+        await page.evaluate(() => window.HomunculusShell.openTab('left', 'presets'));
         await waitForAnimationFrames(page, 2);
 
         const snapshot = await page.evaluate(async () => {

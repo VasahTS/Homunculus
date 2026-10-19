@@ -25,8 +25,8 @@ function scheduleIdleWork(callback) {
     window.setTimeout(callback, 1200);
 }
 
-window.SillyBunnyLoadStylesheet = activateDeferredStyles;
-window.SillyBunnyLoadWideFontFallbacks = loadWideFontFallbacks;
+window.HomunculusLoadStylesheet = activateDeferredStyles;
+window.HomunculusLoadWideFontFallbacks = loadWideFontFallbacks;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => scheduleIdleWork(activateDeferredStyles), { once: true });

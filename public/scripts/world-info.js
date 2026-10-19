@@ -27,7 +27,7 @@ import { escapeCharacterBookRegex, getFreeCharacterBookEntryId, normalizeCharact
 import { detectEmbeddedLorebookCandidates, findMatchingLorebookName, getLinkedAuxBooks, isEmbeddedBookLinked } from './world-info-batch-helpers.js';
 import { getTimedEffectWindow, getWorldInfoGroupNames, normalizeWorldInfoKey, normalizeWorldInfoProbability, passesWorldInfoProbability } from './world-info-scan-core.js';
 
-// SillyBunny divergence: World Info is integrated with the fork shell and auxiliary lorebook sources while retaining upstream scan helpers.
+// Homunculus divergence: World Info is integrated with the fork shell and auxiliary lorebook sources while retaining upstream scan helpers.
 export const world_info_insertion_strategy = {
     evenly: 0,
     character_first: 1,
@@ -90,7 +90,7 @@ const pendingWorldInfoSaves = new Map();
 const worldInfoSaveQueues = new Map();
 /** @type {Map<string, Promise<string|null>>} */
 const worldInfoSaveBlocks = new Map();
-// SillyBunny: retain load baselines so independent same-tab editors save changes, not stale books.
+// Homunculus: retain load baselines so independent same-tab editors save changes, not stale books.
 const worldInfoDataSnapshots = new WeakMap();
 const worldInfoEntryInstances = new WeakMap();
 const worldInfoCommittedEntryInstances = new Map();
@@ -102,7 +102,7 @@ const saveSettingsDebounced = debounce(() => {
 }, debounce_timeout.relaxed);
 const sortFn = (a, b) => b.order - a.order;
 let updateEditor = (navigation, flashOnNav = true) => { console.debug('Triggered WI navigation', navigation, flashOnNav); };
-const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: inline entry editing
+const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi ? 'not all' : '(min-width: 961px)'; // Classic UI fork: inline entry editing
 let desktopSelectedWorldInfoUid = null;
 let isWorldInfoEditorPopoutRequested = false;
 let isWorldInfoEditorPopoutShellSyncBound = false;
@@ -931,7 +931,7 @@ export async function getWorldInfoPrompt(chat, maxContext, isDryRun, globalScanD
 
     if (!isDryRun && activatedWorldInfo.allActivatedEntries && activatedWorldInfo.allActivatedEntries.size > 0) {
         const arg = Array.from(activatedWorldInfo.allActivatedEntries.values());
-        // SillyBunny: forward the scan's origin, never the context at completion.
+        // Homunculus: forward the scan's origin, never the context at completion.
         await eventSource.emit(event_types.WORLD_INFO_ACTIVATED, arg, ...(generationContext ? [generationContext] : []));
     }
 
@@ -2222,9 +2222,9 @@ function syncWorldInfoDesktopEditorPopout() {
 }
 
 function openWorldInfoCharacterPanelTab() {
-    const sillyBunnyShell = /** @type {any} */ (globalThis.SillyBunnyShell);
-    if (sillyBunnyShell?.openTab) {
-        sillyBunnyShell.openTab('characters', 'world-info');
+    const homunculusShell = /** @type {any} */ (globalThis.HomunculusShell);
+    if (homunculusShell?.openTab) {
+        homunculusShell.openTab('characters', 'world-info');
         return;
     }
 
@@ -3116,7 +3116,7 @@ function getWIOriginalDataIndex(data, uid) {
     return data.originalData?.entries?.findIndex(x => String(x.id ?? x.uid) === String(uid)) ?? -1;
 }
 
-// SillyBunny: built-in extension writers need one atomic resync after populating a new imported-book entry.
+// Homunculus: built-in extension writers need one atomic resync after populating a new imported-book entry.
 export function syncWIOriginalDataEntry(data, uid) {
     const entry = data.entries?.[uid];
     const originalIndex = getWIOriginalDataIndex(data, uid);
@@ -4648,7 +4648,7 @@ function appendWIOriginalDataEntry(data, entry, originalEntry = undefined) {
 
     data.originalDataUidMap ??= {};
     data.originalDataUidMap[entry.uid] = data.originalData.entries.length;
-    // SillyBunny: card IDs are separate from native UIDs, including records written since this editor opened.
+    // Homunculus: card IDs are separate from native UIDs, including records written since this editor opened.
     const snapshot = worldInfoDataSnapshots.get(data);
     const cachedEntries = snapshot ? worldInfoCache.get(snapshot.name)?.originalData?.entries : [];
     const id = getFreeCharacterBookEntryId([...data.originalData.entries, ...(cachedEntries ?? [])]);
@@ -4718,7 +4718,7 @@ function mergeWorldInfoData(base, draft, latest) {
     const beforeInstances = worldInfoEntryInstances.get(base);
     const afterInstances = worldInfoEntryInstances.get(draft);
     const currentInstances = worldInfoEntryInstances.get(latest);
-    // SillyBunny: numeric UIDs can be reused. Only changes to the same session-local entry instance may merge.
+    // Homunculus: numeric UIDs can be reused. Only changes to the same session-local entry instance may merge.
     for (const uid of new Set([...Object.keys(base.entries), ...Object.keys(draft.entries)])) {
         const existed = Object.hasOwn(base.entries, uid);
         const exists = Object.hasOwn(draft.entries, uid);
@@ -5476,7 +5476,7 @@ export async function getSortedEntries() {
             const hash = getStringHash(JSON.stringify(entry));
             return { ...entry, hash };
         }).map((entry) => {
-            // SillyBunny: worlds saved before import-time position normalization (#162) can still
+            // Homunculus: worlds saved before import-time position normalization (#162) can still
             // carry string positions like 'before_char' or '0'. The prompt builder matches numeric
             // positions strictly and silently drops anything else, so normalize at scan time.
             // Runs after hashing to keep existing timed-effect entry hashes stable.
@@ -7518,7 +7518,7 @@ export function initWorldInfo() {
         $(this).prop('selectedIndex', 0);
 
         if (target === 'renameGroupButton') {
-            await /** @type {any} */ (globalThis.SillyBunnyShell)?.renameOpenGroup?.();
+            await /** @type {any} */ (globalThis.HomunculusShell)?.renameOpenGroup?.();
             return;
         }
 
@@ -7569,8 +7569,8 @@ export function initWorldInfo() {
         });
 
         $('#world_editor_select, #world_info')
-            .off('select2:open.sillybunnyWorldInfoGeometry')
-            .on('select2:open.sillybunnyWorldInfoGeometry', function () {
+            .off('select2:open.homunculusWorldInfoGeometry')
+            .on('select2:open.homunculusWorldInfoGeometry', function () {
                 window.requestAnimationFrame(() => syncWorldInfoSelect2DropdownGeometry(this));
             });
 

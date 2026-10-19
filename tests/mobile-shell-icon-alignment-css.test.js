@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const tabsCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-tabs.css'), 'utf8').replace(/\r\n/g, '\n');
+const tabsCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-tabs.css'), 'utf8').replace(/\r\n/g, '\n');
 
 function getRuleBodies(selector) {
     const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

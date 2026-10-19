@@ -7,7 +7,7 @@ import { t } from '../../i18n.js';
 const path = 'prompt-inspector';
 
 if (!('GENERATE_AFTER_COMBINE_PROMPTS' in event_types) || !('CHAT_COMPLETION_PROMPT_READY' in event_types)) {
-    toastr.error('Required event types not found. Update SillyBunny to the latest version.');
+    toastr.error('Required event types not found. Update Homunculus to the latest version.');
     throw new Error('Events not found.');
 }
 

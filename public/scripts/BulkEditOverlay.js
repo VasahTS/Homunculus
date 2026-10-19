@@ -19,7 +19,7 @@ import {
 
 import { favsToHotswap } from './RossAscends-mods.js';
 import { loader } from './action-loader.js';
-// SillyBunny: group-list bulk actions share the upstream character overlay.
+// Homunculus: group-list bulk actions share the upstream character overlay.
 import { groups, resetSelectedGroup, selected_group } from './group-chats.js';
 import { convertCharacterToPersona } from './personas.js';
 import { callGenericPopup, POPUP_TYPE } from './popup.js';
@@ -689,7 +689,7 @@ class BulkEditOverlay {
 
     #disableBulkEditButtonHighlight = () => document.getElementById('bulkEditButton').classList.remove('bulk_edit_overlay_active');
 
-    // SillyBunny: group cards use data-grid but otherwise follow the same overlay flow.
+    // Homunculus: group cards use data-grid but otherwise follow the same overlay flow.
     #getEnabledElements = () => [...this.container.getElementsByClassName(BulkEditOverlay.characterClass), ...this.container.getElementsByClassName(BulkEditOverlay.groupClass)];
 
     #getDisabledElements = () => [...this.container.getElementsByClassName(BulkEditOverlay.bogusFolderClass)];

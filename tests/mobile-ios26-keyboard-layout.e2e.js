@@ -42,10 +42,10 @@ async function mountFixture(page, { platform = 'iPhone', userAgent = safariUA } 
     for (const [file, media] of [
         ['style.css', 'all'],
         ['css/mobile-styles.css', '(max-width: 768px)'],
-        ['css/sillybunny-theme.css', 'all'],
-        ['css/sillybunny-paper-theme.css', '(max-width: 768px)'],
-        ['css/sillybunny-tabs.css', 'all'],
-        ['css/sillybunny-mobile-shell.css', '(max-width: 768px)'],
+        ['css/homunculus-theme.css', 'all'],
+        ['css/homunculus-paper-theme.css', '(max-width: 768px)'],
+        ['css/homunculus-tabs.css', 'all'],
+        ['css/homunculus-mobile-shell.css', '(max-width: 768px)'],
     ]) {
         const style = await page.addStyleTag({ content: await fs.readFile(new URL(file, publicRoot), 'utf8') });
         await style.evaluate((element, media) => { element.media = media; }, media);
@@ -62,9 +62,9 @@ async function mountFixture(page, { platform = 'iPhone', userAgent = safariUA } 
     }, { platform, userAgent });
 
     const [tabs, lifecycle, sendButton] = await Promise.all([
-        'scripts/sillybunny-tabs.js', 'scripts/mobile-shell-lifecycle/index.js', 'scripts/mobile-send-button.js',
+        'scripts/homunculus-tabs.js', 'scripts/mobile-shell-lifecycle/index.js', 'scripts/mobile-send-button.js',
     ].map(file => fs.readFile(new URL(file, publicRoot), 'utf8')));
-    const bindings = tabs.match(/ {4}window\.addEventListener\('resize', queueMobileViewportStateSync,[\s\S]*?(?= {4}\/\/ SillyBunny: re-sync shell width)/)?.[0];
+    const bindings = tabs.match(/ {4}window\.addEventListener\('resize', queueMobileViewportStateSync,[\s\S]*?(?= {4}\/\/ Homunculus: re-sync shell width)/)?.[0];
     if (!bindings) throw new Error('Missing production viewport/focus bindings');
     await page.addScriptTag({ content: [
         ...['IOS_STABLE_COMPOSER_VIEWPORT_MAJOR'].map(name => extractDeclaration(sendButton, name)),

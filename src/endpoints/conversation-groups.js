@@ -10,7 +10,7 @@ import sanitize from 'sanitize-filename';
 import {
     DEFAULT_SETTINGS,
     GROUP_CONVERSATION_SETTINGS_KEYS,
-} from '../../public/scripts/sillybunny-conversation/constants.js';
+} from '../../public/scripts/homunculus-conversation/constants.js';
 import {
     getConversationPersonaId,
     getObject,

@@ -7,7 +7,7 @@ import { OPENROUTER_HEADERS } from '../constants.js';
 export const router = express.Router();
 const API_OPENROUTER = 'https://openrouter.ai/api/v1';
 
-// SillyBunny: use OpenRouter's catalogue without exposing keys or maintaining provider names.
+// Homunculus: use OpenRouter's catalogue without exposing keys or maintaining provider names.
 router.post('/providers', async (_req, res) => {
     try {
         const response = await fetch(`${API_OPENROUTER}/providers`, {
@@ -52,7 +52,7 @@ router.post('/models/providers', async (req, res) => {
         if (!Array.isArray(endpoints)) return res.sendStatus(502);
         const providerNames = [...new Set(endpoints.map(e => e?.provider_name).filter(name => typeof name === 'string' && name.trim()))];
 
-        // SillyBunny: keep the legacy array response for extensions; tier discovery shares this fetch.
+        // Homunculus: keep the legacy array response for extensions; tier discovery shares this fetch.
         if (req.body.include_service_tiers === true) {
             const tiers = endpoints.map(e => typeof e?.tag === 'string' ? e.tag.match(/\/(flex|fast|priority)$/)?.[1] : null)
                 .filter(Boolean).map(tier => tier === 'fast' ? 'priority' : tier);

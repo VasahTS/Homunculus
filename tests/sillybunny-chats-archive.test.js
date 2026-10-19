@@ -81,7 +81,7 @@ afterEach(() => {
     jest.useRealTimers();
 });
 
-describe('SillyBunny Chats Archive API', () => {
+describe('Homunculus Chats Archive API', () => {
     test('loads every bounded archive page through one inventory endpoint', async () => {
         const cursor = 'a'.repeat(64);
         const requests = [];
@@ -423,7 +423,7 @@ describe('SillyBunny Chats Archive API', () => {
     });
 });
 
-describe('SillyBunny Chats Archive core', () => {
+describe('Homunculus Chats Archive core', () => {
     const characters = [
         { avatar: 'Seraphina.png', name: 'Seraphina' },
         { avatar: 'Nahida.png', name: 'Nahida' },
@@ -1014,7 +1014,7 @@ describe('SillyBunny Chats Archive core', () => {
     });
 });
 
-describe('SillyBunny Chats Archive navigation', () => {
+describe('Homunculus Chats Archive navigation', () => {
     function context() {
         return {
             eventSource: new EventEmitter(),
@@ -1060,7 +1060,7 @@ describe('SillyBunny Chats Archive navigation', () => {
     });
 });
 
-describe('SillyBunny Chats Archive integration', () => {
+describe('Homunculus Chats Archive integration', () => {
     test('entry point is one host-sized native dialog button, not a fake tab', () => {
         expect(entry).toMatch(/createElement\('button'\)/);
         expect(entry).toMatch(/createElement\('i'\)/);
@@ -1219,7 +1219,7 @@ describe('SillyBunny Chats Archive integration', () => {
 
 describe('Data Maid Chat Archive integration', () => {
     test('keeps the organization sidecar out of loose user files', async () => {
-        const root = await mkdtemp(path.join(os.tmpdir(), 'sillybunny-chat-archive-'));
+        const root = await mkdtemp(path.join(os.tmpdir(), 'homunculus-chat-archive-'));
         const directories = {
             root,
             userImages: path.join(root, 'user-images'),

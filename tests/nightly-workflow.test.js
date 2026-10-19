@@ -31,8 +31,8 @@ describe('nightly workflow', () => {
         const jobEnv = checksJob.slice(0, checksJob.indexOf('    steps:'));
         const unitStep = checksJob.slice(checksJob.indexOf('- name: Unit tests'), checksJob.indexOf('- name: Frontend budgets'));
         for (const block of [jobEnv, unitStep]) {
-            expect(block).not.toContain('SILLYBUNNY_LAUNCHER');
-            expect(block).not.toContain('SILLYBUNNY_SKIP_BROWSER_AUTO_LAUNCH');
+            expect(block).not.toContain('HOMUNCULUS_LAUNCHER');
+            expect(block).not.toContain('HOMUNCULUS_SKIP_BROWSER_AUTO_LAUNCH');
         }
     });
 

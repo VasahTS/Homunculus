@@ -22,11 +22,11 @@ describe('frontend asset manifest rewriting', () => {
         fs.writeFileSync(manifestPath, JSON.stringify({
             assets: {
                 'style.css': { output: 'style-abc123.css' },
-                'css/sillybunny-mobile-shell.css': { output: 'css/sillybunny-mobile-shell-def456.css' },
+                'css/homunculus-mobile-shell.css': { output: 'css/homunculus-mobile-shell-def456.css' },
                 'webfonts/Figtree/Figtree-Regular.woff2': { output: 'webfonts/Figtree/Figtree-Regular-789abc.woff2' },
                 'script.js': { output: 'script-deadbeef.js' },
                 'scripts/performance-loader.js': { output: 'scripts/performance-loader-deadbeef.js' },
-                'scripts/sillybunny-tabs.js': { output: 'scripts/sillybunny-tabs-deadbeef.js' },
+                'scripts/homunculus-tabs.js': { output: 'scripts/homunculus-tabs-deadbeef.js' },
             },
         }), 'utf8');
         clearFrontendManifestCache();
@@ -49,24 +49,24 @@ describe('frontend asset manifest rewriting', () => {
     test('rewrites built styles and fonts without moving boot modules', () => {
         const html = [
             '<link href="style.css?v=old">',
-            '<link href="css/sillybunny-mobile-shell.css?v=old">',
+            '<link href="css/homunculus-mobile-shell.css?v=old">',
             '<link href="webfonts/Figtree/Figtree-Regular.woff2?v=old">',
             '<script type="module" src="scripts/performance-loader.js"></script>',
             '<script type="module" src="script.js?v=old"></script>',
-            '<script type="module" src="scripts/sillybunny-tabs.js?v=old"></script>',
+            '<script type="module" src="scripts/homunculus-tabs.js?v=old"></script>',
         ].join('');
 
         const rewritten = rewriteFrontendHtml(html, { enabled: true });
 
         expect(rewritten).toContain('href="/frontend-assets/style-abc123.css"');
-        expect(rewritten).toContain('href="/frontend-assets/css/sillybunny-mobile-shell-def456.css"');
+        expect(rewritten).toContain('href="/frontend-assets/css/homunculus-mobile-shell-def456.css"');
         expect(rewritten).toContain('href="/frontend-assets/webfonts/Figtree/Figtree-Regular-789abc.woff2"');
         expect(rewritten).toContain('src="scripts/performance-loader.js"');
         expect(rewritten).toContain('src="script.js?v=old"');
-        expect(rewritten).toContain('src="scripts/sillybunny-tabs.js?v=old"');
+        expect(rewritten).toContain('src="scripts/homunculus-tabs.js?v=old"');
         expect(rewritten).not.toContain('/frontend-assets/script-deadbeef.js');
         expect(rewritten).not.toContain('/frontend-assets/scripts/performance-loader-deadbeef.js');
-        expect(rewritten).not.toContain('/frontend-assets/scripts/sillybunny-tabs-deadbeef.js');
+        expect(rewritten).not.toContain('/frontend-assets/scripts/homunculus-tabs-deadbeef.js');
     });
 
     test('keeps the immutable asset prefix stable for production serving', () => {

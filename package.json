@@ -108,13 +108,13 @@
         "openai": "^4.17.0",
         "whatwg-url": "^14.0.0"
     },
-    "name": "sillybunny",
+    "name": "homunculus",
     "type": "module",
     "license": "AGPL-3.0",
-    "description": "Bun-first SillyBunny chat workspace",
+    "description": "Bun-first Homunculus chat workspace",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SillyBunnyTeam/SillyBunny.git"
+        "url": "https://github.com/VasahTS/Homunculus.git"
     },
     "version": "1.8.0",
     "scripts": {
@@ -139,7 +139,7 @@
         "plugins:install": "bun plugins.js install"
     },
     "bin": {
-        "sillybunny": "./src/server-global.js",
+        "homunculus": "./src/server-global.js",
         "sillytavern": "./src/server-global.js"
     },
     "packageManager": "bun@1.3.14",

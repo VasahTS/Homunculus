@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const conversationDir = path.join(repoRoot, 'public', 'scripts', 'sillybunny-conversation');
+const conversationDir = path.join(repoRoot, 'public', 'scripts', 'homunculus-conversation');
 const normalizeSource = source => source.replace(/\r\n/g, '\n');
 
 function readConversationSource(file) {
@@ -53,7 +53,7 @@ const conversationTtsSource = readConversationSource('tts.js');
 const extensionTtsSource = normalizeSource(readFileSync(path.join(repoRoot, 'public', 'scripts', 'extensions', 'tts', 'index.js'), 'utf8'));
 const pollinationsTtsSource = normalizeSource(readFileSync(path.join(repoRoot, 'public', 'scripts', 'extensions', 'tts', 'pollinations.js'), 'utf8'));
 const speechEndpointSource = normalizeSource(readFileSync(path.join(repoRoot, 'src', 'endpoints', 'speech.js'), 'utf8'));
-const serverEndpointSource = normalizeSource(readFileSync(path.join(repoRoot, 'src', 'endpoints', 'sillybunny-conversation.js'), 'utf8'));
+const serverEndpointSource = normalizeSource(readFileSync(path.join(repoRoot, 'src', 'endpoints', 'homunculus-conversation.js'), 'utf8'));
 const conversationGenerationSource = normalizeSource(readFileSync(path.join(repoRoot, 'src', 'endpoints', 'conversation-generation.js'), 'utf8'));
 const serverStartupSource = normalizeSource(readFileSync(path.join(repoRoot, 'src', 'server-startup.js'), 'utf8'));
 const welcomeSource = normalizeSource(readFileSync(path.join(repoRoot, 'public', 'scripts', 'welcome-screen.js'), 'utf8'));
@@ -229,8 +229,8 @@ describe('conversation mode scoped connection profile', () => {
     });
 
     test('exposes Conversation REST discovery on both supported API base paths', () => {
-        expect(serverStartupSource).toContain('app.use(\'/api/sillybunny-conversation\', sillyBunnyConversationRouter)');
-        expect(serverStartupSource).toContain('app.use(\'/api/sillybunny/conversation\', sillyBunnyConversationRouter)');
+        expect(serverStartupSource).toContain('app.use(\'/api/homunculus-conversation\', homunculusConversationRouter)');
+        expect(serverStartupSource).toContain('app.use(\'/api/homunculus/conversation\', homunculusConversationRouter)');
     });
 
     test('connects Conversation messages to the existing TTS extension', () => {

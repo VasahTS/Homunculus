@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-mobile-shell.css'), 'utf8').replace(/\r\n/g, '\n');
-const tabsCss = readFileSync(path.join(repoRoot, 'public', 'css', 'sillybunny-tabs.css'), 'utf8').replace(/\r\n/g, '\n');
+const mobileShellCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-mobile-shell.css'), 'utf8').replace(/\r\n/g, '\n');
+const tabsCss = readFileSync(path.join(repoRoot, 'public', 'css', 'homunculus-tabs.css'), 'utf8').replace(/\r\n/g, '\n');
 const styleCss = readFileSync(path.join(repoRoot, 'public', 'style.css'), 'utf8').replace(/\r\n/g, '\n');
 
 function getRuleBody(cssSource, selector) {

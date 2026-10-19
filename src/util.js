@@ -155,7 +155,7 @@ export async function getVersion() {
         // suppress exception
     }
 
-    const agent = `SillyBunny:${pkgVersion}:fork`;
+    const agent = `Homunculus:${pkgVersion}:fork`;
     return { agent, pkgVersion, gitRevision, gitBranch, commitDate: commitDate?.trim() ?? null, isLatest };
 }
 
@@ -741,7 +741,7 @@ function getStreamingConnectionPollingInterval() {
  * @returns {() => void} Stops polling.
  */
 export function pollStreamingRequestConnection(request, response, onDisconnect) {
-    // SillyBunny: a resumable generation is never aborted by a client disconnect. See resumable-generations.js.
+    // Homunculus: a resumable generation is never aborted by a client disconnect. See resumable-generations.js.
     if (getResumableGeneration(request)) {
         return () => undefined;
     }
@@ -772,7 +772,7 @@ export function pollStreamingRequestConnection(request, response, onDisconnect) 
 }
 
 /**
- * SillyBunny: drains the upstream body to the end even after the client has gone, so a resumable
+ * Homunculus: drains the upstream body to the end even after the client has gone, so a resumable
  * generation (see resumable-generations.js) can be picked up later. Only an explicit cancel stops it.
  * @param {import('node-fetch').Response} from The Fetch API response to drain.
  * @param {import('express').Response} to The Express response; writes after the client left are mirrored, not sent.
@@ -2483,7 +2483,7 @@ export function tryWriteFileSync(filePath, data, options = typeof data === 'stri
         return;
     }
 
-    // SillyBunny: some existing user data carries filesystem metadata that replacement would discard.
+    // Homunculus: some existing user data carries filesystem metadata that replacement would discard.
     if (preserveFileIdentity) {
         if (!invalidateBeforeWrite) {
             recoverFileWriteSync(filePath);
@@ -2552,7 +2552,7 @@ export function tryWriteFileSync(filePath, data, options = typeof data === 'stri
                         nextHash: hashFileWriteData(dataBuffer),
                         originalData: originalData.toString('base64'),
                     };
-                    // SillyBunny: dev/ino alone does not survive the gap between the crash that
+                    // Homunculus: dev/ino alone does not survive the gap between the crash that
                     // strands this record and the start that reads it. Deleting a card frees its
                     // inode and the next file created in that directory can be handed the very same
                     // one - on ext4 that is not a rare draw but the normal outcome - so a card the
@@ -2696,7 +2696,7 @@ export function tryWriteFileSync(filePath, data, options = typeof data === 'stri
         console.debug(`Atomic write failed for ${filePath}. Falling back to a temp file rename.`, lastError?.code);
     }
 
-    // SillyBunny: keep the existing file intact while retrying a Windows-safe replacement.
+    // Homunculus: keep the existing file intact while retrying a Windows-safe replacement.
     const tempFilePath = `${filePath}.tmp`;
     const cleanupTempFile = () => {
         try {

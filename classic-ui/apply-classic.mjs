@@ -1,6 +1,6 @@
-// Applies the Classic UI changes to a SillyBunny checkout: public/index.html plus a few small,
-// flag-guarded switches in SillyBunny scripts (globalThis.SillyBunnyClassicUi, set in index.html).
-// Pattern-based (tolerates version query strings changing between SillyBunny releases) and idempotent.
+// Applies the Classic UI changes to a Homunculus checkout: public/index.html plus a few small,
+// flag-guarded switches in Homunculus scripts (globalThis.HomunculusClassicUi, set in index.html).
+// Pattern-based (tolerates version query strings changing between Homunculus releases) and idempotent.
 // Usage: node classic-ui/apply-classic.mjs   (or: bun classic-ui/apply-classic.mjs)
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -24,10 +24,10 @@ function replace(label, pattern, replacement, { required = true } = {}) {
 }
 
 if (!alreadyApplied) {
-// 1. Stop loading SillyBunny's graphical shell and its stylesheets.
-replace('shell modulepreload', new RegExp(`[ \\t]*<link rel="modulepreload" href="scripts/sillybunny-tabs\\.js${V}">\\r?\\n`), '');
-replace('shell script', new RegExp(`[ \\t]*<script type="module" src="scripts/sillybunny-tabs\\.js${V}"></script>\\r?\\n`), '');
-for (const sheet of ['sillybunny-theme', 'sillybunny-paper-theme', 'sillybunny-tabs', 'sillybunny-mobile-shell']) {
+// 1. Stop loading Homunculus's graphical shell and its stylesheets.
+replace('shell modulepreload', new RegExp(`[ \\t]*<link rel="modulepreload" href="scripts/homunculus-tabs\\.js${V}">\\r?\\n`), '');
+replace('shell script', new RegExp(`[ \\t]*<script type="module" src="scripts/homunculus-tabs\\.js${V}"></script>\\r?\\n`), '');
+for (const sheet of ['homunculus-theme', 'homunculus-paper-theme', 'homunculus-tabs', 'homunculus-mobile-shell']) {
     replace(`${sheet}.css`, new RegExp(`[ \\t]*<link rel="stylesheet" type="text/css" href="css/${sheet}\\.css${V}"[^>]*>\\r?\\n`), '');
 }
 
@@ -45,7 +45,7 @@ replace('brands.min.css', new RegExp(`<link href="css/brands\\.min\\.css${V}"[^>
 
 // 4. Extra stylesheets, right before user.css so user CSS still wins.
 replace('user.css anchor', new RegExp(`([ \\t]*)(<link rel="stylesheet" type="text/css" href="css/user\\.css${V}">)`), [
-    '$1<!-- Classic UI fork: SillyTavern loads these up front; SillyBunny deferred them through its shell. -->',
+    '$1<!-- Classic UI fork: SillyTavern loads these up front; Homunculus deferred them through its shell. -->',
     '$1<link rel="stylesheet" type="text/css" href="css/classic--world-info.css">',
     '$1<link rel="stylesheet" type="text/css" href="css/classic--extensions-panel.css">',
     '$1<link rel="stylesheet" type="text/css" href="css/classic-sb-extras.css">',
@@ -56,13 +56,13 @@ replace('user.css anchor', new RegExp(`([ \\t]*)(<link rel="stylesheet" type="te
 // 5. Replacement for the shell module.
 replace('script.js anchor', new RegExp(`([ \\t]*)(<script type="module" src="script\\.js${V}"></script>)`), [
     '$1$2',
-    '$1<!-- Classic UI fork: replaces scripts/sillybunny-tabs.js (graphical shell) -->',
+    '$1<!-- Classic UI fork: replaces scripts/homunculus-tabs.js (graphical shell) -->',
     '$1<script type="module" src="scripts/classic-ui.js"></script>',
 ].join('\n'));
 
 // 6. In-Chat Agents get their own top-bar drawer, next to Persona Management.
 replace('persona drawer anchor', /([ \t]*)(<div id="persona-management-button" class="drawer">)/, [
-    '$1<!-- Classic UI fork: In-Chat Agents get their own top-bar drawer (in SillyBunny they live in the Workspace shell). -->',
+    '$1<!-- Classic UI fork: In-Chat Agents get their own top-bar drawer (in Homunculus they live in the Workspace shell). -->',
     '$1<div id="agents-settings-button" class="drawer">',
     '$1    <div class="drawer-toggle">',
     '$1        <div class="drawer-icon fa-solid fa-robot fa-fw closedIcon" title="In-Chat Agents" data-i18n="[title]In-Chat Agents"></div>',
@@ -82,9 +82,9 @@ replace('persona drawer anchor', /([ \t]*)(<div id="persona-management-button" c
 }
 
 // 7. Flag read by the small script switches below; must run before any module.
-const hasFlag = html.includes('globalThis.SillyBunnyClassicUi = true');
+const hasFlag = html.includes('globalThis.HomunculusClassicUi = true');
 if (!hasFlag) {
-    replace('head anchor', /([ \t]*)(<meta charset="utf-8">)/, '$1$2\n$1<script>globalThis.SillyBunnyClassicUi = true; /* Classic UI fork */</script>');
+    replace('head anchor', /([ \t]*)(<meta charset="utf-8">)/, '$1$2\n$1<script>globalThis.HomunculusClassicUi = true; /* Classic UI fork */</script>');
 }
 
 // 9. Visual profiles ("temas"), effects and the Personalização drawer (scripts/classic-themes.js).
@@ -170,35 +170,35 @@ if (fs.existsSync(themesDir)) {
     }
 }
 
-// Script switches: each is a single, flag-guarded line so SillyBunny behaves normally without the flag.
+// Script switches: each is a single, flag-guarded line so Homunculus behaves normally without the flag.
 const scriptPatches = [
     {
         file: 'public/scripts/openai.js',
         label: 'flat Chat Completion settings (no collapsible groups)',
         find: /^([ \t]*)groupOpenAISettingsIntoDrawers\(\);$/m,
-        replace: '$1if (!globalThis.SillyBunnyClassicUi) groupOpenAISettingsIntoDrawers(); // Classic UI fork: keep SillyTavern\'s flat layout',
-        applied: 'if (!globalThis.SillyBunnyClassicUi) groupOpenAISettingsIntoDrawers();',
+        replace: '$1if (!globalThis.HomunculusClassicUi) groupOpenAISettingsIntoDrawers(); // Classic UI fork: keep SillyTavern\'s flat layout',
+        applied: 'if (!globalThis.HomunculusClassicUi) groupOpenAISettingsIntoDrawers();',
     },
     {
         file: 'public/scripts/world-info.js',
         label: 'World Info entries edited inline (no side editor pane)',
         find: /^const WORLD_INFO_DESKTOP_SPLIT_QUERY = ('[^']*');$/m,
-        replace: 'const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? \'not all\' : $1; // Classic UI fork: inline entry editing',
-        applied: 'const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi',
+        replace: 'const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi ? \'not all\' : $1; // Classic UI fork: inline entry editing',
+        applied: 'const WORLD_INFO_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi',
     },
     {
         file: 'public/scripts/PromptManager.js',
         label: 'Prompt Manager list without side editor pane',
         find: /^const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = ('[^']*');$/m,
-        replace: 'const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi ? \'not all\' : $1; // Classic UI fork: list-only layout',
-        applied: 'const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.SillyBunnyClassicUi',
+        replace: 'const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi ? \'not all\' : $1; // Classic UI fork: list-only layout',
+        applied: 'const PROMPT_MANAGER_DESKTOP_SPLIT_QUERY = globalThis.HomunculusClassicUi',
     },
     {
         file: 'public/scripts/welcome-screen.js',
         label: 'compact home page by default',
         find: /getWelcomeUiPreference\(welcomePanelModeKey\) \|\| WELCOME_PANEL_MODES\.full;/,
-        replace: 'getWelcomeUiPreference(welcomePanelModeKey) || (globalThis.SillyBunnyClassicUi ? WELCOME_PANEL_MODES.compact : WELCOME_PANEL_MODES.full); // Classic UI fork',
-        applied: 'globalThis.SillyBunnyClassicUi ? WELCOME_PANEL_MODES.compact',
+        replace: 'getWelcomeUiPreference(welcomePanelModeKey) || (globalThis.HomunculusClassicUi ? WELCOME_PANEL_MODES.compact : WELCOME_PANEL_MODES.full); // Classic UI fork',
+        applied: 'globalThis.HomunculusClassicUi ? WELCOME_PANEL_MODES.compact',
     },
 ];
 
@@ -240,8 +240,8 @@ for (const [filePath, patched] of patchedSources) {
     scriptOutputs.push([filePath, patched]);
 }
 
-// 8. Cache busting. SillyBunny's service worker serves /css/ and /webfonts/ stale-while-revalidate, so
-// a browser that ran SillyBunny (or an older classic build) at the same address would keep showing old
+// 8. Cache busting. Homunculus's service worker serves /css/ and /webfonts/ stale-while-revalidate, so
+// a browser that ran Homunculus (or an older classic build) at the same address would keep showing old
 // styles. Every classic stylesheet URL carries a hash of its contents; a changed file means a new URL.
 const fileHash = rel => crypto.createHash('sha1').update(fs.readFileSync(path.join(repoRoot, 'public', rel))).digest('hex').slice(0, 10);
 const styleClassicPath = path.join(repoRoot, 'public', 'style-classic.css');
@@ -255,7 +255,7 @@ const versionChanged = versionedHtml !== html || versionedStyleClassic !== style
 html = versionedHtml;
 
 if (problems.length) {
-    console.error('[Classic] Could not find these parts of SillyBunny (they changed in this version):');
+    console.error('[Classic] Could not find these parts of Homunculus (they changed in this version):');
     for (const problem of problems) console.error(`  - ${problem}`);
     console.error('[Classic] Nothing was modified.');
     process.exit(1);

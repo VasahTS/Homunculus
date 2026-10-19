@@ -489,7 +489,7 @@ async function showCardScriptConfirmation() {
     const { callGenericPopup, POPUP_RESULT, POPUP_TYPE } = await import('./popup.js');
     const content = `
         <h3>Run card scripts?</h3>
-        <p>This will run scripts embedded in this card inside a sandboxed iframe. Only a narrow allowlist of slash commands can cross back into SillyBunny.</p>
+        <p>This will run scripts embedded in this card inside a sandboxed iframe. Only a narrow allowlist of slash commands can cross back into Homunculus.</p>
         <p>Do not run card scripts from cards you do not trust.</p>
     `;
     const result = await callGenericPopup(content, POPUP_TYPE.CONFIRM, null, {

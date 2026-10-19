@@ -662,7 +662,7 @@ async function moduleWorker({ newChat = false } = {}) {
             expression = extension_settings.expressions.fallback_expression;
         }
 
-        // SillyBunny divergence: the agent classifier is asynchronous. If it has not
+        // Homunculus divergence: the agent classifier is asynchronous. If it has not
         // produced a result yet, skip updating the sprite and leave lastMessage unchanged
         // so the next poll retries instead of flickering to the fallback expression.
         if (usingAgent && !expression) {
@@ -672,7 +672,7 @@ async function moduleWorker({ newChat = false } = {}) {
 
         await sendExpressionCall(spriteFolderName, expression, { force: force, vnMode: vnMode });
 
-        // SillyBunny divergence: optionally generate missing sprites via Quick Image Gen.
+        // Homunculus divergence: optionally generate missing sprites via Quick Image Gen.
         // This runs after the expression is displayed so it never blocks the UI update.
         if (usingAgent && expression && extension_settings.expressions.agentAutoGenerateSprites && !inSpriteGeneration) {
             const hasSprite = spriteCache[spriteFolderName]?.some((e) => e.label === expression);
@@ -2199,7 +2199,7 @@ export async function getExpressionLabel(text, expressionsApi = extension_settin
                     return data.classification[0].label;
                 }
             } break;
-            // SillyBunny divergence: In-Chat Agent companion classifier.
+            // Homunculus divergence: In-Chat Agent companion classifier.
             // Reads the emotion the companion agent already classified for the latest
             // assistant reply instead of making a blocking API call here.
             case EXPRESSION_API.agent: {
@@ -3327,7 +3327,7 @@ function migrateSettings() {
         saveSettingsDebounced();
     }
 
-    // SillyBunny divergence: keep the expressions agent's connection profile in sync
+    // Homunculus divergence: keep the expressions agent's connection profile in sync
     // with the user's preference (share QIG LLM override profile or not).
     syncExpressionsAgentProfile().catch((error) => {
         console.debug('[Expressions Agent] Initial profile sync skipped:', error);

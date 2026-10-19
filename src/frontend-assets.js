@@ -77,9 +77,9 @@ export function rewriteFrontendHtml(html, { enabled = getFrontendAssetsEnabled()
     const replacements = new Map([
         ['style.css', resolveFrontendAssetPath('style.css')],
         ['css/mobile-styles.css', resolveFrontendAssetPath('css/mobile-styles.css')],
-        ['css/sillybunny-theme.css', resolveFrontendAssetPath('css/sillybunny-theme.css')],
-        ['css/sillybunny-tabs.css', resolveFrontendAssetPath('css/sillybunny-tabs.css')],
-        ['css/sillybunny-mobile-shell.css', resolveFrontendAssetPath('css/sillybunny-mobile-shell.css')],
+        ['css/homunculus-theme.css', resolveFrontendAssetPath('css/homunculus-theme.css')],
+        ['css/homunculus-tabs.css', resolveFrontendAssetPath('css/homunculus-tabs.css')],
+        ['css/homunculus-mobile-shell.css', resolveFrontendAssetPath('css/homunculus-mobile-shell.css')],
         ['webfonts/Figtree/Figtree-Regular.woff2', resolveFrontendAssetPath('webfonts/Figtree/Figtree-Regular.woff2')],
         ['webfonts/Figtree/stylesheet.css', resolveFrontendAssetPath('webfonts/Figtree/stylesheet.css')],
         ['webfonts/NotoSans/stylesheet.css', resolveFrontendAssetPath('webfonts/NotoSans/stylesheet.css')],

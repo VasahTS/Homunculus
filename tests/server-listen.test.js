@@ -272,7 +272,7 @@ describe('port conflict diagnostics', () => {
 
     test.each([
         ['SillyTavern:1.13.4:Cohee#1207', 'SillyTavern'],
-        ['SillyBunny:1.8.0:fork', 'Another SillyBunny Instance'],
+        ['Homunculus:1.8.0:fork', 'Another Homunculus Instance'],
     ])('identifies the version agent %s', async (agent, type) => {
         const { probeHttpHolder } = await loadListenModule();
         const port = await serve((req, res) => res.end(JSON.stringify({ agent, gitBranch: 'SillyTavern-sync' })));
@@ -281,7 +281,7 @@ describe('port conflict diagnostics', () => {
 
     test('does not identify an application from incidental JSON text or an error response', async () => {
         const { probeHttpHolder } = await loadListenModule();
-        const port = await serve((req, res) => res.end(JSON.stringify({ message: 'SillyBunny' })));
+        const port = await serve((req, res) => res.end(JSON.stringify({ message: 'Homunculus' })));
         expect(await probeHttpHolder(port, 4)).toBeNull();
         const denied = await serve((req, res) => {
             res.statusCode = 403;
@@ -316,7 +316,7 @@ describe('port conflict diagnostics', () => {
             res.write('{');
             setImmediate(() => res.destroy());
         });
-        const oversized = await serve((req, res) => res.end(JSON.stringify({ agent: 'SillyBunny:1.8.0:fork', padding: 'x'.repeat(100_000) })));
+        const oversized = await serve((req, res) => res.end(JSON.stringify({ agent: 'Homunculus:1.8.0:fork', padding: 'x'.repeat(100_000) })));
         let deadline;
         try {
             const result = await Promise.race([
@@ -331,14 +331,14 @@ describe('port conflict diagnostics', () => {
 
     test('diagnoses IPv6 without probing an unrelated IPv4 holder and retains process details', async () => {
         const { diagnosePortConflict } = await loadListenModule();
-        const port = await serve((req, res) => res.end(JSON.stringify({ agent: 'SillyBunny:1.8.0:fork' })), '::1');
+        const port = await serve((req, res) => res.end(JSON.stringify({ agent: 'Homunculus:1.8.0:fork' })), '::1');
         const runCommand = commandOutputs({
             netstat: `TCP 127.0.0.1:${port} 0.0.0.0:0 LISTENING 111\nTCP [::1]:${port} [::]:0 LISTENING 222`,
             powershell: JSON.stringify({ Name: 'node.exe', ExecutablePath: 'C:\\Program Files\\nodejs\\node.exe', CommandLine: '"C:\\Program Files\\nodejs\\node.exe" server.js' }),
             tasklist: '"node.exe","222","Console","1","120,000 K"',
         });
         const result = await diagnosePortConflict(port, `::1:${port}`, { platform: 'win32', runCommand });
-        expect(result).toMatchObject({ holderType: 'Another SillyBunny Instance', pid: 222, processName: 'node.exe' });
+        expect(result).toMatchObject({ holderType: 'Another Homunculus Instance', pid: 222, processName: 'node.exe' });
         expect(result.commandLine).toContain('Program Files');
     });
 
@@ -370,10 +370,10 @@ describe('port conflict diagnostics', () => {
         const runCommand = commandOutputs({
             ss: `LISTEN 0 511 127.0.0.1:${port} 0.0.0.0:*`,
             lsof: `p111\ncclient\nn127.0.0.1:51000->127.0.0.1:${port}\np222\ncnode\nn127.0.0.1:${port}`,
-            cat: '/usr/bin/node\0/opt/SillyBunny/server.js\0',
+            cat: '/usr/bin/node\0/opt/Homunculus/server.js\0',
         });
         const result = await diagnosePortConflict(port, `127.0.0.1:${port}`, { platform: 'linux', runCommand });
-        expect(result).toMatchObject({ holderType: 'Another SillyBunny Instance', processName: 'node', pid: 222 });
+        expect(result).toMatchObject({ holderType: 'Another Homunculus Instance', processName: 'node', pid: 222 });
         expect(result.commandLine).toBe('/usr/bin/node');
     });
 
@@ -411,15 +411,15 @@ describe('port conflict diagnostics', () => {
     });
 
     test.each([
-        ['Another SillyBunny Instance', 'To run two instances of SillyBunny, change "port: 4444" to a different, unused number.', false],
-        ['SillyTavern', 'To run SillyBunny alongside SillyTavern, change "port: 4444" to a different, unused number.', true],
-        ['Generic Application (python3)', 'To run SillyBunny alongside the other application, change "port: 4444" to a different, unused number.', false],
-        ['Unknown Process', 'To run SillyBunny alongside the other application, change "port: 4444" to a different, unused number.', false],
+        ['Another Homunculus Instance', 'To run two instances of Homunculus, change "port: 4444" to a different, unused number.', false],
+        ['SillyTavern', 'To run Homunculus alongside SillyTavern, change "port: 4444" to a different, unused number.', true],
+        ['Generic Application (python3)', 'To run Homunculus alongside the other application, change "port: 4444" to a different, unused number.', false],
+        ['Unknown Process', 'To run Homunculus alongside the other application, change "port: 4444" to a different, unused number.', false],
     ])('gives port guidance matching a %s holder', async (holderType, guidance, mentionsSharing) => {
         const { formatPortConflictBanner } = await loadListenModule();
         const banner = formatPortConflictBanner({ port: 4444, listenAddress: '127.0.0.1:4444', holderType, processName: 'unknown', pid: null, commandLine: '' });
         expect(banner).toContain(guidance);
-        expect(banner.includes('If you are running SillyTavern and SillyBunny at the same time')).toBe(mentionsSharing);
+        expect(banner.includes('If you are running SillyTavern and Homunculus at the same time')).toBe(mentionsSharing);
     });
 
     test('does not allow process details to inject terminal controls or extra lines', async () => {

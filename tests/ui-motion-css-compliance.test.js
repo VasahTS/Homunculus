@@ -10,7 +10,7 @@ const stylesheets = [
     },
     {
         name: 'mobile shell',
-        url: new URL('../public/css/sillybunny-mobile-shell.css', import.meta.url),
+        url: new URL('../public/css/homunculus-mobile-shell.css', import.meta.url),
     },
     {
         name: 'input history',
