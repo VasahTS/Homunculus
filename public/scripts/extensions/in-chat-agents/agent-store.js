@@ -282,7 +282,30 @@ export function getActiveAgentChatScope() {
 }
 
 export function getAgentChatScopeLabel(scope = getActiveAgentChatScope()) {
+    const override = getGroupProfileAgentOverride(scope);
+    if (override) {
+        return `"${override.groupName}" (group profile)`;
+    }
     return normalizeAgentChatScope(scope) === AGENT_CHAT_SCOPES.GROUP ? 'Group chats' : 'Individual chats';
+}
+
+/**
+ * Homunculus: a group profile (scripts/classic-group-profile.js) can choose the agents used in its
+ * chats. While that group's chat is open, the toggles read and write the group's choices instead of
+ * the app-wide lists, so leaving the group needs no clean-up.
+ * @param {string} scope
+ */
+export function getGroupProfileAgentOverride(scope = getActiveAgentChatScope()) {
+    let override = null;
+    try {
+        override = globalThis.HomunculusGroupProfile?.getAgentOverride?.() ?? null;
+    } catch {
+        override = null;
+    }
+    if (!override || normalizeAgentChatScope(scope) !== getActiveAgentChatScope()) {
+        return null;
+    }
+    return override;
 }
 
 export function areAgentTogglesScopedByChatType() {
@@ -304,6 +327,17 @@ function isAgentIdEnabledInAnyScope(agentId, scopedEnabledAgentIds = ensureScope
 }
 
 export function isAgentEnabledForScope(agent, scope = getActiveAgentChatScope()) {
+    const usual = isAgentEnabledIgnoringGroupProfile(agent, scope);
+    const override = getGroupProfileAgentOverride(scope);
+    return override ? Boolean(override.isEnabled(String(agent?.id ?? '').trim(), usual)) : usual;
+}
+
+/**
+ * Whether an agent is on in the user's own lists, ignoring any group profile.
+ * @param {object} agent
+ * @param {string} [scope]
+ */
+export function isAgentEnabledIgnoringGroupProfile(agent, scope = getActiveAgentChatScope()) {
     if (!areAgentTogglesScopedByChatType() || !globalSettings.scopedEnabledAgentIdsInitialized) {
         return Boolean(agent?.enabled);
     }
@@ -339,6 +373,14 @@ export function setAgentEnabledForScope(agent, enabled, scope = getActiveAgentCh
     }
 
     const nextEnabled = Boolean(enabled);
+
+    const groupOverride = getGroupProfileAgentOverride(scope);
+    if (groupOverride) {
+        const agentId = String(agent.id ?? '').trim();
+        const wasEnabled = isAgentEnabledForScope(agent, scope);
+        groupOverride.setEnabled(agentId, nextEnabled, isAgentEnabledIgnoringGroupProfile(agent, scope));
+        return wasEnabled !== nextEnabled;
+    }
 
     if (!areAgentTogglesScopedByChatType()) {
         const changed = Boolean(agent.enabled) !== nextEnabled;

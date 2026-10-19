@@ -5324,7 +5324,7 @@ async function getCharacterLore() {
 
     let entries = [];
     for (const worldName of worldsToSearch) {
-        if (selected_world_info.includes(worldName)) {
+        if (selected_world_info.includes(worldName) || getGroupProfileWorlds().includes(worldName)) {
             console.debug(`[WI] Character ${name}'s world ${worldName} is already activated in global world info! Skipping...`);
             continue;
         }
@@ -5368,19 +5368,35 @@ function getWorldEntries(data, worldName) {
         });
 }
 
+/**
+ * Homunculus: lorebooks added by the open group's profile (scripts/classic-group-profile.js). They are
+ * scanned like global lorebooks while that group's chat is open, without being selected globally.
+ * @returns {string[]}
+ */
+function getGroupProfileWorlds() {
+    try {
+        const names = globalThis.HomunculusGroupProfile?.getLorebooks?.();
+        return Array.isArray(names) ? names.filter(name => typeof name === 'string' && name && !selected_world_info.includes(name)) : [];
+    } catch {
+        return [];
+    }
+}
+
 async function getGlobalLore() {
-    if (!selected_world_info?.length) {
+    const groupWorlds = getGroupProfileWorlds().filter(name => name !== chat_metadata[METADATA_KEY] && name !== power_user.persona_description_lorebook);
+    const globalWorlds = [...(selected_world_info ?? []), ...groupWorlds];
+    if (!globalWorlds.length) {
         return [];
     }
 
     let entries = [];
-    for (const worldName of selected_world_info) {
+    for (const worldName of globalWorlds) {
         const data = await loadWorldInfo(worldName);
         const newEntries = getWorldEntries(data, worldName);
         entries = entries.concat(newEntries);
     }
 
-    console.debug(`[WI] Global world info has ${entries.length} entries`, selected_world_info);
+    console.debug(`[WI] Global world info has ${entries.length} entries`, globalWorlds);
 
     return entries;
 }

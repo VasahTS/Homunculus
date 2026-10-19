@@ -29,6 +29,9 @@ import {
     LEGACY_AGENT_MAX_TOKENS,
     normalizeAgentCategory,
     getAgentChatScopeLabel,
+    getGroupProfileAgentOverride,
+    isAgentEnabledIgnoringGroupProfile,
+    isAgentHidden,
     getPromptTransformMode,
     isTrackerFixAgent,
     isPathfinderSubmoduleEnabled,
@@ -1380,6 +1383,10 @@ function buildAgentFromSnapshot(snapshot) {
 
 globalThis.HomunculusAgents = Object.assign(globalThis.HomunculusAgents || {}, {
     getEnabledAgents,
+    // Homunculus: used by the Group Studio page (scripts/classic-group-studio.js).
+    getAgents,
+    isAgentEnabledIgnoringGroupProfile,
+    isAgentHidden,
 });
 
 function getComparableAgentSnapshot(agent) {
@@ -2327,7 +2334,21 @@ function updateAgentTokenCounter() {
     tokenCounter.classList.toggle('is-empty', tokenCount <= 0);
 }
 
+function renderGroupProfileBanner() {
+    const banner = document.getElementById('ica--groupProfileBanner');
+    if (!banner) return;
+    const override = getGroupProfileAgentOverride();
+    banner.hidden = !override;
+    if (!override) return;
+    const how = override.mode === 'only' ? 'Only the agents ticked here run in this group.' : 'Your usual agents run here, plus the changes you make here.';
+    banner.innerHTML = '<i class="fa-solid fa-people-group" aria-hidden="true"></i><span><b></b><br><small></small></span><button type="button" class="menu_button" data-ica-open-studio>Group Studio</button>';
+    banner.querySelector('b').textContent = `Editing agents for: ${override.groupName}`;
+    banner.querySelector('small').textContent = `${how} Your own agent lists are not changed.`;
+    banner.querySelector('[data-ica-open-studio]').addEventListener('click', () => globalThis.HomunculusGroupStudio?.open?.(override.groupId));
+}
+
 function renderAgentList() {
+    renderGroupProfileBanner();
     const container = $('#ica--agentList');
     const scrollState = captureAgentListScrollState(container[0]);
     container.empty();
@@ -6154,6 +6175,13 @@ async function refinePromptWithAI(currentPrompt, category, phase, connectionProf
     };
 
     eventSource.on(event_types.CHAT_CHANGED, refreshProfileUi);
+
+    // Homunculus: a group profile turned on/off or changed its agents (scripts/classic-group-profile.js).
+    document.addEventListener('homunculus:group-profile-changed', () => {
+        syncToolAgentRegistrations();
+        renderAgentList();
+        updateCompanionButtonVisibility();
+    });
 
     const connectionProfileEvents = [
         event_types.CONNECTION_PROFILE_LOADED,
