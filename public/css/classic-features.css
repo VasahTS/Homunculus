@@ -2058,6 +2058,82 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-row-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ct-sc-row-sub { color: var(--cf-muted); font-size: .82em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ct-sc-row-outfit { font-style: italic; }
+/* Character cards: header (opens the sheet) + fold arrow + details */
+.ct-sc-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--cf-surface);
+    overflow: hidden;
+}
+.ct-sc-card::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: transparent; }
+.ct-sc-card.is-here::before { background: rgb(110 200 140); }
+.ct-sc-card.is-changed { background: color-mix(in srgb, var(--cf-accent) 7%, var(--cf-surface)); }
+.ct-sc-card:hover, .ct-sc-card:focus-within { border-color: color-mix(in srgb, var(--cf-accent) 35%, transparent); }
+.ct-sc-card-head { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
+.ct-sc-card-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 4px 8px 12px;
+    border: 0;
+    background: none;
+    color: var(--cf-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.ct-sc-card-main:hover .ct-sc-row-name-text { color: var(--cf-accent); }
+.ct-sc-card-main:focus-visible, .ct-sc-card-fold:focus-visible { outline: 2px solid var(--cf-accent); outline-offset: -2px; border-radius: 8px; }
+.ct-sc-card-fold {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--cf-muted);
+    cursor: pointer;
+}
+.ct-sc-card-fold:hover { background: var(--cf-surface-2); color: var(--cf-text); }
+.ct-sc-card-fold i { transition: transform 140ms ease; font-size: .85em; transform: rotate(-90deg); }
+.ct-sc-card.is-open .ct-sc-card-fold i { transform: none; }
+.ct-sc-card .ct-sc-details { margin: 0 10px 10px 14px; padding-top: 8px; border-top: 1px solid var(--cf-line); }
+
+.ct-sc-details { display: flex; flex-direction: column; gap: 6px; font-size: .86em; }
+.ct-sc-facts { display: flex; flex-direction: column; gap: 3px; margin: 0; }
+.ct-sc-fact { display: grid; grid-template-columns: 6.9em 1fr; gap: 8px; align-items: baseline; }
+.ct-sc-fact dt { display: flex; align-items: center; gap: 5px; color: var(--cf-muted); font-size: .86em; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.ct-sc-fact dd { margin: 0; min-width: 0; color: var(--cf-text); line-height: 1.38; overflow-wrap: anywhere; }
+.ct-sc-fact .ct-sc-dot { width: 5px; height: 5px; }
+.ct-sc-notes { margin: 2px 0 0; padding: 6px 9px; border-left: 2px solid color-mix(in srgb, var(--cf-accent) 45%, var(--cf-line)); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--cf-text) 3%, transparent); color: var(--cf-text); font-style: italic; line-height: 1.4; }
+.ct-sc-notes.is-changed { border-left-color: var(--cf-accent); }
+.ct-sc-unknown { margin: 0; color: var(--cf-muted); font-size: .9em; font-style: italic; }
+.ct-sc-link { margin: 0; padding: 2px 6px; border: 0; border-radius: 6px; background: none; color: var(--cf-muted); font: inherit; font-size: .76em; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ct-sc-link:hover { color: var(--cf-text); background: var(--cf-surface-2); }
+
+/* Character sheet (opened from a card) */
+.ct-sc-sheet .ct-sc-peek-body { gap: 12px; }
+.ct-sc-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 6px; text-align: center; }
+.ct-sc-portrait { width: min(100%, 210px); aspect-ratio: 2 / 3; height: auto; border-radius: 14px; object-fit: cover; object-position: top; background: var(--cf-surface-2); border: 1px solid var(--cf-line); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); }
+.ct-sc-portrait.ct-sc-initial { display: grid; place-items: center; width: 120px; aspect-ratio: 1; font-size: 2.6em; }
+.ct-sc-hero.is-here .ct-sc-portrait { border-color: rgb(110 200 140 / 45%); }
+.ct-sc-hero-text { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.ct-sc-hero-name { display: flex; align-items: center; gap: 8px; font-size: 1.3em; font-weight: 700; overflow-wrap: anywhere; }
+.ct-sc-hero-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.ct-sc-details.is-full { gap: 8px; font-size: .92em; }
+.ct-sc-details.is-full .ct-sc-section-head { margin-top: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--cf-line); }
+.ct-sc-details.is-full .ct-sc-fact { grid-template-columns: 7.4em 1fr; padding: 3px 0; }
+
 .ct-sc-you { flex: none; padding: 0 5px; border-radius: 4px; background: var(--cf-accent); color: color-mix(in srgb, var(--cf-accent) 12%, #0b0b0d); font-size: .68em; font-weight: 800; letter-spacing: .06em; }
 .ct-sc-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--cf-accent); }
 .ct-sc-pill { flex: none; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--cf-line); color: var(--cf-muted); font-size: .74em; font-weight: 600; }
@@ -2150,7 +2226,9 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-peek-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 16px; }
 .ct-sc-peek-foot { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--cf-line); }
 .ct-sc-grow { flex: 1; }
-.ct-sc-btn { margin: 0; width: auto; white-space: nowrap; }
+.ct-sc-btn { margin: 0; width: auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.ct-sc-peek-foot .ct-sc-btn.ct-sc-peek-edit { padding-inline: 16px; background: var(--cf-accent); border-color: var(--cf-accent); color: color-mix(in srgb, var(--cf-accent) 12%, #0b0b0d); font-weight: 700; }
+.ct-sc-peek-foot .ct-sc-btn.ct-sc-peek-edit:hover { background: color-mix(in srgb, var(--cf-accent) 85%, white); }
 .ct-sc-btn.is-primary { border-color: color-mix(in srgb, var(--cf-accent) 60%, transparent); color: var(--cf-accent); font-weight: 600; }
 .ct-sc-danger { margin: 0; padding: 6px 8px; border: 0; border-radius: 8px; background: none; color: rgb(240 130 120); font: inherit; font-size: .88em; cursor: pointer; }
 .ct-sc-danger:hover { background: rgb(240 120 110 / 12%); }

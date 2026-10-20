@@ -26,7 +26,7 @@ import {
 } from '../script.js';
 import { extension_settings } from './extensions.js';
 import { selected_group } from './group-chats.js';
-import { user_avatar } from './personas.js';
+import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
@@ -60,7 +60,8 @@ const HELP = {
 <li><b>In scene</b>: characters present right now. The AI gets their whole description.</li>
 <li><b>Not here</b>: characters met before who left. The AI only gets one line, so it remembers they exist.</li>
 </ul>
-<p>Click a character to see or edit them. A dot marks someone who changed in the last update.</p>
+<p>Each card shows everything the tracker knows; the arrow folds it to one line. Click the name to open the full sheet (with <b>Edit</b> at the bottom).</p>
+<p>A dot marks what changed in the last update.</p>
 <p>A new NPC is only added when they have a proper name and actually did or said something.</p>`,
     appearance: '<p>How the character looks right now. The tracker updates it when the story changes it (new clothes, a wound, a lost weapon) and leaves a part empty when the story never said it.</p>',
     quests: '<p>Tasks and goals from the story. The tracker adds one when a task is clearly given or taken on, and marks it completed or failed when the story resolves it.</p>',
@@ -83,6 +84,8 @@ function settings() {
     if (typeof st.filter !== 'string') st.filter = 'all';
     if (typeof st.questFilter !== 'string') st.questFilter = 'active';
     if (!st.collapsed || typeof st.collapsed !== 'object') st.collapsed = {};
+    // Character cards opened or closed by hand (by name). Without an entry: open when in scene.
+    if (!st.cards || typeof st.cards !== 'object') st.cards = {};
     return st;
 }
 
@@ -319,6 +322,24 @@ function avatarFor(character, className = 'ct-sc-avatar') {
     return initial;
 }
 
+/** Big picture for the character sheet: the full card/persona image, falling back to the small one. */
+function portraitFor(character) {
+    const name = str(character?.name).trim();
+    let full = '';
+    if (character && isPlayer(character) && user_avatar) {
+        full = getUserAvatar(user_avatar);
+    } else if (name) {
+        const card = characters.find(c => keyOf(c?.name) === keyOf(name));
+        if (card?.avatar) full = `characters/${encodeURIComponent(card.avatar)}`;
+    }
+    if (!full) return avatarFor(character, 'ct-sc-portrait');
+    const img = el('img', 'ct-sc-portrait');
+    img.alt = '';
+    img.src = full;
+    img.addEventListener('error', () => img.replaceWith(avatarFor(character, 'ct-sc-portrait')), { once: true });
+    return img;
+}
+
 function chip(label, count, isOn, onClick) {
     const b = button(`ct-sc-filter${isOn ? ' is-on' : ''}`, '', '', onClick);
     b.append(el('span', '', label));
@@ -495,11 +516,22 @@ function renderCast(body, cast, previous) {
     }
     const titleRow = el('div', 'ct-sc-section-head');
     titleRow.append(el('span', 'ct-sc-kicker', 'Characters'), helpButton('Characters', HELP.cast));
+    if (list.length) {
+        const anyOpen = list.some(isCardOpen);
+        titleRow.append(el('span', 'ct-sc-grow', ''), button('ct-sc-link', anyOpen
+            ? '<i class="fa-solid fa-angles-up" aria-hidden="true"></i> Fold all'
+            : '<i class="fa-solid fa-angles-down" aria-hidden="true"></i> Show all', anyOpen ? 'Fold every card to one line' : 'Show the details of every card', () => {
+            for (const character of list) st.cards[keyOf(character.name)] = !anyOpen;
+            saveSettingsDebounced();
+            render();
+        }));
+    }
     toolbar.append(titleRow, search, filters);
     body.append(toolbar);
 
     const term = view.search.trim().toLowerCase();
-    const matches = character => !term || `${str(character.name)} ${str(character.role)} ${str(character.mood)}`.toLowerCase().includes(term);
+    const matches = character => !term || [character.name, character.role, character.mood, character.notes, ...Object.values(character.appearance && typeof character.appearance === 'object' ? character.appearance : {})]
+        .map(str).join(' ').toLowerCase().includes(term);
     const groupsToShow = [
         ['here', 'In scene', here],
         ['away', 'Not here', away],
@@ -522,7 +554,7 @@ function renderCast(body, cast, previous) {
         section.append(head);
         if (!collapsed) {
             const rows = el('div', 'ct-sc-rows');
-            for (const character of visible) rows.append(characterRow(character, changed(character)));
+            for (const character of visible) rows.append(characterCard(character, changed(character) ? previousOf(previous, character) : null, changed(character)));
             if (!visible.length) rows.append(el('p', 'ct-sc-empty-line', term ? 'No one matches.' : 'No one.'));
             section.append(rows);
         }
@@ -535,23 +567,128 @@ function renderCast(body, cast, previous) {
     body.append(button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a character', '', () => openPeek('character', '', true)));
 }
 
-function characterRow(character, changed) {
+function previousOf(previous, character) {
+    return characterList(previous).find(item => keyOf(item.name) === keyOf(character.name)) ?? {};
+}
+
+function isCardOpen(character) {
+    const saved = settings().cards[keyOf(character.name)];
+    return typeof saved === 'boolean' ? saved : isPresent(character);
+}
+
+/** The fields that differ from the previous update (empty when there is no previous update). */
+function changedFields(character, before) {
+    const out = new Set();
+    if (!before) return out;
+    for (const key of ['role', 'mood', 'notes', 'present']) {
+        if (str(character[key]).trim() !== str(before[key]).trim()) out.add(key);
+    }
+    const now = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
+    const then = before.appearance && typeof before.appearance === 'object' ? before.appearance : {};
+    for (const key of new Set([...Object.keys(now), ...Object.keys(then)])) {
+        if (str(now[key]).trim() !== str(then[key]).trim()) out.add(`look.${key}`);
+    }
+    return out;
+}
+
+/**
+ * Everything the tracker knows about a character, as label/value lines.
+ * @param {object} character
+ * @param {Set<string>} changes from changedFields()
+ * @param {{ full?: boolean }} options full = the character sheet (sections, unknown parts listed)
+ */
+function characterDetails(character, changes, { full = false } = {}) {
+    const box = el('div', `ct-sc-details${full ? ' is-full' : ''}`);
+    const fact = (list, label, value, changed) => {
+        const row = el('div', `ct-sc-fact${changed ? ' is-changed' : ''}`);
+        const dt = el('dt', '', label);
+        if (changed) {
+            dt.append(el('span', 'ct-sc-dot', ''));
+            row.title = 'Changed in the last update';
+        }
+        row.append(dt, el('dd', '', value));
+        list.append(row);
+    };
+    const section = (title, help) => {
+        if (!full) return box;
+        const head = el('div', 'ct-sc-section-head');
+        head.append(el('span', 'ct-sc-kicker', title));
+        if (help) head.append(helpButton(title, help));
+        box.append(head);
+        return box;
+    };
+
+    const about = el('dl', 'ct-sc-facts');
+    if (full && str(character.role).trim()) fact(about, 'Role', str(character.role).trim(), changes.has('role'));
+    if (str(character.mood).trim()) fact(about, 'Mood', str(character.mood).trim(), changes.has('mood'));
+    for (const key of Object.keys(character).filter(k => !CHARACTER_KEYS.has(k))) {
+        const value = character[key];
+        if (value === null || typeof value === 'object' || !str(value).trim()) continue;
+        fact(about, humanize(key), str(value).trim(), false);
+    }
+    if (about.childElementCount) {
+        section('About');
+        box.append(about);
+    }
+
+    const look = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
+    const extraLook = Object.keys(look).filter(key => !APPEARANCE.some(([k]) => k === key));
+    const lookFields = [...APPEARANCE, ...extraLook.map(key => [key, humanize(key)])];
+    const known = lookFields.filter(([key]) => str(look[key]).trim());
+    const unknown = lookFields.filter(([key]) => !str(look[key]).trim() && APPEARANCE.some(([k]) => k === key));
+    if (known.length || full) {
+        section('Appearance', HELP.appearance);
+        const list = el('dl', 'ct-sc-facts');
+        for (const [key, label] of known) fact(list, label, str(look[key]).trim(), changes.has(`look.${key}`));
+        if (known.length) box.append(list);
+        if (full && unknown.length) box.append(el('p', 'ct-sc-unknown', `Not known yet: ${unknown.map(([, label]) => label.toLowerCase()).join(', ')}.`));
+    }
+
+    const notes = str(character.notes).trim();
+    if (notes) {
+        section('Notes');
+        const note = el('p', `ct-sc-notes${changes.has('notes') ? ' is-changed' : ''}`, notes);
+        if (changes.has('notes')) note.title = 'Changed in the last update';
+        box.append(note);
+    }
+    if (!box.childElementCount) box.append(el('p', 'ct-sc-unknown', 'Nothing known yet.'));
+    return box;
+}
+
+function characterCard(character, before, changed) {
     const present = isPresent(character);
-    const row = button(`ct-sc-row${present ? ' is-here' : ''}${changed ? ' is-changed' : ''}`, '', '', () => openPeek('character', keyOf(character.name)));
-    row.append(avatarFor(character));
+    const key = keyOf(character.name);
+    const name = str(character.name).trim() || 'Unnamed';
+    const open = isCardOpen(character);
+    const card = el('article', `ct-sc-card${present ? ' is-here' : ''}${changed ? ' is-changed' : ''}${open ? ' is-open' : ''}`);
+
+    const head = el('div', 'ct-sc-card-head');
+    const main = button('ct-sc-card-main', '', `Open ${name}`, () => openPeek('character', key));
+    main.append(avatarFor(character));
     const text = el('span', 'ct-sc-row-text');
     const nameLine = el('span', 'ct-sc-row-name');
-    nameLine.append(el('span', 'ct-sc-row-name-text', str(character.name).trim() || 'Unnamed'));
+    nameLine.append(el('span', 'ct-sc-row-name-text', name));
     if (isPlayer(character)) nameLine.append(el('span', 'ct-sc-you', 'YOU'));
     if (changed) nameLine.append(el('span', 'ct-sc-dot', ''));
     text.append(nameLine);
-    const sub = [str(character.role).trim(), str(character.mood).trim()].filter(Boolean).join(' · ');
+    const role = str(character.role).trim();
+    const sub = open ? role : [role, str(character.mood).trim()].filter(Boolean).join(' · ');
     if (sub) text.append(el('span', 'ct-sc-row-sub', sub));
     const outfit = str(character.appearance?.outfit).trim();
-    if (present && outfit) text.append(el('span', 'ct-sc-row-sub ct-sc-row-outfit', outfit));
-    row.append(text, el('span', `ct-sc-pill${present ? ' is-here' : ''}`, present ? 'Here' : 'Away'));
-    row.setAttribute('aria-label', `${str(character.name)}: ${present ? 'in scene' : 'not here'}${changed ? ', changed in the last update' : ''}`);
-    return row;
+    if (!open && present && outfit) text.append(el('span', 'ct-sc-row-sub ct-sc-row-outfit', outfit));
+    main.append(text);
+    main.setAttribute('aria-label', `Open ${name}: ${present ? 'in scene' : 'not here'}${changed ? ', changed in the last update' : ''}`);
+
+    const fold = button('ct-sc-card-fold', '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>', open ? 'Fold to one line' : 'Show details', () => {
+        settings().cards[key] = !open;
+        saveSettingsDebounced();
+        render();
+    });
+    fold.setAttribute('aria-expanded', String(open));
+    head.append(main, el('span', `ct-sc-pill${present ? ' is-here' : ''}`, present ? 'Here' : 'Away'), fold);
+    card.append(head);
+    if (open) card.append(characterDetails(character, changedFields(character, before)));
+    return card;
 }
 
 function renderQuests(body, world) {
@@ -737,13 +874,18 @@ function openPeek(type, key, isNew = false) {
         if (!isNew && !found) return;
         draft = structuredClone(found ?? { name: '', present: true, role: '', mood: '', appearance: {}, notes: '' });
         if (!draft.appearance || typeof draft.appearance !== 'object') draft.appearance = {};
+        view.peek = { type, key, draft, isNew, mode: isNew ? 'edit' : 'view' };
+        render();
+        if (isNew) requestAnimationFrame(() => root?.querySelector('.ct-sc-peek input, .ct-sc-peek textarea')?.focus());
+        else requestAnimationFrame(() => root?.querySelector('.ct-sc-peek .ct-sc-peek-edit')?.focus());
+        return;
     } else {
         const quests = Array.isArray(findResult('world')?.data?.quests) ? findResult('world').data.quests : [];
         const found = isNew ? null : quests[Number(key)];
         if (!isNew && found === undefined) return;
         draft = found && typeof found === 'object' ? structuredClone(found) : { title: str(found), status: 'active', note: '' };
     }
-    view.peek = { type, key, draft, isNew };
+    view.peek = { type, key, draft, isNew, mode: 'edit' };
     render();
     requestAnimationFrame(() => root?.querySelector('.ct-sc-peek input, .ct-sc-peek textarea')?.focus());
 }
@@ -751,6 +893,29 @@ function openPeek(type, key, isNew = false) {
 function closePeek() {
     view.peek = null;
     render();
+}
+
+/** Character sheet → edit form (a fresh copy of the saved character). */
+function editPeek() {
+    const peek = view.peek;
+    const found = characterList(findResult('cast')?.data).find(character => keyOf(character.name) === peek?.key);
+    if (!peek || !found) return;
+    peek.draft = structuredClone(found);
+    if (!peek.draft.appearance || typeof peek.draft.appearance !== 'object') peek.draft.appearance = {};
+    peek.mode = 'edit';
+    render();
+    requestAnimationFrame(() => root?.querySelector('.ct-sc-peek input, .ct-sc-peek textarea')?.focus());
+}
+
+/** Cancel in the edit form: back to the sheet for a saved character, back to the list otherwise. */
+function cancelPeek() {
+    const peek = view.peek;
+    if (peek?.type === 'character' && !peek.isNew && peek.mode === 'edit') {
+        peek.mode = 'view';
+        render();
+        return;
+    }
+    closePeek();
 }
 
 async function savePeek() {
@@ -782,7 +947,10 @@ async function savePeek() {
             }
             list[index] = draft;
         });
-        if (ok) closePeek();
+        if (ok) {
+            view.peek = { type: 'character', key: keyOf(draft.name), draft, isNew: false, mode: 'view' };
+            render();
+        }
         return;
     }
     const draft = peek.draft;
@@ -812,14 +980,67 @@ async function deletePeek() {
     if (ok) closePeek();
 }
 
+function renderSheet(peek) {
+    const cast = findResult('cast');
+    const character = characterList(cast?.data).find(item => keyOf(item.name) === peek.key);
+    const panel = el('div', 'ct-sc-peek ct-sc-sheet');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Character');
+    const head = el('div', 'ct-sc-peek-head');
+    head.append(button('ct-sc-icon', '<i class="fa-solid fa-arrow-left"></i>', 'Back to the list', closePeek));
+    head.append(el('span', 'ct-sc-kicker ct-sc-grow', 'Character'));
+    const body = el('div', 'ct-sc-peek-body');
+    if (!character) {
+        body.append(el('p', 'ct-sc-empty-line', 'This character is no longer in the scene list.'));
+        panel.append(head, body);
+        return panel;
+    }
+    const previous = findResult('cast', { skip: 1 });
+    const before = previous ? characterList(previous.data).find(item => keyOf(item.name) === peek.key) ?? {} : null;
+    const changes = changedFields(character, before);
+    const present = isPresent(character);
+
+    const hero = el('div', `ct-sc-hero${present ? ' is-here' : ''}`);
+    hero.append(portraitFor(character));
+    const titles = el('div', 'ct-sc-hero-text');
+    const nameLine = el('div', 'ct-sc-hero-name');
+    nameLine.append(el('span', '', str(character.name).trim() || 'Unnamed'));
+    if (isPlayer(character)) nameLine.append(el('span', 'ct-sc-you', 'YOU'));
+    titles.append(nameLine);
+    const tags = el('div', 'ct-sc-hero-tags');
+    tags.append(el('span', `ct-sc-pill${present ? ' is-here' : ''}`, present ? 'In scene' : 'Not here'));
+    if (changes.size) tags.append(el('span', 'ct-sc-pill is-active', 'Changed in the last update'));
+    titles.append(tags);
+    hero.append(titles);
+    body.append(hero, characterDetails(character, changes, { full: true }));
+
+    const foot = el('div', 'ct-sc-peek-foot');
+    const presence = button('menu_button ct-sc-btn', present ? '<i class="fa-solid fa-person-walking-arrow-right"></i> Mark not here' : '<i class="fa-solid fa-person-walking-arrow-loop-left"></i> Mark in scene', present ? 'Move to Not here' : 'Move to In scene', () => void saveData('cast', (data) => {
+        const item = (Array.isArray(data.characters) ? data.characters : []).find(c => keyOf(c?.name) === peek.key);
+        if (!item) return false;
+        item.present = !present;
+    }));
+    const edit = button('menu_button ct-sc-btn is-primary ct-sc-peek-edit', '<i class="fa-solid fa-pen"></i> Edit', `Edit ${str(character.name).trim()}`, editPeek);
+    foot.append(presence, el('span', 'ct-sc-grow', ''), edit);
+    panel.append(head, body, foot);
+    panel.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+            closePeek();
+        }
+    });
+    return panel;
+}
+
 function renderPeek() {
     const peek = view.peek;
+    if (peek.type === 'character' && peek.mode === 'view') return renderSheet(peek);
     const panel = el('div', 'ct-sc-peek');
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', peek.type === 'character' ? 'Character' : 'Quest');
     const draft = peek.draft;
     const head = el('div', 'ct-sc-peek-head');
-    head.append(button('ct-sc-icon', '<i class="fa-solid fa-arrow-left"></i>', 'Back to the list', closePeek));
+    head.append(button('ct-sc-icon', '<i class="fa-solid fa-arrow-left"></i>', peek.type === 'character' && !peek.isNew ? 'Back to the character' : 'Back to the list', cancelPeek));
     const body = el('div', 'ct-sc-peek-body');
 
     if (peek.type === 'character') {
@@ -902,12 +1123,12 @@ function renderPeek() {
 
     const foot = el('div', 'ct-sc-peek-foot');
     if (!peek.isNew) foot.append(button('ct-sc-danger', '<i class="fa-solid fa-trash-can"></i> Delete', peek.type === 'character' ? 'Remove from the list' : 'Delete the quest', () => void deletePeek()));
-    foot.append(el('span', 'ct-sc-grow', ''), button('menu_button ct-sc-btn', 'Cancel', '', closePeek), button('menu_button ct-sc-btn is-primary', '<i class="fa-solid fa-check"></i> Save', '', () => void savePeek()));
+    foot.append(el('span', 'ct-sc-grow', ''), button('menu_button ct-sc-btn', 'Cancel', '', cancelPeek), button('menu_button ct-sc-btn is-primary', '<i class="fa-solid fa-check"></i> Save', '', () => void savePeek()));
     panel.append(head, body, foot);
     panel.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             event.stopPropagation();
-            closePeek();
+            cancelPeek();
         }
     });
     return panel;
