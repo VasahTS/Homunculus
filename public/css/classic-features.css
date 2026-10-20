@@ -1268,6 +1268,10 @@ body.ct-fx-reduced .ct-cb-tile { animation: none; }
 .ct-gs-open-chat { flex: none; }
 #ct-group-studio .drawer-icon { font-size: var(--topBarIconSize, 1.4em); }
 .ct-gs-head-actions { display: flex; gap: 8px; flex: none; }
+/* Header and content share one centered column, so the page does not lean to the left on wide screens. */
+.ct-gs > .ct-cb-header,
+.ct-gs > .ct-gs-shell { width: 100%; max-width: 1320px; margin-inline: auto; box-sizing: border-box; }
+.ct-gs-main > .ct-gs-tabs, .ct-gs-page { max-width: none; }
 .ct-gs-shell {
     flex: 1;
     min-height: 0;
@@ -1540,8 +1544,10 @@ h4.ct-gs-title { font-size: 1em; }
     letter-spacing: .06em;
 }
 #ct-group-mode-bar.is-active .ct-gm-badge { background: var(--cf-accent); color: color-mix(in srgb, var(--cf-accent) 12%, #0b0b0d); }
-.ct-gm-name { font-weight: 700; }
-.ct-gm-summary { flex: 1 1 200px; min-width: 0; color: var(--cf-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-gm-name { flex: 0 1 auto; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ct-group-mode-bar > :not(.ct-gm-name, .ct-gm-summary) { flex: none; }
+.ct-gm-link { white-space: nowrap; }
+.ct-gm-summary { flex: 1 1 0; min-width: 0; color: var(--cf-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ct-gm-link {
     margin: 0;
     padding: 0;
@@ -1799,7 +1805,7 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-scene {
     position: fixed;
     top: var(--topBarBlockSize, 0px);
-    right: 0;
+    right: var(--ct-sc-shift, 0px);
     bottom: 0;
     z-index: 31;
     width: var(--ct-scene-w);
@@ -1815,7 +1821,7 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-scene-strip {
     position: fixed;
     top: calc(var(--topBarBlockSize, 0px) + 12px);
-    right: 0;
+    right: var(--ct-sc-shift, 0px);
     z-index: 31;
     width: var(--ct-scene-strip-w);
     display: flex;
@@ -1838,14 +1844,73 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-strip-label { margin-top: 6px; writing-mode: vertical-rl; font-size: .74em; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 
 @media (min-width: 1000px) {
-    body:not(.ct-layout-lanterna).ct-scene-on #sheld {
-        right: var(--ct-scene-w) !important;
-        width: min(var(--sheldWidth), calc(100vw - var(--ct-scene-w) - 24px)) !important;
+    /* ── Classic stage ──
+       With the Scene panel on, the screen is split into columns that never cover each other:
+       [left panel, when open] [chat + top bar, centered] [Scene panel] [right panel, when pinned].
+       A right panel that is open but not pinned slides over the Scene panel (or over the strip). 
+       --ct-sc-l / --ct-sc-r = space taken on each side; --ct-stage-w = width of the chat column. */
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) {
+        --ct-sc-rail: var(--ct-scene-w);
+        --ct-side-w: clamp(360px, calc((100vw - var(--ct-sc-rail) - var(--sheldWidth)) / 2), 30vw);
+        --ct-sc-shift: 0px;
+        --ct-sc-l: 0px;
+        --ct-sc-ropen: 0px;
+        --ct-sc-r: calc(max(var(--ct-sc-rail), var(--ct-sc-ropen)) + var(--ct-sc-shift));
+        --ct-stage-w: min(var(--sheldWidth), calc(100vw - var(--ct-sc-l) - var(--ct-sc-r) - 32px));
     }
-    body:not(.ct-layout-lanterna).ct-scene-strip-on #sheld {
-        right: var(--ct-scene-strip-w) !important;
-        width: min(var(--sheldWidth), calc(100vw - var(--ct-scene-strip-w) - 24px)) !important;
+    body:not(.ct-layout-lanterna).ct-scene-strip-on { --ct-sc-rail: var(--ct-scene-strip-w); }
+    /* In Classic the rail is a full-height column, like the Aventuras reader rail. */
+    body:not(.ct-layout-lanterna) .ct-scene { top: 0; }
+    body:not(.ct-layout-lanterna) .ct-scene-strip { top: 12px; }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on):has(#left-nav-panel.openDrawer) { --ct-sc-l: var(--ct-side-w); }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on):has(#right-nav-panel.openDrawer:not(.pinnedOpen)) { --ct-sc-ropen: max(var(--ct-side-w), var(--ct-scene-w)); }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on):has(#right-nav-panel.pinnedOpen.openDrawer) { --ct-sc-shift: var(--ct-side-w); }
+
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #sheld {
+        left: var(--ct-sc-l) !important;
+        right: var(--ct-sc-r) !important;
+        width: var(--ct-stage-w) !important;
+        transition: left var(--animation-duration-2x, .25s) ease, right var(--animation-duration-2x, .25s) ease, width var(--animation-duration-2x, .25s) ease;
     }
+    /* Top bar follows the chat column: same center, same width. `left` on a relative box (not a
+       transform) so the fixed side panels inside it keep the viewport as their frame. */
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #top-settings-holder {
+        left: calc((var(--ct-sc-l) - var(--ct-sc-r)) / 2);
+        width: var(--ct-stage-w);
+        transition: left var(--animation-duration-2x, .25s) ease, width var(--animation-duration-2x, .25s) ease;
+    }
+    /* Icons shrink a little when the chat column gets narrow (both side panels pinned). */
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #top-settings-holder .drawer-icon {
+        font-size: min(var(--topBarIconSize), calc(var(--ct-stage-w) / 30));
+    }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #top-bar {
+        left: var(--ct-sc-l);
+        right: var(--ct-sc-r);
+        width: var(--ct-stage-w);
+        transition: left var(--animation-duration-2x, .25s) ease, right var(--animation-duration-2x, .25s) ease, width var(--animation-duration-2x, .25s) ease;
+    }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #top-settings-holder .drawer-content:not(.fillLeft, .fillRight),
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on):not(.movingUI) .drawer-content.maximized:not(.fillLeft, .fillRight) {
+        width: var(--ct-stage-w) !important;
+        min-width: 0;
+    }
+    /* Left panel gets a usable width and pushes the chat instead of covering it. */
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #left-nav-panel {
+        width: var(--ct-side-w);
+    }
+    /* Right panel: pinned = its own column at the edge (the Scene panel moves left of it);
+       not pinned = slides over the Scene panel only, opaque so the panel under it does not show through. */
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #right-nav-panel {
+        width: max(var(--ct-side-w), var(--ct-scene-w));
+        left: auto;
+    }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #right-nav-panel.openDrawer {
+        background-color: var(--cf-solid);
+        border-left: 1px solid var(--cf-line);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+    body:not(.ct-layout-lanterna, .ct-cb-open, .ct-home-open):is(.ct-scene-on, .ct-scene-strip-on) #right-nav-panel.pinnedOpen.openDrawer { width: var(--ct-side-w); }
     body.ct-layout-lanterna.ct-scene-on[data-ct-view="chat"] { --ct-page-w: calc(100vw - var(--ct-rail-w) - var(--ct-scene-w)); }
     body.ct-layout-lanterna.ct-scene-strip-on[data-ct-view="chat"] { --ct-page-w: calc(100vw - var(--ct-rail-w) - var(--ct-scene-strip-w)); }
     body.ct-layout-lanterna.ct-dock-left.ct-scene-on[data-ct-view="chat"] { --ct-page-w: calc(100vw - var(--ct-rail-w) - var(--ct-dock-w) - var(--ct-scene-w)); }
