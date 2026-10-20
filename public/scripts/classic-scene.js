@@ -45,7 +45,7 @@ const APPEARANCE = Object.freeze([
     ['accessories', 'Accessories'],
     ['marks', 'Marks'],
 ]);
-const CHARACTER_KEYS = new Set(['name', 'present', 'role', 'mood', 'appearance', 'notes']);
+const CHARACTER_KEYS = new Set(['name', 'present', 'role', 'description', 'traits', 'mood', 'appearance', 'notes']);
 const WORLD_KEYS = new Set(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
 
@@ -67,6 +67,7 @@ const HELP = {
 <p>A new NPC is only added when they have a proper name and actually did or said something.</p>`,
     appearance: `<p>How the character looks right now, so you can picture them at a glance.</p>
 <p>The tracker always fills face, hair, eyes, build and outfit: from the story first, then the character card or cast sheet, and if neither says, it picks details that fit and keeps them. When the story changes something (new clothes, a wound, a lost weapon) it updates that part.</p>`,
+    traits: '<p>A few words for who they are inside (brave, sarcastic, loyal to Mira…). The tracker takes them from the character card first, then from how they act in the story, and keeps them unless the story shows a real change.</p>',
     quests: '<p>Tasks and goals from the story. The tracker adds one when a task is clearly given or taken on, and marks it completed or failed when the story resolves it.</p>',
     items: '<p>Notable things the player carries. The tracker adds items that are clearly taken, bought or given, and removes the ones lost or used up.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
@@ -168,6 +169,9 @@ function isPending(kind) {
 }
 
 const characterList = data => (Array.isArray(data?.characters) ? data.characters.filter(item => item && typeof item === 'object') : []);
+/** Personality traits as a clean list (the tracker answers a list; older or hand-made data may be a string). */
+const traitsOf = character => (Array.isArray(character?.traits) ? character.traits : str(character?.traits).split(/[,;\n]/))
+    .map(item => str(item).trim()).filter(Boolean);
 const isPresent = character => character.present !== false && character.present !== 'false';
 const isPlayer = character => str(character.role).toLowerCase() === 'player' || (name1 && str(character.name).trim().toLowerCase() === String(name1).toLowerCase());
 const keyOf = name => str(name).trim().toLowerCase();
@@ -199,6 +203,8 @@ function castPrompt(data) {
         }
         const look = APPEARANCE.map(([key, label]) => [label, str(character.appearance?.[key]).trim()]).filter(([, v]) => v).map(([label, v]) => `${label}: ${v}`);
         const lines = [`- ${name}${tags ? ` (${tags})` : ''}`];
+        if (str(character.description).trim()) lines.push(`  ${oneLine(character.description)}`);
+        if (traitsOf(character).length) lines.push(`  Traits: ${traitsOf(character).join(', ')}`);
         if (look.length) lines.push(`  ${look.join('; ')}`);
         if (str(character.notes).trim()) lines.push(`  Notes: ${str(character.notes).trim()}`);
         here.push(lines.join('\n'));
@@ -681,7 +687,7 @@ function renderCast(body, cast, previous) {
     body.append(toolbar);
 
     const term = view.search.trim().toLowerCase();
-    const matches = character => !term || [character.name, character.role, character.mood, character.notes, ...Object.values(character.appearance && typeof character.appearance === 'object' ? character.appearance : {})]
+    const matches = character => !term || [character.name, character.role, character.description, ...traitsOf(character), character.mood, character.notes, ...Object.values(character.appearance && typeof character.appearance === 'object' ? character.appearance : {})]
         .map(str).join(' ').toLowerCase().includes(term);
     const groupsToShow = [
         ['here', 'In scene', here],
@@ -740,9 +746,10 @@ function isCardOpen(character) {
 function changedFields(character, before) {
     const out = new Set();
     if (!before) return out;
-    for (const key of ['role', 'mood', 'notes', 'present']) {
+    for (const key of ['role', 'description', 'mood', 'notes', 'present']) {
         if (str(character[key]).trim() !== str(before[key]).trim()) out.add(key);
     }
+    if (traitsOf(character).join('|') !== traitsOf(before).join('|')) out.add('traits');
     const now = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
     const then = before.appearance && typeof before.appearance === 'object' ? before.appearance : {};
     for (const key of new Set([...Object.keys(now), ...Object.keys(then)])) {
@@ -788,6 +795,24 @@ function characterDetails(character, changes, { full = false } = {}) {
         return item;
     };
 
+    const description = str(character.description).trim();
+    const traits = traitsOf(character);
+    const traitChips = () => {
+        const row = el('div', `ct-sc-traits${changes.has('traits') ? ' is-changed' : ''}`);
+        row.setAttribute('aria-label', 'Traits');
+        for (const trait of traits) row.append(el('span', 'ct-sc-trait', trait));
+        if (changes.has('traits')) row.append(changedTag());
+        return row;
+    };
+    if (!full) {
+        if (description) {
+            const text = el('p', `ct-sc-desc${changes.has('description') ? ' is-changed' : ''}`, description);
+            if (changes.has('description')) text.title = 'Changed in the last update';
+            box.append(text);
+        }
+        if (traits.length) box.append(traitChips());
+    }
+
     const mood = str(character.mood).trim();
     if (mood) {
         const line = el('div', `ct-sc-mood${changes.has('mood') ? ' is-changed' : ''}`);
@@ -801,6 +826,7 @@ function characterDetails(character, changes, { full = false } = {}) {
     if (full) {
         const about = el('div', 'ct-sc-look');
         if (str(character.role).trim()) about.append(field('role', 'Role', str(character.role).trim(), changes.has('role'), ['fa-id-badge', 'other']));
+        if (description) about.append(field('description', 'Description', description, changes.has('description'), ['fa-feather', 'other']));
         for (const key of Object.keys(character).filter(k => !CHARACTER_KEYS.has(k))) {
             const value = character[key];
             if (value === null || typeof value === 'object' || !str(value).trim()) continue;
@@ -811,6 +837,11 @@ function characterDetails(character, changes, { full = false } = {}) {
             head.append(el('span', 'ct-sc-kicker', 'About'));
             box.append(head, about);
         }
+        const head = el('div', 'ct-sc-section-head');
+        head.append(el('span', 'ct-sc-kicker', 'Personality'), helpButton('Personality', HELP.traits));
+        box.append(head);
+        if (traits.length) box.append(traitChips());
+        else box.append(el('p', 'ct-sc-unknown', 'No traits yet. Press Update now, or add them with Edit.'));
     }
 
     const look = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
@@ -1073,7 +1104,7 @@ function openPeek(type, key, isNew = false) {
     if (type === 'character') {
         const found = isNew ? null : characterList(findResult('cast')?.data).find(character => keyOf(character.name) === key);
         if (!isNew && !found) return;
-        draft = structuredClone(found ?? { name: '', present: true, role: '', mood: '', appearance: {}, notes: '' });
+        draft = structuredClone(found ?? { name: '', present: true, role: '', description: '', traits: [], mood: '', appearance: {}, notes: '' });
         if (!draft.appearance || typeof draft.appearance !== 'object') draft.appearance = {};
         view.peek = { type, key, draft, isNew, mode: isNew ? 'edit' : 'view' };
         render();
@@ -1181,6 +1212,55 @@ async function deletePeek() {
     if (ok) closePeek();
 }
 
+/** Chips with × plus a box to add more (Enter or comma), like a tag field. Edits draft.traits. */
+function traitEditor(draft) {
+    draft.traits = traitsOf(draft);
+    const wrap = el('div', 'ct-sc-field');
+    const labelRow = el('div', 'ct-sc-section-head');
+    labelRow.append(el('span', 'ct-sc-field-label', 'Traits'), helpButton('Traits', HELP.traits));
+    const box = el('div', 'ct-sc-trait-edit text_pole');
+    const input = el('input', 'ct-sc-trait-input');
+    input.type = 'text';
+    input.id = 'ct-sc-peek-traits';
+    input.placeholder = draft.traits.length ? 'Add a trait…' : 'brave, sarcastic, loyal… (Enter to add)';
+    input.setAttribute('aria-label', 'Add a trait');
+    const paint = () => {
+        box.querySelectorAll('.ct-sc-trait').forEach(node => node.remove());
+        for (const [index, trait] of draft.traits.entries()) {
+            const chipNode = el('span', 'ct-sc-trait');
+            chipNode.append(el('span', '', trait), button('ct-sc-trait-x', '<i class="fa-solid fa-xmark" aria-hidden="true"></i>', `Remove ${trait}`, () => {
+                draft.traits.splice(index, 1);
+                paint();
+                input.focus();
+            }));
+            box.insertBefore(chipNode, input);
+        }
+    };
+    const add = () => {
+        const parts = input.value.split(/[,;]/).map(part => part.trim()).filter(Boolean);
+        for (const part of parts) if (!draft.traits.some(trait => trait.toLowerCase() === part.toLowerCase())) draft.traits.push(part);
+        input.value = '';
+        paint();
+    };
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            add();
+        } else if (event.key === 'Backspace' && !input.value && draft.traits.length) {
+            draft.traits.pop();
+            paint();
+        }
+    });
+    input.addEventListener('blur', add);
+    box.addEventListener('click', (event) => {
+        if (event.target === box) input.focus();
+    });
+    box.append(input);
+    paint();
+    wrap.append(labelRow, box);
+    return wrap;
+}
+
 function renderSheet(peek) {
     const cast = findResult('cast');
     const character = characterList(cast?.data).find(item => keyOf(item.name) === peek.key);
@@ -1268,11 +1348,17 @@ function renderPeek() {
         const bind = (field, control, target = draft) => control.addEventListener('input', () => {
             target[field] = control.value;
         });
-        for (const [field, label, placeholder] of [['name', 'Name', 'Their name in the story'], ['role', 'Role', 'ally, rival, shopkeeper…'], ['mood', 'Mood', 'How they feel right now']]) {
+        const line = (field, label, placeholder) => {
             const { wrap, control } = textField(label, str(draft[field]), { placeholder, id: `ct-sc-peek-${field}` });
             bind(field, control);
             body.append(wrap);
-        }
+        };
+        line('name', 'Name', 'Their name in the story');
+        line('role', 'Role', 'ally, rival, shopkeeper…');
+        const description = textField('Description', str(draft.description), { multiline: true, placeholder: 'Who they are, in one or two sentences', id: 'ct-sc-peek-description' });
+        bind('description', description.control);
+        body.append(description.wrap, traitEditor(draft));
+        line('mood', 'Mood', 'How they feel right now');
         const appHead = el('div', 'ct-sc-section-head');
         appHead.append(el('span', 'ct-sc-kicker', 'Appearance'), helpButton('Appearance', HELP.appearance));
         body.append(appHead);

@@ -2110,6 +2110,29 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 
 .ct-sc-details { display: flex; flex-direction: column; gap: 8px; font-size: .9em; }
 .ct-sc-card .ct-sc-details { margin: 0 8px 9px; }
+.ct-sc-desc { margin: 0; padding: 0 3px; color: var(--cf-text); line-height: 1.45; }
+.ct-sc-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.ct-sc-traits .ct-sc-new { margin-left: 2px; }
+.ct-sc-trait {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--cf-text) 16%, transparent);
+    background: color-mix(in srgb, var(--cf-text) 5%, transparent);
+    color: var(--cf-text);
+    font-size: .84em;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.ct-sc-trait-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; width: 100%; box-sizing: border-box; min-height: 36px; padding: 5px 6px; cursor: text; }
+.ct-sc-trait-edit .ct-sc-trait { padding-right: 3px; }
+.ct-sc-trait-x { display: grid; place-items: center; width: 18px; height: 18px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--cf-muted); font-size: .8em; cursor: pointer; }
+.ct-sc-trait-x:hover { background: color-mix(in srgb, var(--cf-text) 12%, transparent); color: var(--cf-text); }
+.ct-sc-trait-edit .ct-sc-trait-input { flex: 1 1 120px; min-width: 80px; width: auto; height: auto; margin: 0; padding: 3px 4px; border: 0 !important; outline: 0; box-shadow: none !important; background: none !important; color: var(--cf-text); font: inherit; }
+.ct-sc-trait-edit:focus-within { border-color: color-mix(in srgb, var(--cf-accent) 55%, var(--cf-line)); }
 .ct-sc-mood { display: flex; align-items: center; gap: 8px; padding: 5px 11px; border-radius: 999px; background: var(--cf-surface-2); color: var(--cf-text); font-style: italic; line-height: 1.35; }
 .ct-sc-mood > i { flex: none; color: var(--cf-muted); font-style: normal; font-size: .9em; }
 .ct-sc-mood-text { flex: 1; min-width: 0; }
