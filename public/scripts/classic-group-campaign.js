@@ -36,7 +36,7 @@ const CAST_PROMPT_KEY = 'homunculus_cast';
 
 export const CAST_STATES = Object.freeze({ SCENE: 'scene', OFFSCREEN: 'offscreen', OFF: 'off' });
 
-export const DEFAULT_TURN_PROMPT = '[Narrated group: write the next reply as {{char}}, the narrator. Narrate the scene and voice every character and NPC of the cast as the story needs (dialogue, actions, thoughts). The cast are not separate speakers and never reply on their own. Never write the words, actions or thoughts of {{user}}. Do not start the reply with a name prefix.]';
+export const DEFAULT_TURN_PROMPT = '[Narrated group: write the next reply as {{char}}, the narrator. Narrate the scene and voice every character and NPC of the cast as the story needs (dialogue, actions, thoughts). The cast are not separate speakers and never reply on their own. Do not start the reply with a name prefix.]';
 
 // ───────────────────────── Data ─────────────────────────
 
