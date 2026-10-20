@@ -29,6 +29,7 @@ import { extension_settings, saveMetadataDebounced } from './extensions.js';
 import { selected_group } from './group-chats.js';
 import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
+import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
     world: 'tpl-homunculus-scene-world',
@@ -36,17 +37,8 @@ export const SCENE_TEMPLATES = Object.freeze({
 });
 const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST' });
 const PROMPT_KEY = 'homunculus_scene';
-const APPEARANCE = Object.freeze([
-    ['face', 'Face'],
-    ['hair', 'Hair'],
-    ['eyes', 'Eyes'],
-    ['body', 'Build'],
-    ['outfit', 'Outfit'],
-    ['accessories', 'Accessories'],
-    ['marks', 'Marks'],
-]);
-const CHARACTER_KEYS = new Set(['name', 'present', 'role', 'description', 'traits', 'mood', 'appearance', 'notes']);
-const WORLD_KEYS = new Set(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
+const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
+const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
 
 const HELP = {
@@ -68,6 +60,7 @@ const HELP = {
     appearance: `<p>How the character looks right now, so you can picture them at a glance.</p>
 <p>The tracker always fills face, hair, eyes, build and outfit: from the story first, then the character card or cast sheet, and if neither says, it picks details that fit and keeps them. When the story changes something (new clothes, a wound, a lost weapon) it updates that part.</p>`,
     traits: '<p>A few words for who they are inside (brave, sarcastic, loyal to Mira…). The tracker takes them from the character card first, then from how they act in the story, and keeps them unless the story shows a real change.</p>',
+    other: '<p>Things the tracker wrote that the current field preset does not list (for example from another preset). They stay saved; they just are not part of the preset.</p>',
     quests: '<p>Tasks and goals from the story. The tracker adds one when a task is clearly given or taken on, and marks it completed or failed when the story resolves it.</p>',
     items: '<p>Notable things the player carries. The tracker adds items that are clearly taken, bought or given, and removes the ones lost or used up.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
@@ -139,13 +132,13 @@ export function formatBlock(kind, data) {
  * @param {'world'|'cast'} kind
  * @param {{ skip?: number }} [options] skip: how many newer results to pass over (1 = the one before)
  */
-export function findResult(kind, { skip = 0 } = {}) {
+export function findResult(kind, { skip = 0, before = chat.length } = {}) {
     const api = agentsApi();
     if (!api?.getCompanionResults) return null;
     const ids = new Set(sceneAgents(kind).map(agent => agent.id));
     if (!ids.size) return null;
     let skipped = 0;
-    for (let index = chat.length - 1; index >= 0; index--) {
+    for (let index = Math.min(before, chat.length) - 1; index >= 0; index--) {
         const results = api.getCompanionResults(chat[index]);
         for (const [agentId, result] of Object.entries(results)) {
             if (!ids.has(agentId) || result?.status !== 'done') continue;
@@ -169,9 +162,20 @@ function isPending(kind) {
 }
 
 const characterList = data => (Array.isArray(data?.characters) ? data.characters.filter(item => item && typeof item === 'object') : []);
-/** Personality traits as a clean list (the tracker answers a list; older or hand-made data may be a string). */
-const traitsOf = character => (Array.isArray(character?.traits) ? character.traits : str(character?.traits).split(/[,;\n]/))
-    .map(item => str(item).trim()).filter(Boolean);
+/** Keys a character can hold under the active preset (core keys, About fields and section objects). */
+function knownCastKeys(preset = activePreset('cast')) {
+    const keys = new Set(CORE_CAST_KEYS);
+    for (const section of preset.sections) {
+        if (section.id === 'about') section.fields.forEach(field => keys.add(field.key));
+        else keys.add(section.id);
+    }
+    return keys;
+}
+/** World keys the active preset uses (modules that are on and its own fields). */
+function knownWorldKeys(preset = activePreset('world')) {
+    return new Set([...WORLD_MODULE_KEYS, ...preset.fields.map(field => field.key)]);
+}
+const worldModuleOn = (key, preset = activePreset('world')) => preset.modules[key] !== false;
 const isPresent = character => character.present !== false && character.present !== 'false';
 const isPlayer = character => str(character.role).toLowerCase() === 'player' || (name1 && str(character.name).trim().toLowerCase() === String(name1).toLowerCase());
 const keyOf = name => str(name).trim().toLowerCase();
@@ -191,6 +195,7 @@ function oneLine(value) {
 }
 
 function castPrompt(data) {
+    const preset = activePreset('cast');
     const here = [];
     const away = [];
     for (const character of characterList(data)) {
@@ -201,11 +206,19 @@ function castPrompt(data) {
             away.push(tags ? `${name} (${tags})` : name);
             continue;
         }
-        const look = APPEARANCE.map(([key, label]) => [label, str(character.appearance?.[key]).trim()]).filter(([, v]) => v).map(([label, v]) => `${label}: ${v}`);
         const lines = [`- ${name}${tags ? ` (${tags})` : ''}`];
-        if (str(character.description).trim()) lines.push(`  ${oneLine(character.description)}`);
-        if (traitsOf(character).length) lines.push(`  Traits: ${traitsOf(character).join(', ')}`);
-        if (look.length) lines.push(`  ${look.join('; ')}`);
+        for (const section of preset.sections) {
+            const parts = [];
+            for (const field of section.fields) {
+                const value = getValue(character, section.id, field.key);
+                if (!isFilled(field, value)) continue;
+                const text = field.type === 'list' ? listValue(value).join(', ') : oneLine(value);
+                if (section.id === 'about' && field.key === 'description') lines.push(`  ${text}`);
+                else parts.push(`${field.label}: ${text}`);
+            }
+            if (!parts.length) continue;
+            lines.push(section.id === 'about' ? `  ${parts.join('; ')}` : `  ${section.label}: ${parts.join('; ')}`);
+        }
         if (str(character.notes).trim()) lines.push(`  Notes: ${str(character.notes).trim()}`);
         here.push(lines.join('\n'));
     }
@@ -216,17 +229,24 @@ function castPrompt(data) {
 }
 
 function worldPrompt(data) {
+    const preset = activePreset('world');
+    const on = key => worldModuleOn(key, preset);
     const lines = [];
-    const head = [['Time', data.time], ['Location', data.location], ['Weather', data.weather]].filter(([, v]) => str(v).trim()).map(([k, v]) => `${k}: ${str(v).trim()}`);
+    const head = [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => on(key) && str(data[key]).trim()).map(([key, label]) => `${label}: ${str(data[key]).trim()}`);
     if (head.length) lines.push(head.join(' · '));
-    const quests = (Array.isArray(data.quests) ? data.quests : []).filter(q => q && str(q.title).trim() && str(q.status || 'active').toLowerCase() === 'active');
+    const quests = on('quests') ? (Array.isArray(data.quests) ? data.quests : []).filter(q => q && str(q.title).trim() && str(q.status || 'active').toLowerCase() === 'active') : [];
     if (quests.length) lines.push(`Active quests: ${quests.map(q => (str(q.note).trim() ? `${str(q.title).trim()} (${str(q.note).trim()})` : str(q.title).trim())).join('; ')}`);
-    const items = oneLine(Array.isArray(data.inventory) ? data.inventory.filter(Boolean) : []);
+    const items = on('inventory') ? oneLine(Array.isArray(data.inventory) ? data.inventory.filter(Boolean) : []) : '';
     if (items) lines.push(`Carrying: ${items}`);
-    const factions = (Array.isArray(data.factions) ? data.factions : []).filter(f => f && str(f.name).trim());
+    const factions = on('factions') ? (Array.isArray(data.factions) ? data.factions : []).filter(f => f && str(f.name).trim()) : [];
     if (factions.length) lines.push(`Factions: ${factions.map(f => (str(f.standing).trim() ? `${str(f.name).trim()} (${str(f.standing).trim()})` : str(f.name).trim())).join('; ')}`);
+    for (const field of preset.fields) {
+        const text = field.type === 'list' ? listValue(data[field.key]).join(', ') : oneLine(data[field.key]);
+        if (text) lines.push(`${field.label}: ${text}`);
+    }
+    const known = knownWorldKeys(preset);
     for (const [key, value] of Object.entries(data)) {
-        if (WORLD_KEYS.has(key)) continue;
+        if (known.has(key)) continue;
         const text = oneLine(value);
         if (text) lines.push(`${humanize(key)}: ${text}`);
     }
@@ -238,17 +258,17 @@ function feedbackOn(agent) {
 }
 
 /** The scene text sent before each reply (empty when nothing should be sent). */
-export function scenePrompt() {
+export function scenePrompt({ before = chat.length } = {}) {
     if (!settings().inject || !getCurrentChatId?.()) return '';
     const parts = [];
     const worldAgent = enabledAgent('world');
     if (worldAgent && !feedbackOn(worldAgent)) {
-        const text = worldPrompt(findResult('world')?.data ?? {});
+        const text = worldPrompt(findResult('world', { before })?.data ?? {});
         if (text) parts.push(text);
     }
     const castAgent = enabledAgent('cast');
     if (castAgent && !feedbackOn(castAgent)) {
-        const text = castPrompt(findResult('cast')?.data ?? {});
+        const text = castPrompt(findResult('cast', { before })?.data ?? {});
         if (text) parts.push(text);
     }
     return parts.length ? `[Current scene, for continuity. Do not repeat it back.]\n${parts.join('\n')}` : '';
@@ -256,6 +276,16 @@ export function scenePrompt() {
 
 function applyPrompt() {
     setExtensionPrompt(PROMPT_KEY, scenePrompt(), extension_prompt_types.IN_PROMPT, 0, false);
+}
+
+/**
+ * Before a reply is generated. A swipe or regenerate replaces the last reply, so the scene sent to
+ * the AI must be the one from before that reply: never what an earlier swipe of it recorded.
+ */
+function applyPromptForGeneration(type) {
+    const last = chat[chat.length - 1];
+    const replacing = ['swipe', 'regenerate'].includes(String(type)) && last && !last.is_user;
+    setExtensionPrompt(PROMPT_KEY, scenePrompt(replacing ? { before: chat.length - 1 } : {}), extension_prompt_types.IN_PROMPT, 0, false);
 }
 
 // ───────────────────────── Writing edits back ─────────────────────────
@@ -460,11 +490,12 @@ function renderHeader(status) {
 
 function renderWorldStrip(world) {
     const row = el('div', 'ct-sc-world');
+    const preset = activePreset('world');
     const items = [
-        ['fa-clock', 'Time', world?.time],
-        ['fa-location-dot', 'Location', world?.location],
-        ['fa-cloud-sun', 'Weather', world?.weather],
-    ].filter(([, , value]) => str(value).trim());
+        ['fa-clock', 'Time', world?.time, 'time'],
+        ['fa-location-dot', 'Location', world?.location, 'location'],
+        ['fa-cloud-sun', 'Weather', world?.weather, 'weather'],
+    ].filter(([, , value, key]) => worldModuleOn(key, preset) && str(value).trim());
     for (const [icon, label, value] of items) {
         const item = el('div', 'ct-sc-world-item');
         item.title = label;
@@ -687,8 +718,8 @@ function renderCast(body, cast, previous) {
     body.append(toolbar);
 
     const term = view.search.trim().toLowerCase();
-    const matches = character => !term || [character.name, character.role, character.description, ...traitsOf(character), character.mood, character.notes, ...Object.values(character.appearance && typeof character.appearance === 'object' ? character.appearance : {})]
-        .map(str).join(' ').toLowerCase().includes(term);
+    const flatten = value => (value && typeof value === 'object' ? Object.values(value).flatMap(flatten) : [str(value)]);
+    const matches = character => !term || flatten(character).join(' ').toLowerCase().includes(term);
     const groupsToShow = [
         ['here', 'In scene', here],
         ['away', 'Not here', away],
@@ -746,71 +777,111 @@ function isCardOpen(character) {
 function changedFields(character, before) {
     const out = new Set();
     if (!before) return out;
-    for (const key of ['role', 'description', 'mood', 'notes', 'present']) {
+    for (const key of ['role', 'mood', 'notes', 'present']) {
         if (str(character[key]).trim() !== str(before[key]).trim()) out.add(key);
     }
-    if (traitsOf(character).join('|') !== traitsOf(before).join('|')) out.add('traits');
-    const now = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
-    const then = before.appearance && typeof before.appearance === 'object' ? before.appearance : {};
-    for (const key of new Set([...Object.keys(now), ...Object.keys(then)])) {
-        if (str(now[key]).trim() !== str(then[key]).trim()) out.add(`look.${key}`);
+    for (const field of castFields()) {
+        const now = getValue(character, field.section, field.key);
+        const then = getValue(before, field.section, field.key);
+        const same = field.type === 'list' ? listValue(now).join('|') === listValue(then).join('|') : str(now).trim() === str(then).trim();
+        if (!same) out.add(field.path);
     }
     return out;
 }
 
-/** Icon and color for each appearance part (unknown extra fields get a neutral look). */
-const LOOK_STYLE = Object.freeze({
-    face: ['fa-face-smile', 'face'],
-    hair: ['fa-scissors', 'hair'],
-    eyes: ['fa-eye', 'eyes'],
-    body: ['fa-person', 'body'],
-    outfit: ['fa-shirt', 'outfit'],
-    accessories: ['fa-gem', 'accessories'],
-    marks: ['fa-bandage', 'marks'],
-});
+/** Built-in colors for the usual appearance parts; other fields get a color from their name. */
+const TONES = new Set(['face', 'hair', 'eyes', 'body', 'outfit', 'accessories', 'marks']);
+const TYPE_ICON = { text: 'fa-circle-dot', stat: 'fa-hashtag', list: 'fa-list-ul' };
+
+function styleField(node, field) {
+    if (TONES.has(field.key)) node.classList.add(`is-${field.key}`);
+    else node.style.setProperty('--ct-tone', `hsl(${hue(field.key)} 62% 68%)`);
+}
+
+function fieldLabel(field, changed, changedTag) {
+    const head = el('div', 'ct-sc-look-label');
+    head.innerHTML = `<i class="fa-solid ${field.icon || TYPE_ICON[field.type] || 'fa-circle-dot'}" aria-hidden="true"></i>`;
+    head.append(el('span', '', field.label));
+    if (changed) head.append(changedTag());
+    return head;
+}
 
 /**
- * Everything the tracker knows about a character: mood, then each visible part as a colored
- * label over its text (easy to scan in a narrow panel), then notes.
+ * Everything the tracker knows about a character, laid out by the active field preset:
+ * About text and lists at the top, mood as a pill, short values as tiles, text as colored blocks
+ * (label over text) and lists as chips. full = the character sheet (headers for every section,
+ * role, missing fields and data the preset does not know).
  * @param {object} character
  * @param {Set<string>} changes from changedFields()
- * @param {{ full?: boolean }} options full = the character sheet (role, extra fields, unknown parts listed)
+ * @param {{ full?: boolean }} options
  */
 function characterDetails(character, changes, { full = false } = {}) {
+    const preset = activePreset('cast');
     const box = el('div', `ct-sc-details${full ? ' is-full' : ''}`);
     const changedTag = () => {
         const tag = el('span', 'ct-sc-new', 'updated');
         tag.title = 'Changed in the last update';
         return tag;
     };
-    const field = (key, label, value, changed, style) => {
-        const [icon, tone] = style ?? ['fa-circle', 'other'];
-        const item = el('div', `ct-sc-look-item is-${tone}${changed ? ' is-changed' : ''}`);
-        const head = el('div', 'ct-sc-look-label');
-        head.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
-        head.append(el('span', '', label));
-        if (changed) head.append(changedTag());
-        item.append(head, el('div', 'ct-sc-look-text', value));
-        item.dataset.field = key;
-        return item;
+    const header = (title, help) => {
+        const head = el('div', 'ct-sc-section-head');
+        head.append(el('span', 'ct-sc-kicker', title));
+        if (help) head.append(helpButton(title, help));
+        box.append(head);
     };
-
-    const description = str(character.description).trim();
-    const traits = traitsOf(character);
-    const traitChips = () => {
-        const row = el('div', `ct-sc-traits${changes.has('traits') ? ' is-changed' : ''}`);
-        row.setAttribute('aria-label', 'Traits');
-        for (const trait of traits) row.append(el('span', 'ct-sc-trait', trait));
-        if (changes.has('traits')) row.append(changedTag());
+    const chips = (items, changed) => {
+        const row = el('div', `ct-sc-traits${changed ? ' is-changed' : ''}`);
+        for (const item of items) row.append(el('span', 'ct-sc-trait', item));
+        if (changed) row.append(changedTag());
         return row;
     };
+    const textBlock = (field, value, changed) => {
+        const item = el('div', `ct-sc-look-item${changed ? ' is-changed' : ''}`);
+        styleField(item, field);
+        item.append(fieldLabel(field, changed, changedTag), el('div', 'ct-sc-look-text', value));
+        item.dataset.field = field.path ?? field.key;
+        return item;
+    };
+    const listBlock = (field, items, changed) => {
+        const item = el('div', `ct-sc-look-item${changed ? ' is-changed' : ''}`);
+        styleField(item, field);
+        item.append(fieldLabel(field, changed, changedTag), chips(items, false));
+        item.dataset.field = field.path ?? field.key;
+        return item;
+    };
+    const statTile = (field, value, changed) => {
+        const tile = el('div', `ct-sc-stat${changed ? ' is-changed' : ''}`);
+        styleField(tile, field);
+        const label = el('div', 'ct-sc-stat-label');
+        label.innerHTML = `<i class="fa-solid ${field.icon || TYPE_ICON.stat}" aria-hidden="true"></i>`;
+        label.append(el('span', '', field.label));
+        if (changed) label.append(el('span', 'ct-sc-dot', ''));
+        tile.append(label, el('div', 'ct-sc-stat-value', value));
+        if (changed) tile.title = 'Changed in the last update';
+        tile.dataset.field = field.path ?? field.key;
+        return tile;
+    };
+
+    // About: description and other text first, then the lists (traits) as chips.
+    const about = preset.sections.find(section => section.id === 'about');
+    const aboutFields = (about?.fields ?? []).map(field => ({ ...field, section: 'about', path: field.key }));
     if (!full) {
-        if (description) {
-            const text = el('p', `ct-sc-desc${changes.has('description') ? ' is-changed' : ''}`, description);
-            if (changes.has('description')) text.title = 'Changed in the last update';
-            box.append(text);
+        const tiles = el('div', 'ct-sc-stats');
+        for (const field of aboutFields) {
+            const value = getValue(character, 'about', field.key);
+            if (!isFilled(field, value)) continue;
+            const changed = changes.has(field.path);
+            if (field.type === 'list') {
+                box.append(chips(listValue(value), changed));
+            } else if (field.type === 'stat') {
+                tiles.append(statTile(field, str(value).trim(), changed));
+            } else {
+                const text = el('p', 'ct-sc-desc', str(value).trim());
+                if (changed) text.title = 'Changed in the last update';
+                box.append(text);
+            }
         }
-        if (traits.length) box.append(traitChips());
+        if (tiles.childElementCount) box.append(tiles);
     }
 
     const mood = str(character.mood).trim();
@@ -824,55 +895,87 @@ function characterDetails(character, changes, { full = false } = {}) {
     }
 
     if (full) {
-        const about = el('div', 'ct-sc-look');
-        if (str(character.role).trim()) about.append(field('role', 'Role', str(character.role).trim(), changes.has('role'), ['fa-id-badge', 'other']));
-        if (description) about.append(field('description', 'Description', description, changes.has('description'), ['fa-feather', 'other']));
-        for (const key of Object.keys(character).filter(k => !CHARACTER_KEYS.has(k))) {
-            const value = character[key];
-            if (value === null || typeof value === 'object' || !str(value).trim()) continue;
-            about.append(field(key, humanize(key), str(value).trim(), false, ['fa-circle-info', 'other']));
+        const list = el('div', 'ct-sc-look');
+        if (str(character.role).trim()) list.append(textBlock({ key: 'role', label: 'Role', type: 'text', icon: 'fa-id-badge' }, str(character.role).trim(), changes.has('role')));
+        const tiles = el('div', 'ct-sc-stats');
+        for (const field of aboutFields.filter(item => item.type !== 'list')) {
+            const value = getValue(character, 'about', field.key);
+            if (!isFilled(field, value)) continue;
+            if (field.type === 'stat') tiles.append(statTile(field, str(value).trim(), changes.has(field.path)));
+            else list.append(textBlock(field, str(value).trim(), changes.has(field.path)));
         }
-        if (about.childElementCount) {
-            const head = el('div', 'ct-sc-section-head');
-            head.append(el('span', 'ct-sc-kicker', 'About'));
-            box.append(head, about);
+        if (list.childElementCount || tiles.childElementCount) {
+            header(about?.label || 'About');
+            if (tiles.childElementCount) box.append(tiles);
+            if (list.childElementCount) box.append(list);
         }
-        const head = el('div', 'ct-sc-section-head');
-        head.append(el('span', 'ct-sc-kicker', 'Personality'), helpButton('Personality', HELP.traits));
-        box.append(head);
-        if (traits.length) box.append(traitChips());
-        else box.append(el('p', 'ct-sc-unknown', 'No traits yet. Press Update now, or add them with Edit.'));
+        for (const field of aboutFields.filter(item => item.type === 'list')) {
+            const value = listValue(getValue(character, 'about', field.key));
+            header(field.label, field.key === 'traits' ? HELP.traits : '');
+            if (value.length) box.append(chips(value, changes.has(field.path)));
+            else box.append(el('p', 'ct-sc-unknown', 'Nothing yet. Press Update now, or add it with Edit.'));
+        }
     }
 
-    const look = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
-    const extraLook = Object.keys(look).filter(key => !APPEARANCE.some(([k]) => k === key));
-    const lookFields = [...APPEARANCE, ...extraLook.map(key => [key, humanize(key)])];
-    const known = lookFields.filter(([key]) => str(look[key]).trim());
-    const missing = APPEARANCE.filter(([key]) => !str(look[key]).trim() && !['accessories', 'marks'].includes(key));
-    if (full) {
-        const head = el('div', 'ct-sc-section-head');
-        head.append(el('span', 'ct-sc-kicker', 'Appearance'), helpButton('Appearance', HELP.appearance));
-        box.append(head);
-    }
-    if (known.length) {
+    // The other sections, in the preset's order.
+    for (const section of preset.sections.filter(item => item.id !== 'about')) {
+        const fields = section.fields.map(field => ({ ...field, section: section.id, path: `${section.id}.${field.key}` }));
+        const filled = fields.filter(field => isFilled(field, getValue(character, section.id, field.key)));
+        if (!filled.length) continue;
+        if (full || !['stats', 'appearance'].includes(section.id)) header(section.label, section.id === 'appearance' && full ? HELP.appearance : '');
+        const tiles = el('div', 'ct-sc-stats');
         const list = el('div', 'ct-sc-look');
-        for (const [key, label] of known) list.append(field(key, label, str(look[key]).trim(), changes.has(`look.${key}`), LOOK_STYLE[key]));
-        box.append(list);
+        for (const field of filled) {
+            const value = getValue(character, section.id, field.key);
+            const changed = changes.has(field.path);
+            if (field.type === 'stat') tiles.append(statTile(field, str(value).trim(), changed));
+            else if (field.type === 'list') list.append(listBlock(field, listValue(value), changed));
+            else list.append(textBlock(field, str(value).trim(), changed));
+        }
+        if (tiles.childElementCount) box.append(tiles);
+        if (list.childElementCount) box.append(list);
     }
+
+    const missing = castFields(preset).filter(field => field.required && !isFilled(field, getValue(character, field.section, field.key)));
     if (missing.length) {
-        box.append(el('p', 'ct-sc-unknown', `Waiting for the tracker: ${missing.map(([, label]) => label.toLowerCase()).join(', ')}. Press Update now to fill it in.`));
+        box.append(el('p', 'ct-sc-unknown', `Waiting for the tracker: ${missing.map(field => field.label.toLowerCase()).join(', ')}. Press Update now to fill it in.`));
     }
 
     const notes = str(character.notes).trim();
     if (notes) {
-        if (full) {
-            const head = el('div', 'ct-sc-section-head');
-            head.append(el('span', 'ct-sc-kicker', 'Notes'));
-            box.append(head);
-        }
+        if (full) header('Notes');
         const note = el('p', `ct-sc-notes${changes.has('notes') ? ' is-changed' : ''}`, notes);
         if (changes.has('notes')) note.title = 'Changed in the last update';
         box.append(note);
+    }
+
+    // Data the preset does not know (another preset was used, or the prompt was edited): on the sheet.
+    if (full) {
+        const known = knownCastKeys(preset);
+        const other = el('div', 'ct-sc-look');
+        const add = (key, label, value) => {
+            const text = Array.isArray(value) ? listValue(value).join(', ') : oneLine(value);
+            if (text) other.append(textBlock({ key, label, type: 'text' }, text, false));
+        };
+        for (const [key, value] of Object.entries(character)) {
+            if (known.has(key) || value === null || value === undefined) continue;
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                for (const [sub, subValue] of Object.entries(value)) add(sub, `${humanize(key)} · ${humanize(sub)}`, subValue);
+            } else {
+                add(key, humanize(key), value);
+            }
+        }
+        for (const section of preset.sections.filter(item => item.id !== 'about')) {
+            const holder = character[section.id];
+            if (!holder || typeof holder !== 'object' || Array.isArray(holder)) continue;
+            for (const [sub, subValue] of Object.entries(holder)) {
+                if (!section.fields.some(field => field.key === sub)) add(sub, `${section.label} · ${humanize(sub)}`, subValue);
+            }
+        }
+        if (other.childElementCount) {
+            header('Other', HELP.other);
+            box.append(other);
+        }
     }
     return box;
 }
@@ -1003,16 +1106,45 @@ function renderWorld(body, world) {
     const head = el('div', 'ct-sc-section-head');
     head.append(el('span', 'ct-sc-kicker', 'World'), helpButton('World', HELP.world));
     body.append(head);
+    const preset = activePreset('world');
     const form = el('div', 'ct-sc-form');
-    for (const [key, label] of [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']]) {
+    for (const [key, label] of [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => worldModuleOn(key, preset))) {
         const { wrap, control } = textField(label, str(world?.[key]), { id: `ct-sc-world-${key}` });
         control.addEventListener('change', () => void saveData('world', (data) => {
             data[key] = control.value.trim();
         }));
         form.append(wrap);
     }
-    body.append(form);
+    if (form.childElementCount) body.append(form);
 
+    // The preset's own fields (shown even when empty, with the instruction as a hint).
+    if (preset.fields.length) {
+        const pHead = el('div', 'ct-sc-section-head');
+        pHead.append(el('span', 'ct-sc-kicker', preset.name));
+        body.append(pHead);
+        const pForm = el('div', 'ct-sc-form');
+        for (const field of preset.fields) {
+            const isList = field.type === 'list';
+            const value = world?.[field.key];
+            const { wrap, control } = textField(field.label, isList ? listValue(value).join('\n') : str(value), {
+                multiline: true,
+                placeholder: field.hint ? field.hint.split(/(?<=\.)\s/)[0] : '',
+                id: `ct-sc-world-${field.key}`,
+            });
+            if (isList) wrap.append(el('span', 'ct-sc-hint', 'One per line'));
+            control.addEventListener('change', () => void saveData('world', (data) => {
+                data[field.key] = isList ? control.value.split('\n').map(item => item.trim()).filter(Boolean) : control.value.trim();
+            }));
+            pForm.append(wrap);
+        }
+        body.append(pForm);
+    }
+
+    if (worldModuleOn('factions', preset)) renderFactions(body, world);
+    renderWorldExtras(body, world, preset);
+}
+
+function renderFactions(body, world) {
     const factions = (Array.isArray(world?.factions) ? world.factions : []).filter(f => f && typeof f === 'object');
     const fHead = el('div', 'ct-sc-section-head');
     fHead.append(el('span', 'ct-sc-kicker', 'Factions'));
@@ -1046,8 +1178,11 @@ function renderWorld(body, world) {
     body.append(fList, button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a faction', '', () => void saveData('world', (data) => {
         data.factions = [...(Array.isArray(data.factions) ? data.factions : []), { name: 'New faction', standing: '' }];
     })));
+}
 
-    const extra = Object.entries(world ?? {}).filter(([key]) => !WORLD_KEYS.has(key));
+function renderWorldExtras(body, world, preset) {
+    const known = knownWorldKeys(preset);
+    const extra = Object.entries(world ?? {}).filter(([key]) => !known.has(key));
     if (!extra.length) return;
     const xHead = el('div', 'ct-sc-section-head');
     xHead.append(el('span', 'ct-sc-kicker', 'More'));
@@ -1212,24 +1347,31 @@ async function deletePeek() {
     if (ok) closePeek();
 }
 
-/** Chips with × plus a box to add more (Enter or comma), like a tag field. Edits draft.traits. */
-function traitEditor(draft) {
-    draft.traits = traitsOf(draft);
+/**
+ * Chips with × plus a box to add more (Enter or comma), like a tag field.
+ * @param {object} draft the character being edited
+ * @param {{ key: string, label: string, hint?: string, section: string }} field list field of the preset
+ */
+function listEditor(draft, field) {
+    const values = listValue(getValue(draft, field.section, field.key));
+    const store = () => setValue(draft, field.section, field.key, [...values]);
+    store();
     const wrap = el('div', 'ct-sc-field');
     const labelRow = el('div', 'ct-sc-section-head');
-    labelRow.append(el('span', 'ct-sc-field-label', 'Traits'), helpButton('Traits', HELP.traits));
+    labelRow.append(el('span', 'ct-sc-field-label', field.label), helpButton(field.label, field.key === 'traits' ? HELP.traits : `<p>${(field.hint || 'A list of short items.').replace(/[<>&]/g, '')}</p>`));
     const box = el('div', 'ct-sc-trait-edit text_pole');
     const input = el('input', 'ct-sc-trait-input');
     input.type = 'text';
-    input.id = 'ct-sc-peek-traits';
-    input.placeholder = draft.traits.length ? 'Add a trait…' : 'brave, sarcastic, loyal… (Enter to add)';
-    input.setAttribute('aria-label', 'Add a trait');
+    input.id = `ct-sc-peek-${field.section}-${field.key}`;
+    input.placeholder = values.length ? 'Add…' : 'Type and press Enter to add';
+    input.setAttribute('aria-label', `Add to ${field.label}`);
     const paint = () => {
         box.querySelectorAll('.ct-sc-trait').forEach(node => node.remove());
-        for (const [index, trait] of draft.traits.entries()) {
+        for (const [index, item] of values.entries()) {
             const chipNode = el('span', 'ct-sc-trait');
-            chipNode.append(el('span', '', trait), button('ct-sc-trait-x', '<i class="fa-solid fa-xmark" aria-hidden="true"></i>', `Remove ${trait}`, () => {
-                draft.traits.splice(index, 1);
+            chipNode.append(el('span', '', item), button('ct-sc-trait-x', '<i class="fa-solid fa-xmark" aria-hidden="true"></i>', `Remove ${item}`, () => {
+                values.splice(index, 1);
+                store();
                 paint();
                 input.focus();
             }));
@@ -1237,17 +1379,20 @@ function traitEditor(draft) {
         }
     };
     const add = () => {
-        const parts = input.value.split(/[,;]/).map(part => part.trim()).filter(Boolean);
-        for (const part of parts) if (!draft.traits.some(trait => trait.toLowerCase() === part.toLowerCase())) draft.traits.push(part);
+        for (const part of input.value.split(/[,;]/).map(item => item.trim()).filter(Boolean)) {
+            if (!values.some(item => item.toLowerCase() === part.toLowerCase())) values.push(part);
+        }
         input.value = '';
+        store();
         paint();
     };
     input.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ',') {
             event.preventDefault();
             add();
-        } else if (event.key === 'Backspace' && !input.value && draft.traits.length) {
-            draft.traits.pop();
+        } else if (event.key === 'Backspace' && !input.value && values.length) {
+            values.pop();
+            store();
             paint();
         }
     });
@@ -1355,30 +1500,61 @@ function renderPeek() {
         };
         line('name', 'Name', 'Their name in the story');
         line('role', 'Role', 'ally, rival, shopkeeper…');
-        const description = textField('Description', str(draft.description), { multiline: true, placeholder: 'Who they are, in one or two sentences', id: 'ct-sc-peek-description' });
-        bind('description', description.control);
-        body.append(description.wrap, traitEditor(draft));
-        line('mood', 'Mood', 'How they feel right now');
-        const appHead = el('div', 'ct-sc-section-head');
-        appHead.append(el('span', 'ct-sc-kicker', 'Appearance'), helpButton('Appearance', HELP.appearance));
-        body.append(appHead);
-        const grid = el('div', 'ct-sc-form');
-        const extraLook = Object.keys(draft.appearance).filter(key => !APPEARANCE.some(([k]) => k === key));
-        for (const [field, label] of [...APPEARANCE, ...extraLook.map(key => [key, humanize(key)])]) {
-            const { wrap, control } = textField(label, str(draft.appearance[field]), { multiline: true, placeholder: 'Not known yet', id: `ct-sc-peek-look-${field}` });
-            bind(field, control, draft.appearance);
-            grid.append(wrap);
+        const preset = activePreset('cast');
+        for (const section of preset.sections) {
+            if (section.id !== 'about' || !section.fields.length) {
+                const sectionHead = el('div', 'ct-sc-section-head');
+                sectionHead.append(el('span', 'ct-sc-kicker', section.label));
+                if (section.id === 'appearance') sectionHead.append(helpButton('Appearance', HELP.appearance));
+                body.append(sectionHead);
+            }
+            const form = el('div', `ct-sc-form${section.fields.some(item => item.type === 'stat') ? ' has-stats' : ''}`);
+            for (const field of section.fields) {
+                const def = { ...field, section: section.id };
+                if (field.type === 'list') {
+                    form.append(listEditor(draft, def));
+                    continue;
+                }
+                const { wrap, control } = textField(field.label, str(getValue(draft, section.id, field.key)), {
+                    multiline: field.type === 'text',
+                    placeholder: field.hint ? field.hint.split(/(?<=\.)\s/)[0] : 'Not known yet',
+                    id: `ct-sc-peek-${section.id}-${field.key}`,
+                });
+                if (field.type === 'stat') wrap.classList.add('is-stat');
+                control.addEventListener('input', () => setValue(draft, section.id, field.key, control.value));
+                form.append(wrap);
+            }
+            body.append(form);
+            if (section.id === 'about') line('mood', 'Mood', 'How they feel right now');
         }
-        body.append(grid);
+        if (!preset.sections.some(section => section.id === 'about')) line('mood', 'Mood', 'How they feel right now');
         const notes = textField('Notes', str(draft.notes), { multiline: true, placeholder: 'One short line worth remembering', id: 'ct-sc-peek-notes' });
         bind('notes', notes.control);
         body.append(notes.wrap);
-        for (const key of Object.keys(draft).filter(k => !CHARACTER_KEYS.has(k))) {
-            const value = draft[key];
-            if (value !== null && typeof value === 'object') continue;
-            const { wrap, control } = textField(humanize(key), str(value));
-            bind(key, control);
-            body.append(wrap);
+        // Values the preset does not list stay editable as plain text.
+        const known = knownCastKeys(preset);
+        const extras = [];
+        for (const [key, value] of Object.entries(draft)) {
+            if (known.has(key) || value === null || value === undefined) continue;
+            if (typeof value !== 'object') extras.push([draft, key, humanize(key), value]);
+            else if (!Array.isArray(value)) for (const [sub, subValue] of Object.entries(value)) if (subValue === null || typeof subValue !== 'object') extras.push([value, sub, `${humanize(key)} · ${humanize(sub)}`, subValue]);
+        }
+        for (const section of preset.sections.filter(item => item.id !== 'about')) {
+            const holder = draft[section.id];
+            if (!holder || typeof holder !== 'object' || Array.isArray(holder)) continue;
+            for (const [sub, subValue] of Object.entries(holder)) {
+                if (!section.fields.some(field => field.key === sub) && (subValue === null || typeof subValue !== 'object')) extras.push([holder, sub, `${section.label} · ${humanize(sub)}`, subValue]);
+            }
+        }
+        if (extras.length) {
+            const otherHead = el('div', 'ct-sc-section-head');
+            otherHead.append(el('span', 'ct-sc-kicker', 'Other'), helpButton('Other', HELP.other));
+            body.append(otherHead);
+            for (const [target, key, label, value] of extras) {
+                const { wrap, control } = textField(label, str(value), { multiline: true });
+                bind(key, control, target);
+                body.append(wrap);
+            }
         }
     } else {
         const titles = el('div', 'ct-sc-peek-titles');
@@ -1478,8 +1654,9 @@ export function render() {
     const tabs = [];
     if (hasCast) tabs.push({ id: 'cast', label: 'Cast', count: characterList(cast?.data).filter(isPresent).length });
     if (hasWorld) {
-        tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
-        tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
+        const worldPreset = activePreset('world');
+        if (worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
+        if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
         tabs.push({ id: 'world', label: 'World', count: 0 });
     }
     const st = settings();
@@ -1557,7 +1734,8 @@ function init() {
         view.peek = null;
         view.search = '';
     });
-    eventSource.on(event_types.GENERATION_STARTED, applyPrompt);
+    eventSource.on(event_types.GENERATION_STARTED, applyPromptForGeneration);
+    document.addEventListener(FIELDS_CHANGED_EVENT, refresh);
     eventSource.on('in_chat_agent_companion_results_updated', refresh);
     document.addEventListener('homunculus:group-profile-changed', refresh);
     narrowQuery.addEventListener?.('change', () => queueRender());

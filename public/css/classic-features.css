@@ -2185,6 +2185,59 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-drop-hint { margin: 0; padding: 12px; border: 1px dashed var(--cf-line); border-radius: 10px; color: var(--cf-muted); font-size: .85em; text-align: center; }
 .ct-scene.is-card-dragging .ct-sc-card-main { cursor: grabbing; }
 
+/* Short values (Age, Height, Weight…) as tiles */
+.ct-sc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 4px; }
+.ct-sc-stat {
+    --ct-tone: var(--cf-muted);
+    min-width: 0;
+    padding: 6px 9px 7px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--ct-tone) 8%, color-mix(in srgb, var(--cf-text) 4%, transparent));
+}
+.ct-sc-stat-label { display: flex; align-items: center; gap: 5px; color: var(--ct-tone); font-size: .74em; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.ct-sc-stat-label .ct-sc-dot { width: 5px; height: 5px; }
+.ct-sc-stat-value { margin-top: 1px; color: var(--cf-text); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.ct-sc-stat.is-changed { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cf-accent) 45%, transparent); }
+.ct-sc-look-item .ct-sc-traits { margin-top: 4px; }
+.ct-sc-form.has-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.ct-sc-form.has-stats > :not(.is-stat) { grid-column: 1 / -1; }
+
+/* Field preset editor (classic-scene-fields.js) */
+dialog.popup:has(.ct-sf) { background-color: var(--cf-solid); }
+.ct-sf { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.ct-sf-head { display: flex; flex-direction: column; gap: 10px; }
+.ct-sf-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.15em; }
+.ct-sf-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ct-sf-pick select { flex: 1 1 220px; margin: 0; }
+.ct-sf-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0; white-space: nowrap; }
+.ct-sf-btn.is-danger { color: rgb(240 130 120); }
+.ct-sf-note { margin: 0; color: var(--cf-muted); font-size: .88em; }
+.ct-sf-row { display: flex; align-items: center; gap: 10px; }
+.ct-sf-row.is-stacked { flex-direction: column; align-items: stretch; gap: 4px; }
+.ct-sf-row input, .ct-sf-row textarea { margin: 0; }
+.ct-sf-label { flex: none; color: var(--cf-muted); font-size: .8em; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.ct-sf-section-title { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 700; }
+.ct-sf-section { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--cf-line); border-radius: 12px; background: var(--cf-surface); }
+.ct-sf-section-top { display: flex; align-items: center; gap: 6px; }
+.ct-sf-section-name { flex: 1; margin: 0; font-weight: 700; }
+.ct-sf-field { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 9px; background: color-mix(in srgb, var(--cf-text) 4%, transparent); }
+.ct-sf-field-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ct-sf-field-label { flex: 1 1 160px; margin: 0; }
+.ct-sf-type { flex: 0 0 130px; margin: 0; }
+.ct-sf-hint { margin: 0; resize: vertical; min-height: 32px; font-size: .9em; overflow: hidden; }
+.ct-sf-key { color: var(--cf-muted); font-size: .76em; font-family: var(--monoFontFamily, monospace); }
+.ct-sf-check { display: inline-flex; align-items: center; gap: 6px; font-size: .9em; cursor: pointer; white-space: nowrap; }
+.ct-sf-check input { margin: 0; }
+.ct-sf-icon { display: grid; place-items: center; width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid var(--cf-line); border-radius: 7px; background: none; color: var(--cf-muted); cursor: pointer; }
+.ct-sf-icon:hover { color: var(--cf-text); background: var(--cf-surface-2); }
+.ct-sf-icon.is-danger:hover { color: rgb(240 130 120); }
+.ct-sf-add { align-self: flex-start; margin: 0; padding: 4px 8px; border: 1px dashed var(--cf-line); border-radius: 8px; background: none; color: var(--cf-muted); font: inherit; font-size: .88em; cursor: pointer; }
+.ct-sf-add:hover { color: var(--cf-text); border-color: color-mix(in srgb, var(--cf-accent) 50%, var(--cf-line)); }
+.ct-sf-modules { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.ct-sf-use { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--cf-line); }
+.ct-gs-preset-row { display: flex; gap: 6px; align-items: center; }
+.ct-gs-preset-row select { flex: 1; min-width: 0; margin: 0; }
+
 /* Character sheet (opened from a card) */
 .ct-sc-sheet .ct-sc-peek-body { gap: 12px; }
 .ct-sc-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 6px; text-align: center; }

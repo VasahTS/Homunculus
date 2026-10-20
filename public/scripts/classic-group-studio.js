@@ -29,6 +29,7 @@ import { power_user } from './power-user.js';
 import { world_names } from './world-info.js';
 import { humanizedDateTime } from './RossAscends-mods.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
+import { listPresets, chosenPresetId, choosePreset, activePreset, openFieldsEditor, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
 import { extension_settings } from './extensions.js';
 import {
     eventSource,
@@ -89,14 +90,14 @@ const SCENE_TRACKERS = [
         templateId: 'tpl-homunculus-scene-world',
         icon: 'fa-earth-americas',
         title: 'World',
-        text: 'Time, place, weather, quests, items and factions. Add your own fields in its prompt.',
+        text: 'Time, place, weather, quests, items and factions, plus the fields of its preset.',
     },
     {
         kind: 'cast',
         templateId: 'tpl-homunculus-scene-characters',
         icon: 'fa-user-group',
         title: 'Characters',
-        text: 'Who is in the scene, and how they look right now: face, hair, eyes, body, outfit, marks, mood.',
+        text: 'Who is in the scene and what can be seen of them: description, traits, height, weight, face, hair, outfit, mood.',
     },
 ];
 
@@ -142,6 +143,8 @@ const HELP = {
 <li>Pick a cheap, fast <b>connection profile</b> for them; they don't need your best model.</li>
 </ul>
 <p>Switching one on here only turns it on for this group (in group mode). Your other chats are not changed.</p>`,
+    scenePreset: `<p>What this tracker writes down and what the Scene panel shows. <b>Standard</b> fits most stories; pick another one (for example <b>Superpowers</b>) or click <b>Edit fields</b> to make your own.</p>
+<p>The preset is saved in this group. Changing it takes effect from the next update.</p>`,
     sceneSend: '<p>When this is on, a short copy of the scene goes to the AI before each reply, so it remembers outfits, wounds, the time and the quests. Turn it off to keep the panel just for you.</p>',
     chats: `<p>Every chat of this group. Branches are listed under the chat they came from.</p>
 <p><b>Open</b> switches to that chat. <b>New chat</b> starts a fresh one with the narrator's (or members') greeting.</p>`,
@@ -980,6 +983,15 @@ function renderSceneTab(body, t) {
     body.append(grid);
 }
 
+/** One line on what a field preset records ("About: Description, Traits · Stats: Age, Height…"). */
+function presetSummary(kind, preset) {
+    if (kind === 'world') {
+        const on = ['time', 'location', 'weather', 'quests', 'inventory', 'factions'].filter(key => preset.modules[key]).map(key => (key === 'inventory' ? 'items' : key));
+        return [...on, ...preset.fields.map(item => item.label.toLowerCase())].join(', ');
+    }
+    return preset.sections.filter(section => section.fields.length).map(section => `${section.label}: ${section.fields.map(item => item.label).join(', ')}`).join(' · ');
+}
+
 function renderTrackerCard(tracker, t, isOpenChat) {
     const api = agentsApi();
     const agent = api.getAgents().find(item => item.sourceTemplateId === tracker.templateId) ?? null;
@@ -1007,6 +1019,31 @@ function renderTrackerCard(tracker, t, isOpenChat) {
         toastr.success('Connection profile saved.');
     });
     section.append(field('Connection profile', '', profileSelect, 'A cheap, fast model is enough.'));
+
+    const g = group();
+    const fieldKind = tracker.kind === 'cast' ? 'cast' : 'world';
+    if (g) {
+        const presetSelect = el('select', 'text_pole');
+        presetSelect.id = `ct-gs-tracker-preset-${tracker.kind}`;
+        const chosen = chosenPresetId(fieldKind, g.id);
+        const fallback = activePreset(fieldKind, null);
+        presetSelect.append(option('', `Default (${fallback.name})`, !chosen));
+        for (const preset of listPresets(fieldKind)) presetSelect.append(option(preset.id, preset.builtin ? preset.name : `${preset.name} (mine)`, preset.id === chosen));
+        presetSelect.addEventListener('change', async () => {
+            await choosePreset(fieldKind, presetSelect.value, g.id);
+            toastr.success('Field preset saved for this group.');
+            render();
+        });
+        const fieldsRow = el('div', 'ct-gs-preset-row');
+        fieldsRow.append(presetSelect, button('menu_button ct-gs-btn', '<i class="fa-solid fa-table-list"></i> Edit fields', 'See, change or make field presets', async () => {
+            await openFieldsEditor(fieldKind, { groupId: g.id });
+            render();
+        }));
+        const used = activePreset(fieldKind, g.id);
+        section.append(field('Fields', HELP.scenePreset, fieldsRow, presetSummary(fieldKind, used)));
+    } else {
+        section.append(el('p', 'ct-gs-note', 'Create the group first to pick its field preset.'));
+    }
 
     const actions = el('div', 'ct-gs-actions');
     actions.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-pen"></i> Edit prompt', `Open the agent editor for ${agent.name}`, async () => {
@@ -1585,6 +1622,7 @@ function init() {
     };
     document.addEventListener(PROFILE_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:group-campaign-changed', rerender);
+    document.addEventListener(FIELDS_CHANGED_EVENT, rerender);
     eventSource.on(event_types.GROUP_UPDATED, rerender);
     eventSource.on(event_types.CHAT_CHANGED, () => {
         state.chats = null;

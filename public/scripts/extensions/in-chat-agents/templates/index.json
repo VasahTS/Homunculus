@@ -4032,7 +4032,7 @@
     {
         "icon": "",
         "category": "custom",
-        "version": 1,
+        "version": 2,
         "author": "Homunculus",
         "phase": "post",
         "execution": "companion",
@@ -4086,18 +4086,18 @@
         },
         "id": "tpl-homunculus-scene-world",
         "name": "Scene: World",
-        "description": "Keeps the world state (time, place, weather, quests, items) for the Scene panel. Edit the prompt to add or remove fields.",
+        "description": "Keeps the world state (time, place, weather, quests, items, and the preset's own fields) for the Scene panel. The fields come from the field preset picked in Group Studio \u2192 Scene.",
         "tags": [
             "homunculus-scene",
             "world",
             "tracker"
         ],
-        "prompt": "### Scene World Tracker\nYou keep the world state of this roleplay up to date for a side panel. You never write story text.\nRead the recent conversation and your previous state, then answer with the NEW state.\n\nAnswer with exactly one block in this format and nothing else:\n[WORLD]\n{\"time\": \"Day 1, morning\", \"location\": \"\", \"weather\": \"\", \"quests\": [{\"title\": \"\", \"status\": \"active\", \"note\": \"\"}], \"inventory\": [\"\"], \"factions\": [{\"name\": \"\", \"standing\": \"\"}]}\n[/WORLD]\n\nRules:\n- Only record what actually happened in the story. Keep old values the story did not change.\n- time: move it forward only as far as the story shows (a talk takes minutes, travel takes hours, sleeping moves to the next day).\n- location and weather: short. Keep the old one if nothing changed.\n- quests: the whole list. Add one only when a task or goal is clearly given or taken on. Set status to \"completed\" or \"failed\" when the story resolves it.\n- inventory: notable items {{user}} carries. Add only items clearly taken, bought or given; remove items lost, used up or given away.\n- factions: named groups {{user}} has dealt with, and how they stand with {{user}}.\n- Remove any field you do not need, or add your own as \"name\": \"value\". Every field shows in the panel.\n- Valid JSON only: double quotes, no comments, no trailing commas."
+        "prompt": "### Scene World Tracker\nYou keep the world state of this roleplay up to date for a side panel. You never write story text.\nRead the recent conversation and your previous state, then answer with the NEW state.\n\n{{sceneWorldFields}}\n\nRules:\n- Only record what actually happened in the story. Keep old values the story did not change.\n- Valid JSON only: double quotes, no comments, no trailing commas."
     },
     {
         "icon": "",
         "category": "custom",
-        "version": 3,
+        "version": 4,
         "author": "Homunculus",
         "phase": "post",
         "execution": "companion",
@@ -4151,13 +4151,13 @@
         },
         "id": "tpl-homunculus-scene-characters",
         "name": "Scene: Characters",
-        "description": "Tracks who is in the scene and how they look right now (face, hair, body, outfit) for the Scene panel. New NPCs only when they are named and actually act.",
+        "description": "Tracks who is in the scene and what can be seen of them (description, traits, height, weight, face, hair, outfit\u2026) for the Scene panel. The fields come from the field preset picked in Group Studio \u2192 Scene.",
         "tags": [
             "homunculus-scene",
             "characters",
             "npc",
             "tracker"
         ],
-        "prompt": "### Scene Characters Tracker\nYou track the characters of this roleplay for a side panel: who is in the current scene, and how each one looks and feels right now. You never write story text.\nRead the recent conversation and your previous state, then answer with the NEW state.\n\nSheets of the cast, for how they look (empty when the group has none):\n{{cast}}\n\nAnswer with exactly one block in this format and nothing else:\n[CAST]\n{\"characters\": [{\"name\": \"\", \"present\": true, \"role\": \"\", \"description\": \"\", \"traits\": [\"\"], \"mood\": \"\", \"appearance\": {\"face\": \"\", \"hair\": \"\", \"eyes\": \"\", \"body\": \"\", \"outfit\": \"\", \"accessories\": \"\", \"marks\": \"\"}, \"notes\": \"\"}]}\n[/CAST]\n\nRules:\n- Keep every character from your previous state. Set \"present\": false for anyone who left the scene; never delete them.\n- Include {{user}} with \"role\": \"player\".\n- Add a NEW character only if they have a proper name and actually did or said something in the story (not \"the innkeeper\" or \"a guard\"). When in doubt, leave them out.\n- appearance is mandatory for every character, the moment they are added, so the player can picture them at once:\n  - Always fill face, hair, eyes, body (build, height, skin) and outfit with concrete, visible details. Each is one short phrase (about 6 to 15 words).\n  - Take them from the story first, then the character card, cast sheet or persona description. If those do not say, choose details that fit the character, their role and the setting.\n  - Keep what you chose: never change a part unless the story changes it. If the story later contradicts it, the story wins.\n  - Update outfit, accessories and marks when the story changes them (new clothes, a wound, a lost weapon).\n  - accessories: what they carry or wear besides clothes (weapons, jewelry, bags). marks: scars, wounds, tattoos, dirt, blood. Use \"\" for these two only when there is nothing.\n- description is mandatory for every character: one or two sentences on who they are (what they do, where they stand in the story). Card first, then the story. Keep it, and only add to it when the story reveals something important.\n- traits is mandatory for every character: 3 to 6 short personality traits or drives (e.g. \"resourceful\", \"wary\", \"protective of Mira\"). Card first, then how they act in the story. Keep them unless the story shows a real change.\n- role: a few words (ally, rival, shopkeeper...). mood: a few words about how they feel right now. notes: one short line worth remembering.\n- Valid JSON only: double quotes, no comments, no trailing commas."
+        "prompt": "### Scene Characters Tracker\nYou track the characters of this roleplay for a side panel: who is in the current scene, and what can be seen and known about each one right now. You never write story text.\nRead the recent conversation and your previous state, then answer with the NEW state.\n\nSheets of the cast (empty when the group has none):\n{{cast}}\n\n{{sceneCastFields}}\n\nRules:\n- Keep every character from your previous state. Set \"present\": false for anyone who left the scene; never delete them.\n- Include {{user}} with \"role\": \"player\".\n- Add a NEW character only if they have a proper name and actually did or said something in the story (not \"the innkeeper\" or \"a guard\"). When in doubt, leave them out.\n- Fill every REQUIRED field from the moment a character is added, so the player can picture them at once: the story first, then the character card, cast sheet or persona. If those do not say, choose values that fit the character, their role and the setting, and keep them.\n- Change a value only when the story changes it (new clothes, a wound, a lost weapon). If the story contradicts an earlier choice, the story wins.\n- Valid JSON only: double quotes, no comments, no trailing commas."
     }
 ]
