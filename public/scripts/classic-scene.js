@@ -26,7 +26,7 @@ import {
     extension_prompt_types,
 } from '../script.js';
 import { extension_settings, saveMetadataDebounced } from './extensions.js';
-import { selected_group } from './group-chats.js';
+import { groups, selected_group } from './group-chats.js';
 import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
 import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
@@ -1447,7 +1447,15 @@ function renderSheet(peek) {
         item.present = !present;
     }));
     const edit = button('menu_button ct-sc-btn is-primary ct-sc-peek-edit', '<i class="fa-solid fa-pen"></i> Edit', `Edit ${str(character.name).trim()}`, editPeek);
-    foot.append(presence, el('span', 'ct-sc-grow', ''), edit);
+    foot.append(presence);
+    // Homunculus Vault (scripts/classic-vault.js): keep this character as an NPC sheet.
+    if (globalThis.HomunculusVault?.saveNpcFromScene && !isPlayer(character)) {
+        foot.append(button('menu_button ct-sc-btn', '<i class="fa-solid fa-vault"></i> Save to Vault', `Save ${str(character.name).trim()} in the Vault (NPCs)`, () => {
+            const group = selected_group ? groups.find(item => String(item.id) === String(selected_group)) : null;
+            void globalThis.HomunculusVault.saveNpcFromScene(character, { presetId: activePreset('cast').id, sourceName: group?.name ?? '' });
+        }));
+    }
+    foot.append(el('span', 'ct-sc-grow', ''), edit);
     panel.append(head, body, foot);
     panel.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {

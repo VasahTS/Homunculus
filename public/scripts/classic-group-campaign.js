@@ -122,7 +122,7 @@ export function connectionProfiles() {
     return Array.isArray(list) ? list.filter(profile => profile?.id).map(profile => ({ id: profile.id, name: String(profile.name || profile.id) })) : [];
 }
 
-async function askAi(profileId, system, user, maxTokens = 900) {
+export async function askAi(profileId, system, user, maxTokens = 900) {
     const context = globalThis.SillyTavern?.getContext?.();
     const exists = profileId && connectionProfiles().some(profile => profile.id === profileId);
     if (exists && context?.ConnectionManagerRequestService) {

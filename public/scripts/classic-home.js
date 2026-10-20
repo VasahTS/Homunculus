@@ -908,8 +908,8 @@ function init() {
         if (viewsReady) return;
         viewsReady = true;
         // Panels SillyTavern reopens at start-up (pinned ones) stay hidden; the app starts on the chat,
-        // unless Home or the Card Browser was already opened while the app was still loading.
-        setView(currentView === 'home' || currentView === 'ct-cards-button' ? currentView : 'chat');
+        // unless Home, the Card Browser, the Group Studio or the Vault was already opened while the app was still loading.
+        setView(['home', 'ct-cards-button', 'ct-group-studio', 'ct-vault'].includes(currentView) ? currentView : 'chat');
     };
     const waitForApp = window.setInterval(() => {
         const context = ctx();

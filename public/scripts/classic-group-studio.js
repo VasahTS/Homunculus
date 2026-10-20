@@ -120,6 +120,12 @@ const HELP = {
 <p>Leave it empty to use the default. <code>{{char}}</code> is the narrator and <code>{{user}}</code> is you.</p>`,
     placement: `<p>On: the cast sheets go into the prompt by themselves.</p>
 <p>Off: they only go where your preset writes <code>{{cast}}</code>, so you can place them yourself.</p>`,
+    vault: `<p>Scenarios you keep in the <b>Vault</b>: a setting, its NPCs and first messages.</p>
+<ul>
+<li><b>New group</b>: pick one and the group's first chat starts with it (scenario, first messages as swipes, lorebooks).</li>
+<li><b>Existing group</b>: pick one to use it in the open chat of this group.</li>
+</ul>
+<p>Save the scenario of a chat with <b>Save to the Vault</b> in the Scenario card.</p>`,
     scenario: `<p>The scenario of the open chat. It replaces the cards' scenarios, so the whole group shares one setup.</p>
 <p>Each chat and branch keeps its own, so you can start a new chat with a different situation.</p>`,
     members: `<p>The characters in this group.</p>
@@ -323,6 +329,8 @@ function emptyDraft() {
         profile: normalizeProfile(null),
         campaign: normalizeCampaign(null),
         behavior: { activation_strategy: 0, generation_mode: 0, allow_self_responses: false },
+        /** Vault scenario the first chat starts with (scripts/classic-vault.js). */
+        scenarioId: '',
     };
 }
 
@@ -340,6 +348,8 @@ const state = {
     menuOpen: false,
     /** { groupId, list, loading } */
     chats: null,
+    /** Vault scenarios for the "Start from the Vault" card (null = not loaded yet). */
+    vaultScenarios: null,
 };
 let root = null;
 let returnFocus = null;
@@ -692,7 +702,57 @@ function tabBadge(id, t) {
 
 // ───────────────────────── Setup tab ─────────────────────────
 
+function renderVaultCard(t) {
+    const vault = globalThis.HomunculusVault;
+    if (!vault?.listItems) return null;
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Open the Vault</span>', '', () => vault.open('scenarios'));
+    const section = card('Start from the Vault', HELP.vault, { aside });
+    if (state.vaultScenarios === null) {
+        section.append(el('p', 'ct-gs-note', 'Loading…'));
+        vault.listItems('scenarios').then((items) => {
+            state.vaultScenarios = items.sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt);
+            if (state.open) render();
+        }).catch(() => {
+            state.vaultScenarios = [];
+        });
+        return section;
+    }
+    if (!state.vaultScenarios.length) {
+        section.append(el('p', 'ct-gs-note', 'No scenarios in the Vault yet. Open the Vault to make one, or save this chat\'s scenario from the Scenario card.'));
+        return section;
+    }
+    const g = group();
+    const picked = t.isNew ? state.draft.scenarioId : '';
+    section.append(el('p', 'ct-gs-intro', t.isNew
+        ? (picked ? 'The first chat of the new group starts with the scenario you picked. Click it again to un-pick it.' : 'Pick one and the first chat of the new group starts with it.')
+        : 'Click one to use it in this group\'s open chat (you choose what to use first).'));
+    const list = el('div', 'ct-gs-vault-list');
+    for (const scenario of state.vaultScenarios.slice(0, 9)) {
+        const isOn = picked === scenario.id;
+        const item = button(`ct-gs-vault-item${isOn ? ' is-on' : ''}`, '', '', async () => {
+            if (t.isNew) {
+                state.draft.scenarioId = isOn ? '' : scenario.id;
+                if (!isOn && !state.draft.name.trim()) state.draft.name = scenario.name;
+                render();
+                return;
+            }
+            if (String(selected_group) !== String(g.id)) await openGroupById(g.id);
+            await vault.useScenarioInOpenChat(scenario.id);
+            render();
+        });
+        item.setAttribute('aria-pressed', String(isOn));
+        item.append(el('b', '', `${scenario.favorite ? '★ ' : ''}${scenario.name}`));
+        if (scenario.description) item.append(el('span', '', scenario.description));
+        item.append(el('span', '', `${scenario.npcs.length} NPC${scenario.npcs.length === 1 ? '' : 's'} · ${scenario.firstMessages.length} opening${scenario.firstMessages.length === 1 ? '' : 's'}`));
+        list.append(item);
+    }
+    section.append(list);
+    return section;
+}
+
 function renderSetup(body, t) {
+    const vaultCard = renderVaultCard(t);
+    if (vaultCard) body.append(vaultCard);
     const basics = card(t.isNew ? 'New group' : 'Basics', HELP.page);
     const name = el('input', 'text_pole');
     name.id = 'ct-gs-group-name';
@@ -822,6 +882,12 @@ function renderScenarioCard() {
         toastr.success('Scenario saved for this chat.');
     });
     section.append(field('Scenario of the open chat', '', area, 'Saved in this chat (and its branches made from now on).'));
+    if (globalThis.HomunculusVault?.saveChatScenario) {
+        const row = el('div', 'ct-gs-inline-note');
+        row.append(el('span', 'ct-gs-note', 'Keep it to start other groups or chats with it.'));
+        row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-vault"></i> Save to the Vault', '', () => void globalThis.HomunculusVault.saveChatScenario({ name: g.name })));
+        section.append(row);
+    }
     return section;
 }
 
@@ -1415,6 +1481,11 @@ async function createGroupNow() {
         toastr.success(`Group "${data.name ?? t.name}" created.`);
         close();
         await openGroupById(data.id);
+        if (t.scenarioId) {
+            const vault = globalThis.HomunculusVault;
+            const scenario = await vault?.getItem?.('scenarios', t.scenarioId);
+            if (scenario) await vault.applyScenarioToOpenChat(scenario);
+        }
     } catch (error) {
         console.error('[Homunculus] Group Studio:', error);
         toastr.error(String(error?.message ?? error), 'Could not create the group');
@@ -1517,12 +1588,19 @@ function open(groupId = openGroupId ?? selected_group, tab = '') {
     show();
 }
 
-/** Opens the New group form. */
-function create() {
-    if (state.mode !== 'new') {
+/**
+ * Opens the New group form.
+ * @param {{ scenarioId?: string, name?: string }} [options] start from a Vault scenario
+ */
+function create(options = {}) {
+    if (state.mode !== 'new' || options.scenarioId) {
         state.draft = emptyDraft();
         state.charSearch = '';
         state.agentSearch = '';
+    }
+    if (options.scenarioId) {
+        state.draft.scenarioId = String(options.scenarioId);
+        state.draft.name = String(options.name ?? '');
     }
     state.mode = 'new';
     state.groupId = null;
@@ -1623,6 +1701,10 @@ function init() {
     document.addEventListener(PROFILE_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:group-campaign-changed', rerender);
     document.addEventListener(FIELDS_CHANGED_EVENT, rerender);
+    document.addEventListener('homunculus:vault-changed', () => {
+        state.vaultScenarios = null;
+        rerender();
+    });
     eventSource.on(event_types.GROUP_UPDATED, rerender);
     eventSource.on(event_types.CHAT_CHANGED, () => {
         state.chats = null;
