@@ -1747,6 +1747,26 @@ function init() {
     eventSource.on('in_chat_agent_companion_results_updated', refresh);
     document.addEventListener('homunculus:group-profile-changed', refresh);
     narrowQuery.addEventListener?.('change', () => queueRender());
+    eventSource.on(event_types.APP_READY, () => setTimeout(() => void turnOnLorebooksOnce(), 2000));
+}
+
+/**
+ * The Scene trackers were first shipped with "World Info" off, so they never saw lorebook entries
+ * (ages, heights, looks written there). Switch it on once in agents made before that, keeping any
+ * prompt edits; later the user can turn it off in the agent editor and it stays off.
+ */
+async function turnOnLorebooksOnce() {
+    const st = settings();
+    if (st.loreFix) return;
+    const api = agentsApi();
+    if (!api?.getAgents || !api.updateAgent) return;
+    const templateIds = new Set(Object.values(SCENE_TEMPLATES));
+    for (const agent of api.getAgents()) {
+        if (!templateIds.has(String(agent?.sourceTemplateId ?? '')) || agent?.companion?.includeWorldInfo === true) continue;
+        await api.updateAgent(agent.id, { companion: { ...(agent.companion ?? {}), includeWorldInfo: true } });
+    }
+    st.loreFix = 1;
+    saveSettingsDebounced();
 }
 
 init();

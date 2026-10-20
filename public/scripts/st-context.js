@@ -18,6 +18,7 @@ import {
     generateQuietPrompt,
     getCharacters,
     getCurrentChatId,
+    getMaxContextTokens,
     getRequestHeaders,
     getThumbnailUrl,
     main_api,
@@ -142,6 +143,8 @@ export function getContext() {
         saveSettingsDebounced,
         onlineStatus: online_status,
         maxContext: Number(max_context),
+        // Homunculus: the real context size of the current API (maxContext is only the text-completion slider).
+        getMaxContextTokens,
         chatMetadata: chat_metadata,
         saveMetadataDebounced,
         streamingProcessor,

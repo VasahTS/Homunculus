@@ -319,6 +319,7 @@ export function isFilled(field, value) {
 
 // ───────────────────────── Prompt macros ─────────────────────────
 
+const LORE_RULE = 'Lorebook entries ([World Info]), character cards and cast sheets are canon for who a character is. When one of them gives a fixed fact (age, height, weight, face, hair, eyes, build, species, powers…), copy it exactly, even if your previous state says something else: correct your previous state to match. Things the story changes (clothes, wounds, dirt, mood) follow the story. Only invent what none of them and the story give.';
 const CONCRETE_RULE = 'Be concrete and objective: numbers with units, colors, materials, shapes and where on the body. Never use vague or relative words ("tall", "short", "big", "lean", "beautiful", "average") on their own; give the number or the specific detail instead.';
 
 /** Format and field rules for the Scene: Characters tracker ({{sceneCastFields}}). */
@@ -344,6 +345,7 @@ export function castFieldsPrompt(preset = activePreset('cast')) {
         lines.push(`- ${field.path} (${tags}): ${field.hint || field.label}`);
     }
     lines.push('- role: a few words (ally, rival, shopkeeper...). mood: a few words about how they feel right now. notes: one short line worth remembering.');
+    lines.push(LORE_RULE);
     lines.push(CONCRETE_RULE);
     if (preset.rules) lines.push(preset.rules);
     return lines.join('\n');

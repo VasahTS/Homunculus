@@ -658,14 +658,38 @@ function getRecentConversationSection(messageIndex, companion) {
     return lines.length ? lines.join('\n') : '';
 }
 
-function getCharacterCardSection(companion) {
+/**
+ * Homunculus divergence: in a group, this_chid is only set while a member is replying, so a companion
+ * that runs after the reply got an empty card. Use the character who wrote the message instead.
+ */
+function getCompanionCardChid(messageIndex) {
+    const context = getContext();
+    const characters = Array.isArray(context?.characters) ? context.characters : [];
+    if (context?.characterId !== undefined || !context?.groupId) {
+        return undefined;
+    }
+    for (let index = Math.min(messageIndex, chat.length - 1); index >= 0; index--) {
+        const message = chat[index];
+        if (!message || message.is_user || message.is_system || !message.original_avatar) {
+            continue;
+        }
+        const chid = characters.findIndex(character => character?.avatar === message.original_avatar);
+        if (chid >= 0) {
+            return chid;
+        }
+    }
+    return undefined;
+}
+
+function getCharacterCardSection(companion, messageIndex = chat.length - 1) {
     if (!companion.includeCharacterCard && !companion.includePersona) {
         return '';
     }
 
     const context = getContext();
+    const chid = getCompanionCardChid(messageIndex);
     const fields = typeof context?.getCharacterCardFields === 'function'
-        ? context.getCharacterCardFields()
+        ? context.getCharacterCardFields(chid === undefined ? undefined : { chid })
         : {};
     const parts = [];
 
@@ -697,7 +721,7 @@ function getCharacterCardSection(companion) {
     return parts.join('\n\n');
 }
 
-async function getWorldInfoSection(messageIndex, companion) {
+async function getWorldInfoSection(messageIndex, companion, agent = null) {
     if (!companion.includeWorldInfo) {
         return '';
     }
@@ -708,7 +732,21 @@ async function getWorldInfoSection(messageIndex, companion) {
             .map(message => normalizeText(message?.mes ?? ''))
             .filter(Boolean)
             .reverse();
-        const result = await getWorldInfoPrompt(scanLines, 4096, true);
+        // Homunculus: the agent's own last notes are scanned with the newest message, so a tracker
+        // keeps getting the lorebook entries of everyone it tracks (not only names said in the last
+        // couple of messages).
+        if (agent?.id) {
+            const [previous] = collectRecentCompanionResults(agent.id, { beforeMessageIndex: messageIndex, depth: 1 });
+            const previousText = previous ? normalizeText(previous.content) : '';
+            if (previousText) {
+                scanLines[0] = scanLines.length ? `${scanLines[0]}\n${previousText}` : previousText;
+            }
+        }
+        // Homunculus: use the real context size. A fixed 4096 gave lorebooks only a few hundred
+        // tokens of budget, so most character entries were cut.
+        const context = getContext();
+        const maxContext = Math.max(4096, Number(context?.getMaxContextTokens?.() ?? context?.maxContext) || 0);
+        const result = await getWorldInfoPrompt(scanLines, maxContext, true);
         return normalizeText(result?.worldInfoString ?? '');
     } catch (error) {
         console.warn('[InChatAgents] Companion world info scan failed:', error);
@@ -795,8 +833,8 @@ async function buildCompanionContextSections(agent, messageIndex, { extraContext
     const companion = getCompanionConfig(agent);
     const sections = [];
     const systemPrompt = getSystemPromptSection(companion);
-    const characterCard = getCharacterCardSection(companion);
-    const worldInfo = await getWorldInfoSection(messageIndex, companion);
+    const characterCard = getCharacterCardSection(companion, messageIndex);
+    const worldInfo = await getWorldInfoSection(messageIndex, companion, agent);
     const authorsNote = getAuthorsNoteSection(companion);
     const previousNotes = getPreviousNotesSection(agent, messageIndex, companion);
     const recentConversation = getRecentConversationSection(messageIndex, companion);

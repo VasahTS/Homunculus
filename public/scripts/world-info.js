@@ -5300,22 +5300,46 @@ export async function createNewWorldInfo(worldName, { interactive = false } = {}
     return true;
 }
 
+/**
+ * Homunculus divergence: the characters whose lorebooks count as "character lore".
+ * Normally the active character. In a group, this_chid is only set while a member is replying, so
+ * scans made outside a reply (companion trackers, the Scene panel) found no character lore at all
+ * and those agents could not see lorebooks attached to the group's cards. Then every member counts.
+ * @returns {number[]}
+ */
+function getCharacterLoreIds() {
+    if (this_chid !== undefined && characters[this_chid]) {
+        return [Number(this_chid)];
+    }
+    const context = getContext();
+    const group = context?.groupId ? context.groups?.find(item => String(item.id) === String(context.groupId)) : null;
+    if (!group || !Array.isArray(group.members)) {
+        return [];
+    }
+    return group.members
+        .map(avatar => characters.findIndex(character => character?.avatar === avatar))
+        .filter(index => index >= 0);
+}
+
 async function getCharacterLore() {
-    const character = characters[this_chid];
-    const name = character?.name;
+    const ids = getCharacterLoreIds();
+    const name = ids.map(id => characters[id]?.name).filter(Boolean).join(', ');
     /** @type {Set<string>} */
     let worldsToSearch = new Set();
 
-    const baseWorldName = character?.data?.extensions?.world;
-    if (baseWorldName) {
-        worldsToSearch.add(baseWorldName);
-    }
+    for (const id of ids) {
+        const character = characters[id];
+        const baseWorldName = character?.data?.extensions?.world;
+        if (baseWorldName) {
+            worldsToSearch.add(baseWorldName);
+        }
 
-    // TODO: Maybe make the utility function not use the window context?
-    const fileName = getCharaFilename(this_chid);
-    const extraCharLore = world_info.charLore?.find((e) => e.name === fileName);
-    if (extraCharLore) {
-        worldsToSearch = new Set([...worldsToSearch, ...extraCharLore.extraBooks]);
+        // TODO: Maybe make the utility function not use the window context?
+        const fileName = getCharaFilename(id);
+        const extraCharLore = world_info.charLore?.find((e) => e.name === fileName);
+        if (extraCharLore) {
+            worldsToSearch = new Set([...worldsToSearch, ...extraCharLore.extraBooks]);
+        }
     }
 
     if (!worldsToSearch.size) {
