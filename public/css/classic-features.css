@@ -2137,6 +2137,31 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-link { margin: 0; padding: 2px 6px; border: 0; border-radius: 6px; background: none; color: var(--cf-muted); font: inherit; font-size: .76em; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ct-sc-link:hover { color: var(--cf-text); background: var(--cf-surface-2); }
 
+/* Drag to reorder (classic-scene.js makeDraggable) */
+.ct-sc-grip { flex: none; width: 10px; margin-left: -6px; margin-right: -4px; color: var(--cf-muted); opacity: 0; cursor: grab; transition: opacity 120ms ease; }
+.ct-sc-card:hover .ct-sc-grip, .ct-sc-card-main:focus-visible .ct-sc-grip { opacity: .7; }
+.ct-sc-card[draggable="true"] { -webkit-user-drag: element; }
+.ct-sc-card.is-dragging { opacity: .35; }
+.ct-sc-card.is-drop-before, .ct-sc-card.is-drop-after { overflow: visible; }
+.ct-sc-card.is-drop-before::after, .ct-sc-card.is-drop-after::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--cf-accent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cf-accent) 60%, transparent);
+    pointer-events: none;
+}
+.ct-sc-card.is-drop-before::after { top: -4px; }
+.ct-sc-card.is-drop-after::after { bottom: -4px; }
+.ct-sc-group.is-drop-target { outline: 2px dashed color-mix(in srgb, var(--cf-accent) 60%, transparent); outline-offset: 3px; border-radius: 10px; }
+.ct-sc-drop-zone { display: none; }
+.ct-scene.is-card-dragging .ct-sc-drop-zone { display: flex; }
+.ct-sc-drop-hint { margin: 0; padding: 12px; border: 1px dashed var(--cf-line); border-radius: 10px; color: var(--cf-muted); font-size: .85em; text-align: center; }
+.ct-scene.is-card-dragging .ct-sc-card-main { cursor: grabbing; }
+
 /* Character sheet (opened from a card) */
 .ct-sc-sheet .ct-sc-peek-body { gap: 12px; }
 .ct-sc-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 6px; text-align: center; }

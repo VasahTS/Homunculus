@@ -15,6 +15,7 @@ import {
     eventSource,
     event_types,
     chat,
+    chat_metadata,
     characters,
     name1,
     default_avatar,
@@ -24,7 +25,7 @@ import {
     setExtensionPrompt,
     extension_prompt_types,
 } from '../script.js';
-import { extension_settings } from './extensions.js';
+import { extension_settings, saveMetadataDebounced } from './extensions.js';
 import { selected_group } from './group-chats.js';
 import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
@@ -61,6 +62,7 @@ const HELP = {
 <li><b>Not here</b>: characters met before who left. The AI only gets one line, so it remembers they exist.</li>
 </ul>
 <p>Each card shows everything the tracker knows; the arrow folds it to one line. Click the name to open the full sheet (with <b>Edit</b> at the bottom).</p>
+<p>Drag a card (or press Alt+↑ / Alt+↓ on it) to change the order; drop it in the other group to move someone in or out of the scene. The order is saved per chat.</p>
 <p>A dot marks what changed in the last update.</p>
 <p>A new NPC is only added when they have a proper name and actually did or said something.</p>`,
     appearance: `<p>How the character looks right now, so you can picture them at a glance.</p>
@@ -486,9 +488,157 @@ function renderTabs(tabs, active) {
     return nav;
 }
 
+// ───────────────────────── Card order (drag and drop) ─────────────────────────
+
+const ORDER_KEY = 'homunculus_scene_order';
+
+function savedOrder() {
+    const order = chat_metadata?.[ORDER_KEY];
+    return Array.isArray(order) ? order.map(keyOf) : [];
+}
+
+/** Characters in the order the user dragged them (new ones keep the tracker's order, after those). */
+function sortByOrder(list) {
+    const order = savedOrder();
+    if (!order.length) return list;
+    const rank = new Map(order.map((key, index) => [key, index]));
+    return list
+        .map((character, index) => ({ character, index, rank: rank.has(keyOf(character.name)) ? rank.get(keyOf(character.name)) : order.length + index }))
+        .sort((a, b) => a.rank - b.rank || a.index - b.index)
+        .map(item => item.character);
+}
+
+/**
+ * Moves one character before another (or to the end of a group) and saves the order in the chat.
+ * Dropping into the other group also moves them in or out of the scene.
+ * @param {string} key character being moved
+ * @param {string|null} beforeKey character it goes in front of, or null for the end of the group
+ * @param {boolean} toPresent the group it lands in
+ */
+async function moveCharacter(key, beforeKey, toPresent) {
+    const list = sortByOrder(characterList(findResult('cast')?.data));
+    const moving = list.find(character => keyOf(character.name) === key);
+    if (!moving || key === beforeKey) return;
+    const keys = list.map(character => keyOf(character.name)).filter(k => k !== key);
+    let at = beforeKey ? keys.indexOf(beforeKey) : -1;
+    if (at === -1) {
+        // End of the group: after the last member of that group.
+        const groupKeys = list.filter(character => isPresent(character) === toPresent && keyOf(character.name) !== key).map(character => keyOf(character.name));
+        const last = groupKeys.length ? keys.indexOf(groupKeys[groupKeys.length - 1]) : -1;
+        at = last === -1 ? (toPresent ? 0 : keys.length) : last + 1;
+    }
+    keys.splice(at, 0, key);
+    chat_metadata[ORDER_KEY] = keys;
+    saveMetadataDebounced();
+    if (isPresent(moving) !== toPresent) {
+        await saveData('cast', (data) => {
+            const item = (Array.isArray(data.characters) ? data.characters : []).find(c => keyOf(c?.name) === key);
+            if (!item) return false;
+            item.present = toPresent;
+        });
+    } else {
+        render();
+    }
+}
+
+const drag = { key: '', fromPresent: true };
+
+function clearDropMarks() {
+    root?.querySelectorAll('.is-drop-before, .is-drop-after, .is-drop-target').forEach(node => node.classList.remove('is-drop-before', 'is-drop-after', 'is-drop-target'));
+}
+
+/** Where a drop over this card lands: before it or after it (by the pointer's half). */
+function dropSpot(card, event) {
+    const box = card.getBoundingClientRect();
+    return event.clientY < box.top + box.height / 2 ? 'before' : 'after';
+}
+
+function makeDraggable(card, character) {
+    const key = keyOf(character.name);
+    const present = isPresent(character);
+    card.draggable = true;
+    card.dataset.key = key;
+    card.addEventListener('dragstart', (event) => {
+        if (/** @type {HTMLElement} */ (event.target).closest?.('input, textarea')) return;
+        drag.key = key;
+        drag.fromPresent = present;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', str(character.name));
+        requestAnimationFrame(() => {
+            card.classList.add('is-dragging');
+            root?.classList.add('is-card-dragging');
+        });
+    });
+    card.addEventListener('dragend', () => {
+        drag.key = '';
+        card.classList.remove('is-dragging');
+        root?.classList.remove('is-card-dragging');
+        clearDropMarks();
+    });
+    card.addEventListener('dragover', (event) => {
+        if (!drag.key || drag.key === key) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        const spot = dropSpot(card, event);
+        if (!card.classList.contains(`is-drop-${spot}`)) {
+            clearDropMarks();
+            card.classList.add(`is-drop-${spot}`);
+        }
+    });
+    card.addEventListener('drop', (event) => {
+        if (!drag.key || drag.key === key) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const moving = drag.key;
+        const spot = dropSpot(card, event);
+        clearDropMarks();
+        let beforeKey = key;
+        if (spot === 'after') {
+            let next = card.nextElementSibling;
+            while (next && (!next.classList.contains('ct-sc-card') || /** @type {HTMLElement} */ (next).dataset.key === moving)) next = next.nextElementSibling;
+            beforeKey = next ? /** @type {HTMLElement} */ (next).dataset.key : null;
+        }
+        void moveCharacter(moving, beforeKey, present);
+    });
+}
+
+/** A whole group (also when empty or folded) takes drops at its end. */
+function makeDropZone(section, toPresent) {
+    section.addEventListener('dragover', (event) => {
+        if (!drag.key) return;
+        event.preventDefault();
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (!target.closest('.ct-sc-card')) {
+            clearDropMarks();
+            section.classList.add('is-drop-target');
+        }
+    });
+    section.addEventListener('dragleave', (event) => {
+        if (!section.contains(/** @type {Node} */ (event.relatedTarget))) section.classList.remove('is-drop-target');
+    });
+    section.addEventListener('drop', (event) => {
+        if (!drag.key) return;
+        event.preventDefault();
+        const moving = drag.key;
+        clearDropMarks();
+        void moveCharacter(moving, null, toPresent);
+    });
+}
+
+/** Alt+↑ / Alt+↓ on a card moves it one place within its group. */
+function moveByKey(character, step) {
+    const present = isPresent(character);
+    const group = sortByOrder(characterList(findResult('cast')?.data)).filter(c => isPresent(c) === present).map(c => keyOf(c.name));
+    const index = group.indexOf(keyOf(character.name));
+    const target = index + step;
+    if (index === -1 || target < 0 || target >= group.length) return;
+    const beforeKey = step < 0 ? group[target] : (group[target + 1] ?? null);
+    void moveCharacter(keyOf(character.name), beforeKey, present);
+}
+
 function renderCast(body, cast, previous) {
     const st = settings();
-    const list = characterList(cast);
+    const list = sortByOrder(characterList(cast));
     const before = new Map(characterList(previous).map(character => [keyOf(character.name), JSON.stringify(character)]));
     const changed = character => Boolean(previous) && before.get(keyOf(character.name)) !== JSON.stringify(character);
 
@@ -541,9 +691,18 @@ function renderCast(body, cast, previous) {
     let shown = 0;
     for (const [id, label, items] of groupsToShow) {
         const visible = items.filter(matches);
-        if (!visible.length && st.filter === 'all') continue;
+        if (!visible.length && st.filter === 'all') {
+            // Hidden until a card is dragged: lets you drop someone into an empty group.
+            if (!list.length || term) continue;
+            const zone = el('section', 'ct-sc-group ct-sc-drop-zone');
+            zone.append(el('p', 'ct-sc-drop-hint', id === 'here' ? 'Drop here: in the scene' : 'Drop here: not in the scene'));
+            makeDropZone(zone, id === 'here');
+            body.append(zone);
+            continue;
+        }
         const collapsed = Boolean(st.collapsed[id]);
         const section = el('section', 'ct-sc-group');
+        makeDropZone(section, id === 'here');
         const head = button(`ct-sc-group-head${collapsed ? ' is-collapsed' : ''}`, '', '', () => {
             st.collapsed[id] = !collapsed;
             saveSettingsDebounced();
@@ -693,10 +852,20 @@ function characterCard(character, before, changed) {
     const name = str(character.name).trim() || 'Unnamed';
     const open = isCardOpen(character);
     const card = el('article', `ct-sc-card${present ? ' is-here' : ''}${changed ? ' is-changed' : ''}${open ? ' is-open' : ''}`);
+    makeDraggable(card, character);
 
     const head = el('div', 'ct-sc-card-head');
     const main = button('ct-sc-card-main', '', `Open ${name}`, () => openPeek('character', key));
-    main.append(avatarFor(character));
+    main.id = `ct-sc-card-${key.replace(/[^a-z0-9_-]+/g, '-')}`;
+    main.addEventListener('keydown', (event) => {
+        if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+        event.preventDefault();
+        moveByKey(character, event.key === 'ArrowUp' ? -1 : 1);
+    });
+    const grip = el('span', 'ct-sc-grip');
+    grip.innerHTML = '<i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>';
+    grip.title = 'Drag to reorder';
+    main.append(grip, avatarFor(character));
     const text = el('span', 'ct-sc-row-text');
     const nameLine = el('span', 'ct-sc-row-name');
     nameLine.append(el('span', 'ct-sc-row-name-text', name));
@@ -709,7 +878,7 @@ function characterCard(character, before, changed) {
     const outfit = str(character.appearance?.outfit).trim();
     if (!open && present && outfit) text.append(el('span', 'ct-sc-row-sub ct-sc-row-outfit', outfit));
     main.append(text);
-    main.setAttribute('aria-label', `Open ${name}: ${present ? 'in scene' : 'not here'}${changed ? ', changed in the last update' : ''}`);
+    main.setAttribute('aria-label', `Open ${name}: ${present ? 'in scene' : 'not here'}${changed ? ', changed in the last update' : ''}. Alt plus arrow keys to move.`);
 
     const fold = button('ct-sc-card-fold', '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>', open ? 'Fold to one line' : 'Show details', () => {
         settings().cards[key] = !open;
