@@ -39,7 +39,7 @@ const APPEARANCE = Object.freeze([
     ['face', 'Face'],
     ['hair', 'Hair'],
     ['eyes', 'Eyes'],
-    ['body', 'Body'],
+    ['body', 'Build'],
     ['outfit', 'Outfit'],
     ['accessories', 'Accessories'],
     ['marks', 'Marks'],
@@ -63,7 +63,8 @@ const HELP = {
 <p>Each card shows everything the tracker knows; the arrow folds it to one line. Click the name to open the full sheet (with <b>Edit</b> at the bottom).</p>
 <p>A dot marks what changed in the last update.</p>
 <p>A new NPC is only added when they have a proper name and actually did or said something.</p>`,
-    appearance: '<p>How the character looks right now. The tracker updates it when the story changes it (new clothes, a wound, a lost weapon) and leaves a part empty when the story never said it.</p>',
+    appearance: `<p>How the character looks right now, so you can picture them at a glance.</p>
+<p>The tracker always fills face, hair, eyes, build and outfit: from the story first, then the character card or cast sheet, and if neither says, it picks details that fit and keeps them. When the story changes something (new clothes, a wound, a lost weapon) it updates that part.</p>`,
     quests: '<p>Tasks and goals from the story. The tracker adds one when a task is clearly given or taken on, and marks it completed or failed when the story resolves it.</p>',
     items: '<p>Notable things the player carries. The tracker adds items that are clearly taken, bought or given, and removes the ones lost or used up.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
@@ -591,67 +592,98 @@ function changedFields(character, before) {
     return out;
 }
 
+/** Icon and color for each appearance part (unknown extra fields get a neutral look). */
+const LOOK_STYLE = Object.freeze({
+    face: ['fa-face-smile', 'face'],
+    hair: ['fa-scissors', 'hair'],
+    eyes: ['fa-eye', 'eyes'],
+    body: ['fa-person', 'body'],
+    outfit: ['fa-shirt', 'outfit'],
+    accessories: ['fa-gem', 'accessories'],
+    marks: ['fa-bandage', 'marks'],
+});
+
 /**
- * Everything the tracker knows about a character, as label/value lines.
+ * Everything the tracker knows about a character: mood, then each visible part as a colored
+ * label over its text (easy to scan in a narrow panel), then notes.
  * @param {object} character
  * @param {Set<string>} changes from changedFields()
- * @param {{ full?: boolean }} options full = the character sheet (sections, unknown parts listed)
+ * @param {{ full?: boolean }} options full = the character sheet (role, extra fields, unknown parts listed)
  */
 function characterDetails(character, changes, { full = false } = {}) {
     const box = el('div', `ct-sc-details${full ? ' is-full' : ''}`);
-    const fact = (list, label, value, changed) => {
-        const row = el('div', `ct-sc-fact${changed ? ' is-changed' : ''}`);
-        const dt = el('dt', '', label);
-        if (changed) {
-            dt.append(el('span', 'ct-sc-dot', ''));
-            row.title = 'Changed in the last update';
-        }
-        row.append(dt, el('dd', '', value));
-        list.append(row);
+    const changedTag = () => {
+        const tag = el('span', 'ct-sc-new', 'updated');
+        tag.title = 'Changed in the last update';
+        return tag;
     };
-    const section = (title, help) => {
-        if (!full) return box;
-        const head = el('div', 'ct-sc-section-head');
-        head.append(el('span', 'ct-sc-kicker', title));
-        if (help) head.append(helpButton(title, help));
-        box.append(head);
-        return box;
+    const field = (key, label, value, changed, style) => {
+        const [icon, tone] = style ?? ['fa-circle', 'other'];
+        const item = el('div', `ct-sc-look-item is-${tone}${changed ? ' is-changed' : ''}`);
+        const head = el('div', 'ct-sc-look-label');
+        head.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
+        head.append(el('span', '', label));
+        if (changed) head.append(changedTag());
+        item.append(head, el('div', 'ct-sc-look-text', value));
+        item.dataset.field = key;
+        return item;
     };
 
-    const about = el('dl', 'ct-sc-facts');
-    if (full && str(character.role).trim()) fact(about, 'Role', str(character.role).trim(), changes.has('role'));
-    if (str(character.mood).trim()) fact(about, 'Mood', str(character.mood).trim(), changes.has('mood'));
-    for (const key of Object.keys(character).filter(k => !CHARACTER_KEYS.has(k))) {
-        const value = character[key];
-        if (value === null || typeof value === 'object' || !str(value).trim()) continue;
-        fact(about, humanize(key), str(value).trim(), false);
+    const mood = str(character.mood).trim();
+    if (mood) {
+        const line = el('div', `ct-sc-mood${changes.has('mood') ? ' is-changed' : ''}`);
+        line.innerHTML = '<i class="fa-solid fa-masks-theater" aria-hidden="true"></i>';
+        line.append(el('span', 'ct-sc-mood-text', mood));
+        if (changes.has('mood')) line.append(changedTag());
+        line.title = 'Mood right now';
+        box.append(line);
     }
-    if (about.childElementCount) {
-        section('About');
-        box.append(about);
+
+    if (full) {
+        const about = el('div', 'ct-sc-look');
+        if (str(character.role).trim()) about.append(field('role', 'Role', str(character.role).trim(), changes.has('role'), ['fa-id-badge', 'other']));
+        for (const key of Object.keys(character).filter(k => !CHARACTER_KEYS.has(k))) {
+            const value = character[key];
+            if (value === null || typeof value === 'object' || !str(value).trim()) continue;
+            about.append(field(key, humanize(key), str(value).trim(), false, ['fa-circle-info', 'other']));
+        }
+        if (about.childElementCount) {
+            const head = el('div', 'ct-sc-section-head');
+            head.append(el('span', 'ct-sc-kicker', 'About'));
+            box.append(head, about);
+        }
     }
 
     const look = character.appearance && typeof character.appearance === 'object' ? character.appearance : {};
     const extraLook = Object.keys(look).filter(key => !APPEARANCE.some(([k]) => k === key));
     const lookFields = [...APPEARANCE, ...extraLook.map(key => [key, humanize(key)])];
     const known = lookFields.filter(([key]) => str(look[key]).trim());
-    const unknown = lookFields.filter(([key]) => !str(look[key]).trim() && APPEARANCE.some(([k]) => k === key));
-    if (known.length || full) {
-        section('Appearance', HELP.appearance);
-        const list = el('dl', 'ct-sc-facts');
-        for (const [key, label] of known) fact(list, label, str(look[key]).trim(), changes.has(`look.${key}`));
-        if (known.length) box.append(list);
-        if (full && unknown.length) box.append(el('p', 'ct-sc-unknown', `Not known yet: ${unknown.map(([, label]) => label.toLowerCase()).join(', ')}.`));
+    const missing = APPEARANCE.filter(([key]) => !str(look[key]).trim() && !['accessories', 'marks'].includes(key));
+    if (full) {
+        const head = el('div', 'ct-sc-section-head');
+        head.append(el('span', 'ct-sc-kicker', 'Appearance'), helpButton('Appearance', HELP.appearance));
+        box.append(head);
+    }
+    if (known.length) {
+        const list = el('div', 'ct-sc-look');
+        for (const [key, label] of known) list.append(field(key, label, str(look[key]).trim(), changes.has(`look.${key}`), LOOK_STYLE[key]));
+        box.append(list);
+    }
+    if (missing.length) {
+        box.append(el('p', 'ct-sc-unknown', `Waiting for the tracker: ${missing.map(([, label]) => label.toLowerCase()).join(', ')}. Press Update now to fill it in.`));
     }
 
     const notes = str(character.notes).trim();
     if (notes) {
-        section('Notes');
+        if (full) {
+            const head = el('div', 'ct-sc-section-head');
+            head.append(el('span', 'ct-sc-kicker', 'Notes'));
+            box.append(head);
+        }
         const note = el('p', `ct-sc-notes${changes.has('notes') ? ' is-changed' : ''}`, notes);
         if (changes.has('notes')) note.title = 'Changed in the last update';
         box.append(note);
     }
-    if (!box.childElementCount) box.append(el('p', 'ct-sc-unknown', 'Nothing known yet.'));
     return box;
 }
 
