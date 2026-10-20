@@ -210,9 +210,11 @@ beforeAll(async () => {
         hasConnectedCompanionAgentCandidates: jest.fn(() => false),
         hasConnectedCompanionAgents: jest.fn(() => false),
         initCompanionRunner: jest.fn(),
+        runCompanionAgentOnMessage: jest.fn(async () => null),
         runConnectedCompanionsOnMessage: jest.fn(async () => []),
         runTrackerCompanionsOnMessage: jest.fn(async () => []),
         syncCompanionChatHistoryConfig: jest.fn(() => 0),
+        updateCompanionResult: jest.fn(() => null),
     }));
 
     await jest.unstable_mockModule('../public/scripts/extensions/in-chat-agents/companion/companion-ui.js', () => ({

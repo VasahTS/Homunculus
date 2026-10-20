@@ -5369,16 +5369,14 @@ function getWorldEntries(data, worldName) {
 }
 
 /**
- * Homunculus: lorebooks added by the open group's profile (scripts/classic-group-profile.js) and its NPC
- * Registry (scripts/classic-group-campaign.js). They are
+ * Homunculus: lorebooks added by the open group's profile (scripts/classic-group-profile.js). They are
  * scanned like global lorebooks while that group's chat is open, without being selected globally.
  * @returns {string[]}
  */
 function getGroupProfileWorlds() {
     try {
         const fromProfile = globalThis.HomunculusGroupProfile?.getLorebooks?.();
-        const fromCampaign = globalThis.HomunculusGroupCampaign?.getLorebooks?.();
-        const names = [...(Array.isArray(fromProfile) ? fromProfile : []), ...(Array.isArray(fromCampaign) ? fromCampaign : [])];
+        const names = Array.isArray(fromProfile) ? fromProfile : [];
         return [...new Set(names.filter(name => typeof name === 'string' && name && !selected_world_info.includes(name)))];
     } catch {
         return [];

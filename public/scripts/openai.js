@@ -1785,7 +1785,8 @@ async function populateChatCompletion(prompts, chatCompletion, { bias, quietProm
 async function preparePromptsForChatCompletion({ scenario, charPersonality, name2, worldInfoBefore, worldInfoAfter, charDescription, quietPrompt, bias, extensionPrompts, systemPromptOverride, jailbreakPromptOverride, type }) {
     const scenarioText = scenario && oai_settings.scenario_format ? substituteParams(oai_settings.scenario_format) : (scenario || '');
     const charPersonalityText = charPersonality && oai_settings.personality_format ? substituteParams(oai_settings.personality_format) : (charPersonality || '');
-    const groupNudge = substituteParams(oai_settings.group_nudge_prompt);
+    // Homunculus: a Narrated group (classic-group-campaign.js) replaces the per-character turn rule with its narrator's.
+    const groupNudge = substituteParams(globalThis.HomunculusGroupCampaign?.getGroupNudge?.() || oai_settings.group_nudge_prompt);
     const impersonationPrompt = getEffectiveImpersonationPrompt();
 
     // Create entries for system prompts

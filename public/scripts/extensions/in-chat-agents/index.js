@@ -95,7 +95,7 @@ import {
     getConnectionManagerRequestService,
     populateConnectionProfileSelect,
 } from './profile-utils.js';
-import { collectRecentCompanionResults, getCompanionResults, initCompanionRunner, getLatestValidCompanionMessageIndex, runTrackerCompanionsOnMessage, syncCompanionChatHistoryConfig } from './companion/companion-runner.js';
+import { collectRecentCompanionResults, getCompanionResults, initCompanionRunner, getLatestValidCompanionMessageIndex, runCompanionAgentOnMessage, runTrackerCompanionsOnMessage, syncCompanionChatHistoryConfig, updateCompanionResult } from './companion/companion-runner.js';
 import { getCompanionReferenceIds } from './companion/companion-shared.js';
 import { initCompanionCardUi, updateCompanionButtonVisibility } from './companion/companion-ui.js';
 import { configureCompanionDashboard, initCompanionWandMenuItem, openCompanionDashboard } from './companion/companion-dashboard.js';
@@ -1383,10 +1383,46 @@ function buildAgentFromSnapshot(snapshot) {
 
 globalThis.HomunculusAgents = Object.assign(globalThis.HomunculusAgents || {}, {
     getEnabledAgents,
-    // Homunculus: used by the Group Studio page (scripts/classic-group-studio.js).
+    // Homunculus: used by the Group Studio page and the Scene panel (scripts/classic-group-studio.js, classic-scene.js).
     getAgents,
+    getAgentById,
     isAgentEnabledIgnoringGroupProfile,
     isAgentHidden,
+    getCompanionResults,
+    runCompanionAgentOnMessage,
+    isAgentEnabledForCurrentScope,
+    setAgentEnabledForCurrentScope,
+    getLatestValidCompanionMessageIndex,
+    resultsUpdatedEvent: 'in_chat_agent_companion_results_updated',
+    /** Replaces the text of one stored companion result (message and swipe) and saves the chat. */
+    async setCompanionResultContent(messageIndex, agentId, content) {
+        const message = chat[messageIndex];
+        if (!updateCompanionResult(message, agentId, { content: String(content ?? ''), status: 'done', error: '' })) return false;
+        await eventSource.emit('in_chat_agent_companion_results_updated', { messageIndex, agentId });
+        saveChatDebounced();
+        return true;
+    },
+    openAgentEditor: (agentId) => openEditor(agentId),
+    /** Saves changed fields of an agent (for example its connectionProfile). */
+    async updateAgent(agentId, patch = {}) {
+        const agent = getAgentById(agentId);
+        if (!agent) return null;
+        await saveAgent({ ...structuredClone(agent), ...patch });
+        renderAgentList();
+        return getAgentById(agentId);
+    },
+    /** The saved agent made from a bundled template, adding it (switched off) when there is none yet. */
+    async ensureTemplateAgent(templateId) {
+        const existing = getAgents().find(agent => String(agent?.sourceTemplateId ?? '') === String(templateId));
+        if (existing) return existing;
+        await loadTemplates();
+        const template = findTemplateById(templateId);
+        if (!template) return null;
+        const agent = buildAgentFromTemplate(template);
+        await saveAgent(agent);
+        renderAgentList();
+        return getAgentById(agent.id) ?? agent;
+    },
 });
 
 function getComparableAgentSnapshot(agent) {

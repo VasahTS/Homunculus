@@ -477,21 +477,18 @@ function renderBar() {
             if (action === 'edit') globalThis.HomunculusGroupStudio?.open?.(selected_group);
             if (action === 'leave') void leaveHere();
             if (action === 'enter') void enterHere();
-            if (action === 'world') void globalThis.HomunculusGroupCampaign?.openWorldPanel?.();
-            if (action === 'npcs') void globalThis.HomunculusGroupCampaign?.reviewPendingNpcs?.();
-            if (action === 'find-npcs') void globalThis.HomunculusGroupCampaign?.scanLastReply?.();
+            if (action === 'scene') globalThis.HomunculusScene?.toggle?.();
         });
     }
     const active = hasProfile && isActive(group.id);
     bar.classList.toggle('is-active', active);
-    const pending = hasCampaign ? campaignApi.getPendingNpcs().length : 0;
-    const campaignButtons = !hasCampaign ? '' : [
-        campaign.mode === 'narrated' ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
-        campaign.world.enabled ? '<button type="button" class="menu_button ct-gm-toggle" data-gm-action="world"><i class="fa-solid fa-earth-europe"></i> World</button>' : '',
-        campaign.npc.mode !== 'off' ? `<button type="button" class="menu_button ct-gm-toggle${pending ? ' is-attention' : ''}" data-gm-action="${pending ? 'npcs' : 'find-npcs'}" title="${pending ? 'Keep or ignore the NPCs found' : 'Look for new named NPCs in the last reply'}"><i class="fa-solid fa-user-plus"></i> ${pending ? `NPCs (${pending})` : 'Find NPCs'}</button>` : '',
+    const sceneApi = globalThis.HomunculusScene;
+    const campaignButtons = [
+        hasCampaign ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
+        sceneApi?.isAvailable?.() ? `<button type="button" class="menu_button ct-gm-toggle${sceneApi.isOpen() ? ' is-on' : ''}" data-gm-action="scene" title="Show or hide the Scene panel"><i class="fa-solid fa-masks-theater"></i> Scene</button>` : '',
     ].join('');
     bar.innerHTML = `
-        <span class="ct-gm-badge">${hasProfile ? (active ? 'GROUP MODE' : 'GROUP MODE OFF') : 'CAMPAIGN'}</span>
+        <span class="ct-gm-badge">${hasProfile ? (active ? 'GROUP MODE' : 'GROUP MODE OFF') : 'GROUP'}</span>
         <span class="ct-gm-name"></span>
         <span class="ct-gm-summary"></span>
         ${campaignButtons}
