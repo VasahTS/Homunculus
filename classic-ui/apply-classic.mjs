@@ -106,7 +106,7 @@ for (const sheet of ['classic-themes', 'classic-layout', 'classic-features']) {
     }
 }
 let previousScript = 'classic-ui';
-for (const script of ['classic-themes', 'classic-home', 'classic-editor', 'classic-quick-connect', 'classic-card-browser', 'classic-memory', 'classic-group-studio', 'classic-scene']) {
+for (const script of ['classic-themes', 'classic-home', 'classic-editor', 'classic-quick-connect', 'classic-card-browser', 'classic-memory', 'classic-group-studio', 'classic-scene', 'classic-group-agents']) {
     if (!html.includes(`scripts/${script}.js`)) {
         replace(`${previousScript}.js anchor (${script})`, new RegExp(`([ \\t]*)(<script type="module" src="scripts/${previousScript}\\.js${V}"></script>)`),
             `$1$2\n$1<script type="module" src="scripts/${script}.js"></script>`);

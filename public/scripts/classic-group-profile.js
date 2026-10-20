@@ -386,6 +386,13 @@ export function enterHere() {
     return queueTask(() => sync({ force: true }));
 }
 
+/** Enters group mode in the open group chat without the "Enter group chat mode?" question (used when the user just switched an agent on for the group). */
+export function enterQuietly() {
+    if (!selected_group) return Promise.resolve();
+    enterWithoutAsking.add(String(selected_group));
+    return queueTask(() => sync());
+}
+
 async function sync({ force = false } = {}) {
     const st = settings();
     const groupId = selected_group ? String(selected_group) : null;
@@ -464,8 +471,10 @@ function renderBar() {
     const campaignApi = globalThis.HomunculusGroupCampaign;
     const campaign = group && campaignApi ? campaignApi.getCampaign(group) : null;
     const hasCampaign = Boolean(campaign && campaignApi.hasCampaignTools(campaign));
-    if (!hasProfile && !hasCampaign) {
+    // Every open group chat gets the bar (it holds the Agents menu); groups without a profile just show "GROUP".
+    if (!group) {
         bar?.remove();
+        globalThis.HomunculusGroupAgents?.close?.();
         return;
     }
     if (!bar) {
@@ -478,13 +487,20 @@ function renderBar() {
             if (action === 'leave') void leaveHere();
             if (action === 'enter') void enterHere();
             if (action === 'scene') globalThis.HomunculusScene?.toggle?.();
+            if (action === 'agents') globalThis.HomunculusGroupAgents?.toggle?.();
         });
     }
     const active = hasProfile && isActive(group.id);
     bar.classList.toggle('is-active', active);
     const sceneApi = globalThis.HomunculusScene;
+    const agentsMenu = globalThis.HomunculusGroupAgents;
+    const counts = agentsMenu?.summary?.() ?? null;
+    const agentsButton = counts
+        ? `<button type="button" class="menu_button ct-gm-toggle ct-gm-agents${agentsMenu.isOpen() ? ' is-on' : ''}" data-gm-action="agents" aria-haspopup="dialog" aria-expanded="${agentsMenu.isOpen()}" title="Agents in this group"><i class="fa-solid fa-robot"></i> Agents <b>${counts.on}</b>${counts.running ? `<span class="ct-gm-running"><span class="ct-gm-running-dot"></span>${counts.running} running</span>` : ''}</button>`
+        : '';
     const campaignButtons = [
         hasCampaign ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
+        agentsButton,
         sceneApi?.isAvailable?.() ? `<button type="button" class="menu_button ct-gm-toggle${sceneApi.isOpen() ? ' is-on' : ''}" data-gm-action="scene" title="Show or hide the Scene panel"><i class="fa-solid fa-masks-theater"></i> Scene</button>` : '',
     ].join('');
     bar.innerHTML = `
