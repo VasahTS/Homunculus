@@ -2,10 +2,10 @@
 //
 // A page of its own (like the Card Browser) where groups are made and set up. The list of groups is
 // on the left; the chosen group has a header (avatars, name, Open chat, Duplicate / Delete) and tabs:
-// Setup (name, mode, narrator, scenario), Cast, Scene (the Scene trackers), Chats, Profile (preset,
-// persona, lorebooks), Agents and Behavior. The rules live elsewhere: the profile in
-// classic-group-profile.js, Narrated mode and cast sheets in classic-group-campaign.js, the Scene panel
-// in classic-scene.js; this file is only the page.
+// Setup (name, mode, narrator, how the story starts, role, story style), Cast, Scene (the Scene
+// trackers), Chats, Agents and Settings (profile, prompts, who replies). The rules live elsewhere: the
+// profile in classic-group-profile.js, Narrated mode and cast sheets in classic-group-campaign.js, the
+// story start in classic-group-start.js, the Scene panel in classic-scene.js; this file is only the page.
 //
 // Open it from its own button in the top bar, the "Create New Chat Group" button in the Characters
 // panel, the sliders button in the group panel, "Group Studio" in the bar above a group chat, or with
@@ -57,6 +57,7 @@ import {
     shouldAsk,
     skipAskOnce,
 } from './classic-group-profile.js';
+import { normalizeStart, getStart, saveStart, usableOpenings, isEmptyStart, openChatState, applyToOpenChat as applyStartToOpenChat } from './classic-group-start.js';
 import { listVars, normalizeStyle, getStyle, saveStyle, styleText, conflicts as styleConflicts, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
 import { BLOCKS as PROMPT_BLOCKS, getPlacement, setPlacement, resetPlacement, status as blockStatus, preview as blockPreview, presetMacrosOf, missingSections, addSectionsToPreset, wrap, PROMPTS_CHANGED_EVENT } from './classic-prompt-blocks.js';
 import {
@@ -151,12 +152,21 @@ const HELP = {
 <p>Leave it empty to use the default. <code>{{char}}</code> is the narrator and <code>{{user}}</code> is you.</p>`,
     placement: `<p>On: the cast sheets go into the prompt by themselves.</p>
 <p>Off: they only go where your preset writes <code>{{cast}}</code>, so you can place them yourself.</p>`,
-    vault: `<p>Scenarios you keep in the <b>Vault</b>: a setting, its NPCs and first messages.</p>
+    start: `<p>How every new chat of this group begins.</p>
 <ul>
-<li><b>New group</b>: pick one and the group's first chat starts with it (scenario, first messages as swipes, lorebooks).</li>
-<li><b>Existing group</b>: pick one to use it in the open chat of this group.</li>
+<li><b>Scenario</b>: where and when the story starts and what is going on. The AI reads it before every reply.</li>
+<li><b>Opening message</b>: the first message of the chat. Press <b>+</b> to write more: they become swipes, so you pick one with the arrows. Empty: the characters' own greetings are used.</li>
 </ul>
-<p>Save the scenario of a chat with <b>Save to the Vault</b> in the Scenario card.</p>`,
+<p><b>Load from the Vault</b> fills both from a saved scenario and adds its lorebooks to the group. <b>Save to the Vault</b> keeps them for other groups.</p>
+<p>A chat that already started keeps its own start. Press <b>New chat</b> to begin again with this one.</p>`,
+    speaker: '<p>Which member sends the opening message. In a Narrated group it is always the narrator.</p>',
+    chatScenario: '<p>Only the open chat. Use it when this chat went somewhere else and needs its own scenario. New chats still start with the group\'s scenario above.</p>',
+    npcPick: `<p>NPCs saved in the Vault. Click one to add it.</p>
+<ul>
+<li>An NPC that already has a character card joins right away.</li>
+<li>One without a card gets one first: you check the card, then it joins.</li>
+</ul>
+<p>In a Narrated group the NPC's sheet becomes its cast sheet.</p>`,
     role: `<ul>
 <li><b>Player</b>: you are {{user}}, a character in the story. Your messages are what your character says and does.</li>
 <li><b>Co-author</b>: {{user}} is still a character, but your messages are <b>directions</b>. The AI writes {{user}} like everyone else, in their own voice, spread through the reply.</li>
@@ -170,8 +180,6 @@ const HELP = {
 <li><b>High</b>: they chase their own goals, even against your plan; you steer by nudging.</li>
 </ul>`,
     idle: '<p>What happens on a turn without a direction: when you press <b>Let them act</b>, use auto-play, or send an empty message.</p>',
-    scenario: `<p>The scenario of the open chat. It replaces the cards' scenarios, so the whole group shares one setup.</p>
-<p>Each chat and branch keeps its own, so you can start a new chat with a different situation.</p>`,
     members: `<p>The characters in this group.</p>
 <ul>
 <li>Use the arrows to change the order (used by "List order").</li>
@@ -197,7 +205,7 @@ const HELP = {
 <p>The preset is saved in this group. Changing it takes effect from the next update.</p>`,
     sceneSend: '<p>When this is on, a short copy of the scene goes to the AI before each reply, so it remembers outfits, wounds, the time and the quests. Turn it off to keep the panel just for you.</p>',
     chats: `<p>Every chat of this group. Branches are listed under the chat they came from.</p>
-<p><b>Open</b> switches to that chat. <b>New chat</b> starts a fresh one with the narrator's (or members') greeting.</p>`,
+<p><b>Open</b> switches to that chat. <b>New chat</b> starts a fresh one with the group's opening (Setup), or the greetings when it has none.</p>`,
     ask: `<p>When this is on, opening one of this group's chats shows what will change and asks first.</p>
 <p>It only asks when something would actually change. If your current preset has unsaved changes, it always warns you, even with this off.</p>`,
     preset: `<p>The Chat Completion preset (prompts and sampler settings) used in this group, for example an RPG prompt set you don't want in normal chats.</p>
@@ -332,6 +340,16 @@ function toggleSwitch(label, checked, onChange) {
     return wrap;
 }
 
+/** Gives a text box as many rows as its text needs, between min and max, and keeps that while typing. */
+function fitRows(area, min, max) {
+    const fit = () => {
+        const lines = area.value.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 110)), 0);
+        area.rows = Math.min(max, Math.max(min, lines + 1));
+    };
+    fit();
+    area.addEventListener('input', fit);
+}
+
 function avatarImg(avatar, className = 'ct-gs-avatar') {
     const img = el('img', className);
     img.alt = '';
@@ -389,8 +407,7 @@ function emptyDraft() {
         campaign: normalizeCampaign(null),
         behavior: { activation_strategy: 0, generation_mode: 0, allow_self_responses: false },
         style: normalizeStyle(null),
-        /** Vault scenario the first chat starts with (scripts/classic-vault.js). */
-        scenarioId: '',
+        start: normalizeStart(null),
     };
 }
 
@@ -408,8 +425,11 @@ const state = {
     menuOpen: false,
     /** { groupId, list, loading } */
     chats: null,
-    /** Vault scenarios for the "Start from the Vault" card (null = not loaded yet). */
-    vaultScenarios: null,
+    /** Which opening message the Setup shows (index into start.openings). */
+    opening: 0,
+    npcSearch: '',
+    /** The Vault's NPCs for the Cast tab (null = not loaded yet). */
+    npcs: null,
     /** Keys of the collapsed sections the user opened. */
     openMore: new Set(),
 };
@@ -430,6 +450,7 @@ function target() {
             profile: getProfile(g),
             campaign: getCampaign(g),
             style: getStyle(g),
+            start: getStart(g),
             behavior: {
                 activation_strategy: Number(g.activation_strategy ?? 0),
                 generation_mode: Number(g.generation_mode ?? 0),
@@ -514,6 +535,36 @@ async function setStyle(patch) {
     }
     await saveStyle(g.id, patch);
     render();
+}
+
+/**
+ * Changes how the story starts. Text edits save without re-rendering (the page is not rebuilt under
+ * the cursor); pass rerender for changes that alter the layout. A saved group's open chat that has not
+ * started yet gets the new start right away.
+ */
+async function setStart(patch, { rerender = false } = {}) {
+    const g = group();
+    if (!g) {
+        state.draft.start = normalizeStart({ ...state.draft.start, ...patch });
+        if (rerender) renderAfterClick();
+        return;
+    }
+    await saveStart(g.id, patch);
+    await applyStartToOpenChat(g, { scenario: 'scenario' in patch, opening: 'openings' in patch || 'speaker' in patch });
+    if (rerender) renderAfterClick();
+}
+
+// A text box saves when it loses focus, which happens when the mouse goes down on a button. Rebuilding
+// the page right then would remove that button before its click lands, so the rebuild waits.
+let pointerIsDown = false;
+document.addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+document.addEventListener('pointerup', () => { pointerIsDown = false; }, true);
+function renderAfterClick() {
+    if (!pointerIsDown) {
+        render();
+        return;
+    }
+    document.addEventListener('pointerup', () => setTimeout(() => state.open && render(), 0), { once: true, capture: true });
 }
 
 /** Switches Ensemble / Narrated. Narrated sends only the narrator's card (Swap), so the old choice is kept. */
@@ -779,49 +830,7 @@ function tabBadge(id, t) {
 
 // ───────────────────────── Setup tab ─────────────────────────
 
-function renderVaultCard(t) {
-    const vault = globalThis.HomunculusVault;
-    if (!vault?.listItems) return null;
-    if (state.vaultScenarios === null) {
-        vault.listItems('scenarios').then((items) => {
-            state.vaultScenarios = items.sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt);
-            if (state.open) render();
-        }).catch(() => {
-            state.vaultScenarios = [];
-        });
-        return null;
-    }
-    if (!state.vaultScenarios.length) return null;
-    const aside = button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Open the Vault</span>', '', () => vault.open('scenarios'));
-    const section = card('Start from the Vault', HELP.vault, { aside });
-    const g = group();
-    const picked = t.isNew ? state.draft.scenarioId : '';
-    const list = el('div', 'ct-gs-vault-list');
-    for (const scenario of state.vaultScenarios.slice(0, 9)) {
-        const isOn = picked === scenario.id;
-        const item = button(`ct-gs-vault-item${isOn ? ' is-on' : ''}`, '', '', async () => {
-            if (t.isNew) {
-                state.draft.scenarioId = isOn ? '' : scenario.id;
-                if (!isOn && !state.draft.name.trim()) state.draft.name = scenario.name;
-                render();
-                return;
-            }
-            if (String(selected_group) !== String(g.id)) await openGroupById(g.id);
-            await vault.useScenarioInOpenChat(scenario.id);
-            render();
-        });
-        item.setAttribute('aria-pressed', String(isOn));
-        item.append(el('b', '', `${scenario.favorite ? '★ ' : ''}${scenario.name}`));
-        item.append(el('span', '', `${scenario.npcs.length} NPC${scenario.npcs.length === 1 ? '' : 's'} · ${scenario.firstMessages.length} opening${scenario.firstMessages.length === 1 ? '' : 's'}`));
-        list.append(item);
-    }
-    section.append(list);
-    return section;
-}
-
 function renderSetup(body, t) {
-    const vaultCard = renderVaultCard(t);
-    if (vaultCard) body.append(vaultCard);
     const basics = card(t.isNew ? 'New group' : 'Basics', HELP.page);
     const name = el('input', 'text_pole');
     name.id = 'ct-gs-group-name';
@@ -853,9 +862,225 @@ function renderSetup(body, t) {
     body.append(basics);
 
     if (t.campaign.mode === 'narrated') body.append(renderNarratorCard(t));
+    body.append(renderStartCard(t));
     body.append(renderRoleCard(t));
     body.append(renderStyleCard(t));
-    if (!t.isNew) body.append(renderScenarioCard());
+}
+
+const escapeHtml = text => String(text ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[char]);
+
+function renderStartCard(t) {
+    const start = t.start;
+    const g = group();
+    const filled = !isEmptyStart(start);
+    const aside = el('div', 'ct-gs-card-actions');
+    aside.append(button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Load from the Vault</span>', 'Use a scenario saved in the Vault', () => void loadFromVault()));
+    if (filled) aside.append(button('ct-cb-btn', '<i class="fa-solid fa-floppy-disk"></i><span>Save to the Vault</span>', 'Keep this start to use it in other groups', () => void saveStartToVault()));
+    const section = card('How the story starts', HELP.start, { aside, className: 'ct-gs-start' });
+    if (start.vaultName) {
+        const from = el('div', 'ct-gs-from');
+        from.innerHTML = '<i class="fa-solid fa-vault" aria-hidden="true"></i>';
+        from.append(el('span', '', `From "${start.vaultName}" in the Vault`));
+        section.append(from);
+    }
+
+    const scenario = el('textarea', 'text_pole');
+    scenario.id = 'ct-gs-start-scenario';
+    scenario.rows = 4;
+    scenario.placeholder = 'Where and when the story starts, e.g. The party reaches the border fort of Varn at dusk, three days late.';
+    scenario.value = start.scenario;
+    fitRows(scenario, 4, 12);
+    scenario.addEventListener('change', () => void setStart({ scenario: scenario.value }));
+    section.append(field('Scenario', '', scenario));
+    section.append(renderOpeningField(t));
+
+    if (g) {
+        const chatState = openChatState(g);
+        const chatScenario = String(chat_metadata?.scenario ?? '').trim();
+        if (filled && chatState === 'fresh' && chatScenario === start.scenario.trim()) {
+            const ok = el('p', 'ct-gs-start-status is-ok');
+            ok.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+            ok.append(el('span', '', 'The open chat starts this way too.'));
+            section.append(ok);
+        }
+        if (chatState === 'started' && filled) {
+            const row = el('div', 'ct-gs-inline-note ct-gs-start-status');
+            row.append(el('span', '', 'The open chat already started and keeps its own start.'));
+            row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-plus"></i> New chat', 'Start a new chat of this group with this start', async () => {
+                const id = g.id;
+                close();
+                await createNewGroupChat(id);
+            }));
+            section.append(row);
+        }
+        if (chatState === 'started' || (chatState === 'fresh' && chatScenario !== start.scenario.trim())) {
+            const own = el('textarea', 'text_pole');
+            own.id = 'ct-gs-chat-scenario';
+            own.setAttribute('aria-label', 'Scenario of the open chat');
+            own.value = chatScenario;
+            fitRows(own, 3, 10);
+            own.addEventListener('change', async () => {
+                chat_metadata.scenario = own.value.trim();
+                await saveMetadata();
+                toastr.success('Scenario saved for the open chat.');
+            });
+            section.append(more('chat-scenario', `Scenario of the open chat${chatScenario ? '' : ' · empty'}`, field('Only this chat', HELP.chatScenario, own)));
+        }
+    }
+    return section;
+}
+
+function renderOpeningField(t) {
+    const start = t.start;
+    const openings = start.openings.length ? start.openings : [''];
+    const index = Math.min(Math.max(state.opening, 0), openings.length - 1);
+    const wrap = el('div', 'ct-gs-field ct-gs-opening');
+    const head = el('div', 'ct-gs-field-head ct-gs-opening-head');
+    const label = el('label', 'ct-gs-label', 'Opening message');
+    label.htmlFor = 'ct-gs-start-opening';
+    head.append(label);
+
+    const area = el('textarea', 'text_pole ct-gs-opening-text');
+    const pills = el('div', 'ct-gs-pills');
+    pills.setAttribute('role', 'group');
+    pills.setAttribute('aria-label', 'Opening messages');
+    openings.forEach((text, i) => {
+        const isOn = i === index;
+        const pill = button(`ct-gs-pill${isOn ? ' is-on' : ''}${text.trim() ? '' : ' is-empty'}`, String(i + 1), i === 0 ? 'Opening 1 (the one shown first)' : `Opening ${i + 1} (a swipe)`, () => {
+            state.opening = i;
+            render();
+        });
+        pill.setAttribute('aria-pressed', String(isOn));
+        pills.append(pill);
+    });
+    const addButton = button('ct-gs-pill ct-gs-pill-add', '<i class="fa-solid fa-plus"></i>', 'Write another opening (it becomes a swipe)', async () => {
+        const next = [...openings];
+        next[index] = area.value;
+        state.opening = next.length;
+        await setStart({ openings: [...next, ''] }, { rerender: true });
+        requestAnimationFrame(() => document.getElementById('ct-gs-start-opening')?.focus());
+    });
+    pills.append(addButton, button('ct-gs-icon ct-gs-pill-remove', '<i class="fa-solid fa-trash-can"></i>', `Remove opening ${index + 1}`, () => void removeOpening(index)));
+    head.append(pills);
+    // The numbers and "+" show once there is something to number, and "+" only after the last one has text.
+    const syncPills = () => {
+        const lastText = index === openings.length - 1 ? area.value : openings[openings.length - 1];
+        pills.hidden = openings.length < 2 && !area.value.trim();
+        addButton.hidden = !String(lastText).trim();
+    };
+
+    const narrated = t.campaign.mode === 'narrated';
+    if (narrated) {
+        head.append(el('span', 'ct-gs-opening-by', 'Sent by the narrator'));
+    } else if (t.members.length > 1) {
+        const by = el('label', 'ct-gs-opening-by');
+        by.append(el('span', '', 'Sent by'));
+        const select = el('select', 'text_pole');
+        select.id = 'ct-gs-start-speaker';
+        const disabled = new Set(t.disabled);
+        const first = t.members.find(avatar => !disabled.has(avatar)) ?? t.members[0];
+        select.append(option('', `First member (${characterName(first)})`, !start.speaker || !t.members.includes(start.speaker)));
+        for (const avatar of t.members) select.append(option(avatar, characterName(avatar), avatar === start.speaker));
+        select.addEventListener('change', () => void setStart({ speaker: select.value }));
+        by.append(select);
+        head.append(by, helpButton('Sent by', HELP.speaker));
+    }
+    wrap.append(head);
+
+    area.id = 'ct-gs-start-opening';
+    area.rows = 7;
+    area.setAttribute('aria-label', `Opening message ${index + 1}`);
+    area.placeholder = index === 0
+        ? 'The first message of every new chat. Leave it empty to use the characters\' own greetings.'
+        : 'Another way the story can open. It becomes a swipe of the first one.';
+    area.value = openings[index];
+    fitRows(area, 7, 18);
+    area.addEventListener('change', () => {
+        const next = [...openings];
+        next[index] = area.value;
+        if (!area.value.trim() && next.length > 1) {
+            next.splice(index, 1);
+            state.opening = Math.max(0, index - 1);
+            void setStart({ openings: next }, { rerender: true });
+            return;
+        }
+        void setStart({ openings: next });
+    });
+    area.addEventListener('input', syncPills);
+    syncPills();
+    wrap.append(area);
+    return wrap;
+}
+
+async function removeOpening(index) {
+    const openings = [...target().start.openings];
+    const text = String(openings[index] ?? '');
+    if (text.trim()) {
+        const answer = await new Popup(`<div class="ct-gm-ask"><h3>Remove opening ${index + 1}?</h3><p>${escapeHtml(text.trim().slice(0, 160))}${text.trim().length > 160 ? '…' : ''}</p></div>`, POPUP_TYPE.CONFIRM, '', { okButton: 'Remove', cancelButton: 'Cancel' }).show();
+        if (answer !== POPUP_RESULT.AFFIRMATIVE) return;
+    }
+    openings.splice(index, 1);
+    state.opening = Math.max(0, Math.min(index, openings.length - 1));
+    await setStart({ openings }, { rerender: true });
+}
+
+async function loadFromVault() {
+    const vault = globalThis.HomunculusVault;
+    if (!vault?.pickScenario) {
+        toastr.error('The Vault is not loaded.');
+        return;
+    }
+    const scenario = await vault.pickScenario();
+    if (!scenario) return;
+    if (!isEmptyStart(target().start)) {
+        const answer = await new Popup(`<div class="ct-gm-ask"><h3>Use "${escapeHtml(scenario.name)}"?</h3><p>The scenario and opening messages here are replaced by the ones from the Vault.</p></div>`, POPUP_TYPE.CONFIRM, '', { okButton: 'Replace', cancelButton: 'Cancel' }).show();
+        if (answer !== POPUP_RESULT.AFFIRMATIVE) return;
+    }
+    await loadScenario(scenario);
+}
+
+/** Fills the start from a Vault scenario and adds its lorebooks to the group. */
+async function loadScenario(scenario) {
+    const vault = globalThis.HomunculusVault;
+    const t = target();
+    const done = [];
+    if (t.isNew && !state.draft.name.trim()) state.draft.name = scenario.name;
+    const known = new Set(Array.isArray(world_names) ? world_names : []);
+    const found = scenario.lorebooks.filter(name => known.has(name));
+    const missing = scenario.lorebooks.filter(name => !known.has(name));
+    const lorebooks = [...new Set([...t.profile.lorebooks, ...found])];
+    if (lorebooks.length !== t.profile.lorebooks.length) {
+        await setProfile({ lorebooks });
+        done.push(`lorebook${found.length === 1 ? '' : 's'} ${found.join(', ')}`);
+    }
+    state.opening = 0;
+    await setStart({
+        scenario: vault?.scenarioText ? vault.scenarioText(scenario) : scenario.setting,
+        openings: [...scenario.firstMessages],
+        vaultId: scenario.id,
+        vaultName: scenario.name,
+    }, { rerender: true });
+    const openings = scenario.firstMessages.length;
+    done.unshift('scenario', ...(openings ? [`${openings} opening${openings === 1 ? '' : 's'}`] : []));
+    toastr.success(`Loaded "${scenario.name}": ${done.join(', ')}.`);
+    if (missing.length) toastr.warning(`Not found in your lorebooks: ${missing.join(', ')}.`);
+}
+
+async function saveStartToVault() {
+    const vault = globalThis.HomunculusVault;
+    if (!vault?.saveScenarioFromStart) {
+        toastr.error('The Vault is not loaded.');
+        return;
+    }
+    const t = target();
+    const saved = await vault.saveScenarioFromStart({
+        name: t.name.trim() || 'New scenario',
+        text: t.start.scenario,
+        firstMessages: usableOpenings(t.start),
+        lorebooks: t.profile.lorebooks,
+        vaultId: t.start.vaultId,
+    });
+    if (saved) await setStart({ vaultId: saved.id, vaultName: saved.name }, { rerender: true });
 }
 
 const ROLE_TILES = [
@@ -1024,38 +1249,6 @@ function renderNarratorCard(t) {
     return section;
 }
 
-function renderScenarioCard() {
-    const g = group();
-    const isOpen = String(selected_group) === String(g.id);
-    const aside = isOpen && globalThis.HomunculusVault?.saveChatScenario
-        ? button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Save to the Vault</span>', 'Keep it to start other groups or chats with it', () => void globalThis.HomunculusVault.saveChatScenario({ name: g.name }))
-        : null;
-    const section = card('Scenario', HELP.scenario, { aside });
-    if (!isOpen) {
-        const row = el('div', 'ct-gs-inline-note');
-        row.append(el('span', 'ct-gs-note', 'Open one of this group\'s chats to edit its scenario.'));
-        row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-comments"></i> Open chat', '', async () => {
-            await openGroupById(g.id);
-            render();
-        }));
-        section.append(row);
-        return section;
-    }
-    const area = el('textarea', 'text_pole');
-    area.id = 'ct-gs-scenario';
-    area.rows = 4;
-    area.setAttribute('aria-label', 'Scenario of the open chat');
-    area.placeholder = 'Where and when the story starts, e.g. The party travels the Ashen Road toward the border fort of Varn.';
-    area.value = String(chat_metadata?.scenario ?? '');
-    area.addEventListener('change', async () => {
-        chat_metadata.scenario = area.value.trim();
-        await saveMetadata();
-        toastr.success('Scenario saved for this chat.');
-    });
-    section.append(area);
-    return section;
-}
-
 // ───────────────────────── Cast tab ─────────────────────────
 
 function renderCastTab(body, t) {
@@ -1097,6 +1290,8 @@ function renderCastTab(body, t) {
         if (!cast.length) list.append(el('p', 'ct-gs-note', 'No cast yet. Add characters below.'));
         section.append(list);
         body.append(section, renderPicker(t, 'Add to the cast'));
+        const vaultPicker = renderVaultPicker(t);
+        if (vaultPicker) body.append(vaultPicker);
         return;
     }
 
@@ -1131,10 +1326,12 @@ function renderCastTab(body, t) {
     if (!t.members.length) members.append(el('p', 'ct-gs-note', 'No members yet. Add characters below.'));
     section.append(members);
     body.append(section, renderPicker(t, 'Add characters'));
+    const vaultPicker = renderVaultPicker(t);
+    if (vaultPicker) body.append(vaultPicker);
 }
 
 function renderPicker(t, title) {
-    const section = card(title, HELP.add);
+    const section = card(title, HELP.add, { className: 'ct-gs-picker' });
     const search = el('input', 'text_pole ct-gs-search');
     search.id = 'ct-gs-char-search';
     search.type = 'search';
@@ -1145,8 +1342,10 @@ function renderPicker(t, title) {
     const fill = () => {
         results.replaceChildren();
         const term = state.charSearch.trim().toLowerCase();
+        // Cards made from Vault NPCs are listed under "From the Vault", not here.
+        const fromVault = new Set((state.npcs ?? []).map(npc => npc.characterAvatar).filter(Boolean));
         const pool = characters
-            .filter(character => character?.avatar && !t.members.includes(character.avatar))
+            .filter(character => character?.avatar && !t.members.includes(character.avatar) && !fromVault.has(character.avatar))
             .filter(character => !term || String(character.name).toLowerCase().includes(term))
             .sort((a, b) => String(a.name).localeCompare(String(b.name)));
         for (const character of pool.slice(0, 48)) {
@@ -1167,6 +1366,97 @@ function renderPicker(t, title) {
     section.append(search, results);
     fill();
     return section;
+}
+
+/** "From the Vault": the Vault's NPCs, in an area of their own under the character picker. */
+function renderVaultPicker(t) {
+    const vault = globalThis.HomunculusVault;
+    if (!vault?.listNpcs) return null;
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Open the Vault</span>', '', () => vault.open('npcs'));
+    const section = card('From the Vault', HELP.npcPick, { aside, className: 'ct-gs-picker ct-gs-vault-picker' });
+    renderNpcPicker(section, t, vault);
+    return section;
+}
+
+function renderNpcPicker(section, t, vault) {
+    if (state.npcs === null) {
+        vault.listNpcs().then((list) => {
+            state.npcs = list;
+        }).catch(() => {
+            state.npcs = [];
+        }).finally(() => {
+            if (state.open && state.tab === 'cast') render();
+        });
+        section.append(el('p', 'ct-gs-note', 'Opening the Vault…'));
+        return;
+    }
+    if (!state.npcs.length) {
+        section.append(el('p', 'ct-gs-note', 'No NPCs in the Vault yet. Save them from the Scene panel or from a scenario.'));
+        return;
+    }
+    const search = el('input', 'text_pole ct-gs-search');
+    search.id = 'ct-gs-npc-search';
+    search.type = 'search';
+    search.placeholder = 'Search NPCs…';
+    search.value = state.npcSearch;
+    search.setAttribute('aria-label', 'Search Vault NPCs to add');
+    const results = el('div', 'ct-gs-candidates');
+    const fill = () => {
+        results.replaceChildren();
+        const term = state.npcSearch.trim().toLowerCase();
+        const pool = state.npcs
+            .filter((npc) => {
+                const linked = vault.npcCharacter(npc);
+                return !linked || !t.members.includes(linked.avatar);
+            })
+            .filter(npc => !term || [npc.name, npc.role, ...npc.tags].join(' ').toLowerCase().includes(term));
+        for (const npc of pool.slice(0, 48)) {
+            const hasCard = Boolean(vault.npcCharacter(npc));
+            const tile = button(`ct-gs-candidate${hasCard ? '' : ' needs-card'}`, '', hasCard ? `Add ${npc.name}` : `Make a character card for ${npc.name}, then add it`, () => void addNpc(npc));
+            const text = el('span', 'ct-gs-candidate-text');
+            text.append(el('span', 'ct-gs-candidate-name', npc.name), el('span', 'ct-gs-candidate-sub', hasCard ? (npc.role || 'Has a card') : 'No card yet'));
+            const add = el('span', 'ct-gs-candidate-add', hasCard ? '+' : '');
+            if (!hasCard) add.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>';
+            tile.append(vault.npcFace(npc, 'ct-gs-candidate-img'), text, add);
+            results.append(tile);
+        }
+        if (pool.length > 48) results.append(el('p', 'ct-gs-note ct-gs-candidates-more', `${pool.length - 48} more. Type a name to find them.`));
+        if (!pool.length) results.append(el('p', 'ct-gs-note', term ? 'No NPCs match.' : 'Every NPC with a card is already in this group.'));
+    };
+    search.addEventListener('input', () => {
+        state.npcSearch = search.value;
+        fill();
+    });
+    if (state.npcs.length > 8) section.append(search);
+    section.append(results);
+    fill();
+}
+
+/** Adds a Vault NPC to the group, making its character card first when it has none. */
+async function addNpc(npc) {
+    const vault = globalThis.HomunculusVault;
+    let character = vault.npcCharacter(npc);
+    const madeNow = !character;
+    if (madeNow) {
+        try {
+            const saved = await vault.makeCharacterFromNpc(npc);
+            if (!saved) return;
+            character = vault.npcCharacter(saved);
+        } catch (error) {
+            toastr.error(String(error?.message ?? error), 'Could not make the character');
+            return;
+        }
+        if (!character) return;
+    }
+    const t = target();
+    if (!t.members.includes(character.avatar)) await setMembers([...t.members, character.avatar], t.disabled);
+    const after = target();
+    const narrated = after.campaign.mode === 'narrated';
+    if (narrated) {
+        const entry = after.campaign.cast[character.avatar] ?? { state: CAST_STATES.SCENE, sheet: '', line: '' };
+        if (!entry.sheet) await setCampaign({ cast: { ...after.campaign.cast, [character.avatar]: { ...entry, sheet: vault.npcSheetText(npc) } } });
+    }
+    if (!madeNow) toastr.success(`${character.name} joined the ${narrated ? 'cast' : 'group'}.`);
 }
 
 // ───────────────────────── Scene tab ─────────────────────────
@@ -1702,11 +1992,12 @@ async function postGroup(payload) {
 }
 
 /** The create route keeps only the standard group fields, so the fork's settings are saved right after. */
-async function attachSettings(groupId, profile, campaign) {
+async function attachSettings(groupId, profile, campaign, start) {
     const made = findGroup(groupId);
     if (!made) return;
     made.homunculus_profile = structuredClone(profile);
     made.homunculus_campaign = structuredClone(campaign);
+    if (start && !isEmptyStart(start)) made.homunculus_start = normalizeStart({ ...start, openings: usableOpenings(start) });
     await editGroup(made.id, true, false);
 }
 
@@ -1732,7 +2023,8 @@ async function createGroupNow() {
             generation_mode: t.behavior.generation_mode,
             disabled_members: t.disabled,
         });
-        await attachSettings(data.id, t.profile, t.campaign);
+        // The start is attached before the chat opens: the first chat is filled from it (classic-group-start.js).
+        await attachSettings(data.id, t.profile, t.campaign, t.start);
         if (Object.keys(t.style.values).length || !t.style.inject) await saveStyle(data.id, t.style);
         skipAskOnce(data.id);
         state.draft = emptyDraft();
@@ -1741,11 +2033,6 @@ async function createGroupNow() {
         toastr.success(`Group "${data.name ?? t.name}" created.`);
         close();
         await openGroupById(data.id);
-        if (t.scenarioId) {
-            const vault = globalThis.HomunculusVault;
-            const scenario = await vault?.getItem?.('scenarios', t.scenarioId);
-            if (scenario) await vault.applyScenarioToOpenChat(scenario);
-        }
     } catch (error) {
         console.error('[Homunculus] Group Studio:', error);
         toastr.error(String(error?.message ?? error), 'Could not create the group');
@@ -1769,7 +2056,7 @@ async function duplicateGroup(groupId) {
             hideMutedSprites: Boolean(g.hideMutedSprites),
             member_models: structuredClone(g.member_models ?? {}),
         });
-        await attachSettings(data.id, getProfile(g), getCampaign(g));
+        await attachSettings(data.id, getProfile(g), getCampaign(g), getStart(g));
         toastr.success(`Made "${data.name}". Its chats start fresh.`);
         open(data.id);
     } catch (error) {
@@ -1834,9 +2121,11 @@ function open(groupId = openGroupId ?? selected_group, tab = '') {
     if (id && findGroup(id)) {
         if (state.mode !== 'edit' || state.groupId !== id) {
             state.charSearch = '';
+            state.npcSearch = '';
             state.agentSearch = '';
             state.chats = null;
             state.menuOpen = false;
+            state.opening = 0;
         }
         state.mode = 'edit';
         state.groupId = id;
@@ -1857,16 +2146,20 @@ function create(options = {}) {
     if (state.mode !== 'new' || options.scenarioId) {
         state.draft = emptyDraft();
         state.charSearch = '';
+        state.npcSearch = '';
         state.agentSearch = '';
     }
     if (options.scenarioId) {
-        state.draft.scenarioId = String(options.scenarioId);
         state.draft.name = String(options.name ?? '');
+        void globalThis.HomunculusVault?.getItem?.('scenarios', String(options.scenarioId)).then((scenario) => {
+            if (scenario && state.mode === 'new') return loadScenario(scenario);
+        });
     }
     state.mode = 'new';
     state.groupId = null;
     state.tab = 'setup';
     state.menuOpen = false;
+    state.opening = 0;
     show();
     requestAnimationFrame(() => document.getElementById('ct-gs-group-name')?.focus());
 }
@@ -1965,8 +2258,8 @@ function init() {
     document.addEventListener(STYLE_CHANGED_EVENT, rerender);
     document.addEventListener(PROMPTS_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:vault-changed', () => {
-        state.vaultScenarios = null;
-        rerender();
+        state.npcs = null;
+        if (state.tab === 'cast') rerender();
     });
     eventSource.on(event_types.GROUP_UPDATED, rerender);
     eventSource.on(event_types.CHAT_CHANGED, () => {

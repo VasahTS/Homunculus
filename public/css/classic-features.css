@@ -2594,3 +2594,51 @@ button.ct-sc-thread-pill { margin: 0; background: none; font: inherit; font-size
 .ct-gs-prompt-sections { align-items: center; }
 .ct-gs-role-grid { align-items: end; }
 .ct-gs-style-label { flex: 0 0 130px; }
+
+/* Group Studio: how the story starts (Setup) and Vault NPCs in the Cast picker */
+.ct-gs-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ct-gs-from { display: flex; align-items: center; gap: 8px; margin-top: -6px; color: var(--cf-muted); font-size: .86em; }
+.ct-gs-from i { color: var(--cf-accent); font-size: .9em; }
+.ct-gs-opening-head { flex-wrap: wrap; gap: 8px 12px; }
+.ct-gs-pills { display: flex; align-items: center; gap: 4px; }
+.ct-gs-pills[hidden], .ct-gs-pill[hidden] { display: none; }
+.ct-gs-pill {
+    min-width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--cf-line);
+    background: var(--cf-surface);
+    color: var(--cf-muted);
+    font: inherit;
+    font-size: .85em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.ct-gs-pill:hover { color: var(--cf-text); border-color: color-mix(in srgb, var(--cf-accent) 45%, var(--cf-line)); }
+.ct-gs-pill.is-on { background: var(--cf-accent); border-color: var(--cf-accent); color: color-mix(in srgb, var(--cf-accent) 12%, #0b0b0d); }
+.ct-gs-pill.is-empty:not(.is-on) { border-style: dashed; }
+.ct-gs-pill-add { color: var(--cf-accent); }
+.ct-gs-pill-remove { width: 28px; height: 28px; margin-left: 4px; color: var(--cf-muted); font-size: .85em; }
+.ct-gs-pill-remove:hover:not(:disabled) { color: rgb(240 140 120); }
+.ct-gs-opening-by { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--cf-muted); font-size: .88em; }
+.ct-gs-opening-by select.text_pole { width: auto; min-width: 170px; max-width: 260px; margin: 0; font-size: 1em; }
+.ct-gs-opening-head .ct-gs-opening-by + .ct-help { margin-left: -4px; }
+.ct-gs-opening-text { min-height: 9em; }
+.ct-gs-start-status { margin: 0; font-size: .88em; color: var(--cf-muted); }
+.ct-gs-start-status.is-ok { display: flex; align-items: center; gap: 8px; color: #9fd39a; }
+.ct-gs-candidate-text { display: flex; flex-direction: column; min-width: 0; }
+.ct-gs-candidate-sub { color: var(--cf-muted); font-size: .78em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-gs-candidate.needs-card .ct-gs-candidate-add { font-size: .9em; }
+.ct-gs-candidate .ct-vlt-initial { display: inline-flex; align-items: center; justify-content: center; }
+
+
+/* Vault: scenario picker (Group Studio → Load from the Vault) */
+.ct-vlt-scn-list { display: flex; flex-direction: column; gap: 6px; max-height: 55vh; overflow: auto; padding: 2px; }
+.ct-vlt-scn { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--cf-line); background: var(--cf-surface); color: var(--cf-text); font: inherit; text-align: left; cursor: pointer; }
+.ct-vlt-scn:hover, .ct-vlt-scn:focus-visible { border-color: color-mix(in srgb, var(--cf-accent) 55%, transparent); background: color-mix(in srgb, var(--cf-accent) 8%, var(--cf-surface)); }
+.ct-vlt-scn-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ct-vlt-scn-text b { font-weight: 600; }
+.ct-vlt-scn-meta { color: var(--cf-muted); font-size: .82em; }
+.ct-vlt-scn-snippet { color: var(--cf-muted); font-size: .86em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

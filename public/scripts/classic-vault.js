@@ -70,7 +70,7 @@ const HELP = {
     npcs: '<p>The characters of this scenario that are not group members. They are listed in the chat\'s scenario so the AI knows them. <b>Save to NPCs</b> keeps a full sheet of one in the NPCs tab.</p>',
     firstMessages: '<p>The opening messages. When the scenario is used in a chat, the first one becomes the opening message and the others its swipes, so you can pick one with the arrows.</p>',
     startTime: '<p>When the story starts, in your own words ("Day 1, 06:00", "Winter, 1890"). It is added to the scenario text.</p>',
-    lorebooks: '<p>Lorebooks that belong to this scenario. In a group they are added to the group\'s lorebooks (Group Studio → Profile).</p>',
+    lorebooks: '<p>Lorebooks that belong to this scenario. In a group they are added to the group\'s lorebooks (Group Studio → Settings).</p>',
     tags: '<p>Words to find and filter your items, separated by commas ("fantasy, horror").</p>',
     preset: '<p>Which fields the sheet has. It uses the same presets as the Scene panel, so an NPC saved from the panel keeps all its fields.</p>',
     fill: '<p>Asks the AI to write the fields that are still empty, based on what the sheet already says (and the scenarios it is in). Fields you filled are never changed.</p>',
@@ -451,6 +451,124 @@ export async function saveChatScenario({ name = '' } = {}) {
     });
     toastr.success(`Saved "${scenario.name}" in the Vault.`, '', { onclick: () => open('scenarios', scenario.id) });
     return scenario;
+}
+
+/**
+ * What to keep as a scenario's setting when text made by scenarioText() comes back edited: the
+ * start-time line and the NPC list are taken out again while they are unchanged, so they are not
+ * written twice.
+ */
+function fieldsFromText(text, base) {
+    const clean = str(text).trim();
+    if (clean === scenarioText(base).trim()) return {};
+    let rest = clean;
+    let startTime = base.startTime;
+    let npcs = base.npcs;
+    const timeLine = base.startTime ? `The story starts: ${base.startTime}.` : '';
+    if (timeLine && rest.includes(timeLine)) rest = rest.replace(timeLine, ''); else startTime = '';
+    const npcBlock = base.npcs.length ? scenarioText({ ...base, setting: '', startTime: '' }) : '';
+    if (npcBlock && rest.includes(npcBlock)) rest = rest.replace(npcBlock, ''); else npcs = [];
+    return { setting: rest.replace(/\n{3,}/g, '\n\n').trim(), startTime, npcs };
+}
+
+/**
+ * Saves a group's start (Group Studio → Setup) as a Vault scenario. When it came from a scenario that
+ * still exists, asks whether to update that one or save a new one.
+ * @returns {Promise<ReturnType<typeof normalizeScenario>|null>}
+ */
+export async function saveScenarioFromStart({ name = '', text = '', firstMessages = [], lorebooks = [], vaultId = '' } = {}) {
+    const openings = firstMessages.map(str).filter(item => item.trim());
+    if (!str(text).trim() && !openings.length) {
+        toastr.info('Write a scenario or an opening message first.');
+        return null;
+    }
+    const base = vaultId ? (await load('scenarios')).find(item => item.id === vaultId) ?? null : null;
+    let update = null;
+    if (base) {
+        const answer = await new Popup(`<div class="ct-gm-ask"><h3>Update "${escapeText(base.name)}" in the Vault?</h3><p>Its setting, opening messages and lorebooks become the ones in this group.</p></div>`, POPUP_TYPE.CONFIRM, '', {
+            okButton: 'Update it',
+            cancelButton: 'Cancel',
+            customButtons: [{ text: 'Save as a new scenario', result: 3, appendAtEnd: false }],
+        }).show();
+        if (answer === POPUP_RESULT.AFFIRMATIVE) update = base;
+        else if (answer !== 3) return null;
+    }
+    const scenario = update
+        ? await saveItem('scenarios', { ...update, ...fieldsFromText(text, update), firstMessages: openings, lorebooks: unique([...update.lorebooks, ...lorebooks]) })
+        : await saveItem('scenarios', {
+            name: str(name).trim() || 'New scenario',
+            source: 'group',
+            sourceName: str(name).trim(),
+            setting: str(text).trim(),
+            firstMessages: openings,
+            lorebooks,
+        });
+    toastr.success(update ? `Updated "${scenario.name}" in the Vault.` : `Saved "${scenario.name}" in the Vault.`, '', { onclick: () => open('scenarios', scenario.id) });
+    return scenario;
+}
+
+/** A list of the Vault's scenarios to pick one from. */
+export async function pickScenario({ title = 'Load a scenario from the Vault' } = {}) {
+    const list = sortItems(await load('scenarios'));
+    const wrap = el('div', 'ct-vlt-pick');
+    wrap.append(el('h3', '', title));
+    let chosen = null;
+    let popup = null;
+    if (!list.length) {
+        wrap.append(el('p', 'ct-gs-note', 'There are no scenarios in the Vault yet.'));
+        wrap.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-vault"></i> Open the Vault', '', () => {
+            popup?.complete(POPUP_RESULT.CANCELLED);
+            open('scenarios');
+        }));
+    } else {
+        const search = el('input', 'text_pole');
+        search.type = 'search';
+        search.placeholder = 'Search scenarios…';
+        search.setAttribute('aria-label', 'Search scenarios');
+        const rows = el('div', 'ct-vlt-scn-list');
+        const fill = () => {
+            rows.replaceChildren();
+            const term = search.value.trim().toLowerCase();
+            const found = list.filter(item => !term || [item.name, item.description, ...item.tags].join(' ').toLowerCase().includes(term));
+            for (const scenario of found) {
+                const row = button('ct-vlt-scn', '', `Use ${scenario.name}`, () => {
+                    chosen = scenario;
+                    popup?.complete(POPUP_RESULT.AFFIRMATIVE);
+                });
+                const text = el('span', 'ct-vlt-scn-text');
+                text.append(el('b', '', `${scenario.favorite ? '★ ' : ''}${scenario.name}`));
+                const meta = [
+                    `${scenario.firstMessages.length} opening${scenario.firstMessages.length === 1 ? '' : 's'}`,
+                    scenario.npcs.length ? `${scenario.npcs.length} NPC${scenario.npcs.length === 1 ? '' : 's'}` : '',
+                    scenario.lorebooks.length ? `${scenario.lorebooks.length} lorebook${scenario.lorebooks.length === 1 ? '' : 's'}` : '',
+                    ...scenario.tags.slice(0, 3),
+                ].filter(Boolean).join(' · ');
+                text.append(el('span', 'ct-vlt-scn-meta', meta));
+                const snippet = (scenario.description || scenario.setting).replace(/\s+/g, ' ').trim();
+                if (snippet) text.append(el('span', 'ct-vlt-scn-snippet', snippet));
+                row.append(itemFace('scenarios', scenario), text);
+                rows.append(row);
+            }
+            if (!found.length) rows.append(el('p', 'ct-gs-note', 'No scenarios match.'));
+        };
+        search.addEventListener('input', fill);
+        wrap.append(search, rows);
+        fill();
+        requestAnimationFrame(() => search.focus());
+    }
+    popup = new Popup(wrap, POPUP_TYPE.TEXT, '', { okButton: 'Cancel', wide: true, allowVerticalScrolling: true });
+    await popup.show();
+    return chosen;
+}
+
+/** The Vault's NPCs, favorites and newest first. */
+export async function listNpcs() {
+    return sortItems(await load('npcs'));
+}
+
+/** The NPC's character card, if it has one that still exists. */
+export function npcCharacter(npc) {
+    return npc?.characterAvatar ? characterByAvatar(npc.characterAvatar) ?? null : null;
 }
 
 // ───────────────────────── NPC actions ─────────────────────────
@@ -1806,5 +1924,12 @@ globalThis.HomunculusVault = {
     useScenarioInOpenChat,
     saveChatScenario,
     saveNpcFromScene,
+    saveScenarioFromStart,
+    pickScenario,
+    listNpcs,
+    npcCharacter,
+    npcFace,
+    npcSheetText: npcAsText,
+    makeCharacterFromNpc: makeCharacter,
     VAULT_CHANGED_EVENT,
 };

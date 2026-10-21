@@ -344,7 +344,8 @@ async function emitGroupGreetingMessageEvents(messageId) {
 }
 
 function addFreshGroupGreeting(group) {
-    const greeting = getGroupGreetingMember(group, selectedGroupSpeakerAvatar);
+    // Homunculus: a group's own opening (Group Studio → Setup, scripts/classic-group-start.js) replaces the greetings.
+    const greeting = globalThis.HomunculusGroupStart?.openingMessage?.(group) ?? getGroupGreetingMember(group, selectedGroupSpeakerAvatar);
     if (!greeting) {
         return -1;
     }
@@ -801,6 +802,8 @@ export async function getGroupChat(groupId, reload = false, { switchMenu = true,
         chat.splice(0, chat.length);
         chatElement.find('.mes').remove();
         freshGroupGreetingMessageId = addFreshGroupGreeting(group);
+        // Homunculus: the group's scenario (scripts/classic-group-start.js) goes into the new chat.
+        globalThis.HomunculusGroupStart?.prepareFreshChat?.(group, metadata);
         metadata.tainted = true;
         updateChatMetadata(metadata, true);
         const savedFreshGroupChat = await saveGroupChat(groupId, false);
