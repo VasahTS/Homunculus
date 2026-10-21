@@ -1389,6 +1389,15 @@ export async function openWelcomeScreen({ force = false, expand = false } = {}) 
         return;
     }
 
+    // Homunculus divergence: with no chat open, show the Homunculus Home (classic-home.js)
+    // instead of SillyBunny's welcome panel (Launchpad, tutorial, bundled extras).
+    if (globalThis.HomunculusClassicHome?.openHome) {
+        if (force) chat.splice(0, chat.length);
+        $('#chat').empty();
+        await globalThis.HomunculusClassicHome.openHome();
+        return;
+    }
+
     const recentChats = await getRecentChats();
     const chatAfterFetch = getCurrentChatId();
     if (chatAfterFetch !== currentChatId) {
