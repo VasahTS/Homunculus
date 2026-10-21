@@ -5706,7 +5706,11 @@ export async function checkWorldInfo(chat, maxContext, isDryRun, globalScanData 
 
             // Check if this entry applies to the character or if it's excluded
             if (entry.characterFilter && entry.characterFilter?.names?.length > 0) {
-                const nameIncluded = entry.characterFilter.names.includes(getCharaFilename());
+                // Homunculus: outside a group reply every member counts (see getCharacterLoreIds).
+                const loreIds = getCharacterLoreIds();
+                const nameIncluded = loreIds.length
+                    ? loreIds.some(id => entry.characterFilter.names.includes(getCharaFilename(id)))
+                    : entry.characterFilter.names.includes(getCharaFilename());
                 const filtered = entry.characterFilter.isExclude ? nameIncluded : !nameIncluded;
 
                 if (filtered) {

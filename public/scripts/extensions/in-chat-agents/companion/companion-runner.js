@@ -721,6 +721,53 @@ function getCharacterCardSection(companion, messageIndex = chat.length - 1) {
     return parts.join('\n\n');
 }
 
+/**
+ * Homunculus: every activated entry, wherever the story prompt would place it. Only "before/after
+ * the card" used to be kept, so entries at a depth (@D), around the Author's Note, in outlets or in
+ * the example messages (often the rules for new characters) never reached the agent.
+ */
+function collectWorldInfoText(result) {
+    if (!result) {
+        return '';
+    }
+    const depthEntries = (Array.isArray(result.worldInfoDepth) ? result.worldInfoDepth : [])
+        .flatMap(item => (Array.isArray(item?.entries) ? item.entries : []));
+    const outlets = Object.values(result.outletEntries ?? {}).flatMap(list => (Array.isArray(list) ? list : []));
+    const examples = (Array.isArray(result.worldInfoExamples) ? result.worldInfoExamples : []).map(item => item?.content);
+    return [
+        result.worldInfoBefore,
+        result.worldInfoAfter,
+        ...(Array.isArray(result.anBefore) ? result.anBefore : []),
+        ...(Array.isArray(result.anAfter) ? result.anAfter : []),
+        ...depthEntries,
+        ...outlets,
+        ...examples,
+    ].map(text => normalizeText(text ?? '')).filter(Boolean).join('\n');
+}
+
+/** Homunculus: the same scan data the story reply uses, so entries matched against the card or persona can fire. */
+function getCompanionScanData(messageIndex) {
+    const context = getContext();
+    const chid = getCompanionCardChid(messageIndex);
+    let fields = {};
+    try {
+        fields = typeof context?.getCharacterCardFields === 'function'
+            ? (context.getCharacterCardFields(chid === undefined ? undefined : { chid }) ?? {})
+            : {};
+    } catch {
+        fields = {};
+    }
+    return {
+        personaDescription: fields.persona ?? '',
+        characterDescription: fields.description ?? '',
+        characterPersonality: fields.personality ?? '',
+        characterDepthPrompt: fields.charDepthPrompt ?? '',
+        scenario: fields.scenario ?? '',
+        creatorNotes: fields.creatorNotes ?? '',
+        trigger: 'normal',
+    };
+}
+
 async function getWorldInfoSection(messageIndex, companion, agent = null) {
     if (!companion.includeWorldInfo) {
         return '';
@@ -746,8 +793,8 @@ async function getWorldInfoSection(messageIndex, companion, agent = null) {
         // tokens of budget, so most character entries were cut.
         const context = getContext();
         const maxContext = Math.max(4096, Number(context?.getMaxContextTokens?.() ?? context?.maxContext) || 0);
-        const result = await getWorldInfoPrompt(scanLines, maxContext, true);
-        return normalizeText(result?.worldInfoString ?? '');
+        const result = await getWorldInfoPrompt(scanLines, maxContext, true, getCompanionScanData(messageIndex));
+        return normalizeText(collectWorldInfoText(result));
     } catch (error) {
         console.warn('[InChatAgents] Companion world info scan failed:', error);
         return '';

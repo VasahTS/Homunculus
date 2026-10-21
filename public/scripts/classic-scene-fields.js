@@ -319,7 +319,7 @@ export function isFilled(field, value) {
 
 // ───────────────────────── Prompt macros ─────────────────────────
 
-const LORE_RULE = 'Lorebook entries ([World Info]), character cards and cast sheets are canon for who a character is. When one of them gives a fixed fact (age, height, weight, face, hair, eyes, build, species, powers…), copy it exactly, even if your previous state says something else: correct your previous state to match. Things the story changes (clothes, wounds, dirt, mood) follow the story. Only invent what none of them and the story give.';
+const LORE_RULE = 'Lorebook entries ([World Info]), character cards and cast sheets are canon for who a character is. When one of them gives a fixed fact (age, height, weight, face, hair, eyes, build, species, powers…), copy it exactly, even if your previous state says something else: correct your previous state to match. Things the story changes (clothes, wounds, dirt, mood) follow the story. When the lorebook has rules for new characters (species, height ranges, eye or skin colors, naming, power limits…), every character you add must follow them. Only invent what none of them and the story give, and keep it inside those rules.';
 const CONCRETE_RULE = 'Be concrete and objective: numbers with units, colors, materials, shapes and where on the body. Never use vague or relative words ("tall", "short", "big", "lean", "beautiful", "average") on their own; give the number or the specific detail instead.';
 
 /** Format and field rules for the Scene: Characters tracker ({{sceneCastFields}}). */
