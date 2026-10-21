@@ -59,7 +59,7 @@ import {
     skipAskOnce,
 } from './classic-group-profile.js';
 import { listVars, normalizeStyle, getStyle, saveStyle, styleText, conflicts as styleConflicts, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
-import { BLOCKS as PROMPT_BLOCKS, getPlacement, setPlacement, resetPlacement, status as blockStatus, preview as blockPreview, wrap, PROMPTS_CHANGED_EVENT } from './classic-prompt-blocks.js';
+import { BLOCKS as PROMPT_BLOCKS, getPlacement, setPlacement, resetPlacement, status as blockStatus, preview as blockPreview, presetMacrosOf, missingSections, addSectionsToPreset, wrap, PROMPTS_CHANGED_EVENT } from './classic-prompt-blocks.js';
 import {
     AUTONOMY,
     CAST_STATES,
@@ -123,6 +123,10 @@ const HELP = {
 <p>If your preset already has the macro, the block is not added a second time.</p>
 <p>Each block is sent inside a tag, like <code>&lt;story_style&gt;…&lt;/story_style&gt;</code>, so the AI knows where it starts and ends.</p>
 <p>These settings are the same for every group.</p>`,
+    promptSections: `<p>A section is a prompt in your Chat Completion preset (the Prompt Manager list). Each Homunculus section holds only a macro, like <code>{{storyStyle}}</code>.</p>
+<p>With the section in the preset, the block goes exactly where the section is, and it is not added anywhere else. Drag it up or down, or switch it off, in the Prompt Manager.</p>
+<p>The Default preset already comes with them. Other presets get them with this button.</p>
+<p>The sections are added to the preset you are using now. Save the preset to keep them in its file.</p>`,
     promptWhere: '<p>Where this block goes in the prompt. See the "?" at the top of this tab.</p>',
     promptDepth: '<p>How many messages from the end. 0 = after the last message, 1 = just before the last message.</p>',
     promptRole: '<p>Who "says" the block in the chat. <b>System</b> works for most models.</p>',
@@ -1578,10 +1582,14 @@ function renderPromptBlock(block, t) {
         role.addEventListener('change', () => setPlacement(block.id, { role: role.value }));
         row.append(field('As', HELP.promptRole, role));
     }
-    section.append(row);
+    // With the macro in the preset, the preset decides where the block goes.
+    if (current !== 'preset-macro') section.append(row);
 
     const info = el('div', 'ct-gs-prompt-info');
-    info.append(el('span', `ct-gs-prompt-status is-${current}`, STATUS_TEXT[current]));
+    const statusText = current === 'preset-macro'
+        ? `Your preset already has ${presetMacrosOf(block.id).map(macro => `{{${macro}}}`).join(', ')}: it goes where that is (move it in the Prompt Manager) and is not added again.`
+        : STATUS_TEXT[current];
+    info.append(el('span', `ct-gs-prompt-status is-${current}`, statusText));
     const macro = el('code', 'ct-gs-prompt-macro', `{{${block.macro}}}`);
     macro.title = 'Click to copy';
     macro.addEventListener('click', () => {
@@ -1610,6 +1618,24 @@ function renderPromptsTab(body, t) {
     const intro = card('Where Homunculus prompts go', HELP.prompts, { aside, intro: 'Pick where each block is added. "What the AI receives" shows the open chat.' });
     const g = group();
     if (g && String(selected_group) !== String(g.id)) intro.append(el('p', 'ct-gs-warn', 'This group is not the open chat, so the previews show the open chat.'));
+    const missing = missingSections();
+    const sections = el('div', 'ct-gs-inline-note ct-gs-prompt-sections');
+    sections.append(el('span', 'ct-gs-note', missing.length
+        ? `Your Chat Completion preset has no section for: ${missing.map(block => block.label).join(', ')}. Add them to move each block by hand in the preset (Prompt Manager), like any other section.`
+        : 'Your preset has a section for every block. Move or switch them off in the Prompt Manager.'));
+    if (missing.length) {
+        sections.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-plus"></i> Add the sections to my preset', '', async () => {
+            try {
+                const added = await addSectionsToPreset();
+                toastr.success(`${added} section${added === 1 ? '' : 's'} added. To keep them in the preset file, save the preset.`);
+            } catch (error) {
+                toastr.error(String(error?.message ?? error));
+            }
+            render();
+        }));
+    }
+    sections.append(helpButton('Preset sections', HELP.promptSections));
+    intro.append(sections);
     body.append(intro);
     for (const block of PROMPT_BLOCKS) body.append(renderPromptBlock(block, t));
 }

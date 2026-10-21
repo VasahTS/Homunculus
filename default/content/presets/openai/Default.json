@@ -125,6 +125,51 @@
             "name": "Persona Description",
             "system_prompt": true,
             "marker": true
+        },
+        {
+            "identifier": "homunculus-role",
+            "name": "Homunculus: Role instructions",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{homunculusRole}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-scene",
+            "name": "Homunculus: Current scene",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{currentScene}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-cast",
+            "name": "Homunculus: Cast sheets",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{cast}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-beats",
+            "name": "Homunculus: The author's plan",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{authorPlan}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-style",
+            "name": "Homunculus: Story style",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{storyStyle}}",
+            "marker": false,
+            "enabled": true
         }
     ],
     "prompt_order": [
@@ -133,6 +178,10 @@
             "order": [
                 {
                     "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-role",
                     "enabled": true
                 },
                 {
@@ -149,6 +198,14 @@
                 },
                 {
                     "identifier": "scenario",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-scene",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-cast",
                     "enabled": true
                 },
                 {
@@ -172,6 +229,14 @@
                     "enabled": true
                 },
                 {
+                    "identifier": "homunculus-style",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-beats",
+                    "enabled": true
+                },
+                {
                     "identifier": "jailbreak",
                     "enabled": true
                 }
@@ -182,6 +247,10 @@
             "order": [
                 {
                     "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-role",
                     "enabled": true
                 },
                 {
@@ -205,6 +274,14 @@
                     "enabled": true
                 },
                 {
+                    "identifier": "homunculus-scene",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-cast",
+                    "enabled": true
+                },
+                {
                     "identifier": "enhanceDefinitions",
                     "enabled": false
                 },
@@ -222,6 +299,14 @@
                 },
                 {
                     "identifier": "chatHistory",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-style",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-beats",
                     "enabled": true
                 },
                 {

@@ -11,7 +11,7 @@
 
 import { eventSource, event_types, setExtensionPrompt, extension_prompt_types, extension_prompt_roles, saveSettingsDebounced } from '../script.js';
 import { extension_settings } from './extensions.js';
-import { oai_settings } from './openai.js';
+import { oai_settings, promptManager } from './openai.js';
 import { power_user } from './power-user.js';
 
 export const PROMPTS_CHANGED_EVENT = 'homunculus:prompt-blocks-changed';
@@ -22,28 +22,38 @@ export const BLOCKS = Object.freeze([
         id: 'role', key: 'homunculus_role', tag: 'story_role', macro: 'homunculusRole', label: 'Role instructions',
         about: 'The Co-author or Author instructions, the main character, character autonomy and what an empty turn means (Setup → Your role).',
         placement: { mode: 'main', depth: 4, role: 'system' },
+        section: { after: 'main' },
     },
     {
         id: 'style', key: 'homunculus_style', tag: 'story_style', macro: 'storyStyle', label: 'Story style',
         about: 'Perspective, tense, reply length, tone and your own variables (Setup → Story style).',
         placement: { mode: 'chat', depth: 1, role: 'system' },
+        section: { after: 'chatHistory' },
     },
     {
         id: 'beats', key: 'homunculus_beats', tag: 'author_plan', macro: 'authorPlan', label: 'The author\'s plan',
         about: 'Your planned beats marked "Steer toward" or "Not yet" (Scene panel → Plot).',
         placement: { mode: 'chat', depth: 1, role: 'system' },
+        section: { after: 'chatHistory' },
     },
     {
         id: 'scene', key: 'homunculus_scene', tag: 'current_scene', macro: 'currentScene', label: 'Current scene',
         about: 'Who is in the scene and how they look, the world state and the plot notes (the Scene trackers).',
         placement: { mode: 'main', depth: 4, role: 'system' },
+        section: { after: 'scenario' },
     },
     {
         id: 'cast', key: 'homunculus_cast', tag: 'cast_sheets', macro: 'cast', label: 'Cast sheets',
         about: 'The sheets of the cast in a Narrated group (Cast tab).',
         placement: { mode: 'main', depth: 4, role: 'system' },
+        section: { after: 'scenario' },
     },
 ]);
+
+/** Prompt Manager identifier of the preset section that holds a block's macro (also used by default/…/Default.json). */
+export const sectionId = id => `homunculus-${id}`;
+// Other macros that also put a block's text in the prompt ({{pov}}, {{tense}}… for the Story style).
+const extraMacros = new Map();
 
 const ROLES = { system: extension_prompt_roles.SYSTEM, user: extension_prompt_roles.USER, assistant: extension_prompt_roles.ASSISTANT };
 const texts = new Map();
@@ -108,6 +118,61 @@ export function presetUsesMacro(macro) {
     return new RegExp(`\\{\\{\\s*${macro}\\s*\\}\\}`, 'i').test(presetText());
 }
 
+/** The macros of a block the preset already uses (its own and the extra ones). */
+export function presetMacrosOf(id) {
+    const block = byId(id);
+    if (!block) return [];
+    return [block.macro, ...(extraMacros.get(id) ?? [])].filter(macro => presetUsesMacro(macro));
+}
+
+/** Other macros that also send a block's text (the preset using one of them counts as the preset having the block). */
+export function setExtraMacros(id, macros) {
+    extraMacros.set(id, Array.isArray(macros) ? macros.filter(Boolean) : []);
+}
+
+// ───────────────────────── Preset sections ─────────────────────────
+
+/** Blocks with no section in the active preset. */
+export function missingSections() {
+    const prompts = Array.isArray(oai_settings?.prompts) ? oai_settings.prompts : [];
+    return BLOCKS.filter(block => !prompts.some(prompt => prompt?.identifier === sectionId(block.id)));
+}
+
+/**
+ * Adds a section for each missing block to the active Chat Completion preset (Prompt Manager), holding
+ * only its macro, next to the preset section it belongs after. Returns how many were added.
+ */
+export async function addSectionsToPreset() {
+    if (!promptManager?.serviceSettings) throw new Error('The Prompt Manager is not ready (Chat Completion only).');
+    const missing = missingSections();
+    if (!missing.length) return 0;
+    const order = promptManager.getPromptOrderForCharacter(promptManager.activeCharacter ?? { id: 100001 });
+    for (const block of missing) {
+        promptManager.addPrompt({
+            name: `Homunculus: ${block.label}`,
+            role: 'system',
+            content: `{{${block.macro}}}`,
+            system_prompt: false,
+            marker: false,
+            enabled: true,
+        }, sectionId(block.id));
+        if (order.some(entry => entry.identifier === sectionId(block.id))) continue;
+        // After the anchor and the Homunculus sections already placed after it.
+        let index = order.findIndex(entry => entry.identifier === block.section.after);
+        if (index === -1) {
+            order.push({ identifier: sectionId(block.id), enabled: true });
+            continue;
+        }
+        while (order[index + 1]?.identifier?.startsWith('homunculus-')) index++;
+        order.splice(index + 1, 0, { identifier: sectionId(block.id), enabled: true });
+    }
+    await promptManager.saveServiceSettings();
+    promptManager.render?.();
+    applyAll();
+    notify();
+    return missing.length;
+}
+
 // ───────────────────────── Sending ─────────────────────────
 
 export function wrap(id, text) {
@@ -126,7 +191,7 @@ export function status(id) {
     if (!placement.enabled) return 'off';
     if (!str(texts.get(id)).trim()) return 'empty';
     if (placement.mode === 'macro') return 'macro';
-    if (presetUsesMacro(block.macro)) return 'preset-macro';
+    if (presetMacrosOf(block.id).length) return 'preset-macro';
     return 'sent';
 }
 
@@ -195,4 +260,4 @@ function init() {
 
 init();
 
-globalThis.HomunculusPrompts = { BLOCKS, set, getPlacement, setPlacement, resetPlacement, status, preview, presetUsesMacro, presetContains, PROMPTS_CHANGED_EVENT };
+globalThis.HomunculusPrompts = { BLOCKS, set, getPlacement, setPlacement, resetPlacement, status, preview, presetUsesMacro, presetMacrosOf, presetContains, missingSections, addSectionsToPreset, PROMPTS_CHANGED_EVENT };

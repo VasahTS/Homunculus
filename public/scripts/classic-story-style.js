@@ -13,7 +13,7 @@ import { extension_settings } from './extensions.js';
 import { groups, selected_group, editGroup } from './group-chats.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { helpButton } from './classic-help.js';
-import { set as setPromptBlock, presetText, wrap } from './classic-prompt-blocks.js';
+import { set as setPromptBlock, setExtraMacros, presetText, wrap } from './classic-prompt-blocks.js';
 
 const GROUP_KEY = 'homunculus_style';
 export const STYLE_CHANGED_EVENT = 'homunculus:story-style-changed';
@@ -145,6 +145,8 @@ function macroValue(variableKey) {
 
 function applyPrompt() {
     const style = openStyle();
+    // A preset that writes {{pov}}, {{tense}}… already has the style, so the block is not added again.
+    setExtraMacros('style', listVars().map(variable => variable.key));
     setPromptBlock('style', style && style.inject ? styleText(style) : '');
 }
 
