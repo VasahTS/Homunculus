@@ -615,7 +615,7 @@ const SB_SHELLS = Object.freeze({
             id: 'presets',
             label: 'Presets',
             icon: 'fa-sliders',
-            description: 'Change or modify your Chat Completion presets, settings, and/or prompts here. We recommend our included Geechan and Pura presets if you\'re unsure.',
+            description: 'Change or modify your Chat Completion presets, settings, and/or prompts here. The included Homunculus presets (Roleplay, Game Master, Co-author, Director) are a good place to start.',
         },
         embeddedTabs: [
             {

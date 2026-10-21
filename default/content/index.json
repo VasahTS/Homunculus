@@ -516,26 +516,6 @@
         "type": "openai_preset"
     },
     {
-        "filename": "presets/openai/Pura's Director Preset (SillyBunny).json",
-        "type": "openai_preset"
-    },
-    {
-        "filename": "presets/openai/Pura's Director Preset 15.1 (SillyBunny).json",
-        "type": "openai_preset"
-    },
-    {
-        "filename": "presets/openai/Geechan - Universal Roleplay (Chat Completions) (v5.2).json",
-        "type": "openai_preset"
-    },
-    {
-        "filename": "presets/openai/Geechan - Universal Online Chat (Chat Completions) (v1.0).json",
-        "type": "openai_preset"
-    },
-    {
-        "filename": "presets/openai/TLD Card Conversion Preset (Standalone).json",
-        "type": "openai_preset"
-    },
-    {
         "filename": "presets/context/Adventure.json",
         "type": "context"
     },
@@ -609,14 +589,6 @@
     },
     {
         "filename": "presets/context/Phi.json",
-        "type": "context"
-    },
-    {
-        "filename": "presets/context/Geechan - Universal Roleplay (V5.2).json",
-        "type": "context"
-    },
-    {
-        "filename": "presets/context/Geechan - Universal Online Chat (V1.0).json",
         "type": "context"
     },
     {
@@ -765,26 +737,6 @@
     },
     {
         "filename": "presets/sysprompt/Assistant - Simple.json",
-        "type": "sysprompt"
-    },
-    {
-        "filename": "presets/sysprompt/Geechan - Universal Roleplay (V5.2).json",
-        "type": "sysprompt"
-    },
-    {
-        "filename": "presets/sysprompt/Geechan - Universal Roleplay (NSFW) (V5.2).json",
-        "type": "sysprompt"
-    },
-    {
-        "filename": "presets/sysprompt/Geechan - Universal Roleplay (Simplified) (V5.2).json",
-        "type": "sysprompt"
-    },
-    {
-        "filename": "presets/sysprompt/Geechan - Universal Roleplay (Simplified NSFW) (V5.2).json",
-        "type": "sysprompt"
-    },
-    {
-        "filename": "presets/sysprompt/Geechan - Universal Online Chat (V1.0).json",
         "type": "sysprompt"
     },
     {

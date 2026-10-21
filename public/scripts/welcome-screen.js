@@ -42,14 +42,9 @@ const welcomePanelModeKey = 'WelcomePage_PanelMode';
 
 const AGENT_MESSAGE_EXTRA_KEY = 'inChatAgents';
 const AGENT_PROMPT_TRANSFORM_HISTORY_KEY = 'inChatAgentTransformHistory';
-const STARTER_PACK_PRESET_NAME_HOMUNCULUS = 'Pura\'s Director Preset 15.1 (SillyBunny)';
-const STARTER_PACK_PRESET_TITLE = 'Pura\'s Director Preset';
-const TLD_PRESET_NAME = 'TLD Card Conversion Preset (Standalone)';
-const STARTER_PACK_SITE_URL = 'https://platberlitz.github.io/';
-const GEECHAN_PRESET_NAME = 'Geechan - Universal Roleplay (Chat Completions) (v5.2)';
-const GEECHAN_SITE_URL = 'https://rentry.org/geechan';
-const TLD_SITE_URL = 'https://botbooru.com/profile/25826';
-const TLD_DISCORD_PALS_URL = 'https://github.com/TheLonelyDevil9/discord-pals/';
+// Homunculus divergence: the SillyBunny preset packs (Pura, Geechan, TLD) are no longer bundled;
+// the starter pack points to the Homunculus presets instead.
+const HOMUNCULUS_PRESET_NAME = 'Homunculus - Roleplay';
 const STARTER_PACK_EXTENSIONS = Object.freeze({
     dialogueColors: Object.freeze({
         id: 'third-party/sillytavern-character-colors',
@@ -640,16 +635,14 @@ function buildExtensionStarterPackItem({ title, body, icon, extensionName }) {
 
 function buildPresetStarterPackItem() {
     const presetManager = getPresetManager('openai');
-    const homunculusPreset = presetManager?.findPreset(STARTER_PACK_PRESET_NAME_HOMUNCULUS);
     const isOpenAiStyleApi = main_api === 'openai';
-    const selectedPresetName = isOpenAiStyleApi ? presetManager?.getSelectedPresetName() : '';
-    const isSelected = selectedPresetName === STARTER_PACK_PRESET_NAME_HOMUNCULUS;
-    const hasBundledPreset = Boolean(homunculusPreset);
-    const body = 'Purachina\'s Director v15.1 preset is fully bundled with Homunculus as a preset option. This preset is ideal if you want the LLM to have maximum control over the story, the characters, *and* your persona. Simply go to the Presets menu to find it. If you wish to see more of Pura\'s character cards and other projects, check out the link below!';
+    const selectedPresetName = isOpenAiStyleApi ? String(presetManager?.getSelectedPresetName() ?? '') : '';
+    const isSelected = selectedPresetName.startsWith('Homunculus - ');
+    const body = 'Four presets come with Homunculus: Roleplay, Game Master, Co-author and Director. Each one fits a way of playing in the Group Studio. Pick one in the Presets menu.';
 
     if (!isOpenAiStyleApi) {
         return {
-            title: STARTER_PACK_PRESET_TITLE,
+            title: 'Homunculus presets',
             body,
             icon: 'fa-sliders',
             statusLabel: 'Chat Completions',
@@ -661,84 +654,20 @@ function buildPresetStarterPackItem() {
         };
     }
 
-    if (hasBundledPreset) {
-        return {
-            title: STARTER_PACK_PRESET_TITLE,
-            body,
-            icon: 'fa-sliders',
-            statusLabel: isSelected ? 'Selected' : 'Preset pack',
-            statusTone: isSelected ? 'good' : 'warm',
-            actionIcon: 'fa-wand-magic-sparkles',
-            actionLabel: 'Apply preset',
-            actionType: 'apply-preset',
-            actionValue: STARTER_PACK_PRESET_NAME_HOMUNCULUS,
-            secondaryActionLabel: 'Visit site',
-            secondaryActionIcon: 'fa-arrow-up-right-from-square',
-            secondaryActionType: 'open-link',
-            secondaryActionValue: STARTER_PACK_SITE_URL,
-        };
-    }
-
     return {
-        title: STARTER_PACK_PRESET_TITLE,
+        title: 'Homunculus presets',
         body,
         icon: 'fa-sliders',
-        statusLabel: 'Open Presets',
-        statusTone: 'warm',
-        actionIcon: 'fa-arrow-up-right-from-square',
-        actionLabel: 'Open Presets',
-        actionType: 'open-tab',
-        actionValue: 'left:presets',
-    };
-}
-
-function buildGeechanStarterPackItem() {
-    const presetManager = getPresetManager('openai');
-    const isOpenAiStyleApi = main_api === 'openai';
-    const isSelected = isOpenAiStyleApi && presetManager?.getSelectedPresetName() === GEECHAN_PRESET_NAME;
-    const body = 'Geechan\'s Universal Roleplay v5.2 and Universal Chatroom presets are also fully bundled with Homunculus as a preset option. The Universal Roleplay preset is ideal if you want a traditional roleplay and storywriting experience with an LLM, while your persona and general story direction remain completely in your own hands. If you wish to see more of Geechan\'s character cards, presets, and guides, check out the link below!';
-
-    return {
-        title: 'Geechan\'s Universal Roleplay',
-        body,
-        icon: 'fa-leaf',
         statusLabel: isSelected ? 'Selected' : 'Preset pack',
         statusTone: isSelected ? 'good' : 'warm',
-        actionLabel: 'Apply preset',
         actionIcon: 'fa-wand-magic-sparkles',
+        actionLabel: 'Apply Roleplay',
         actionType: 'apply-preset',
-        actionValue: GEECHAN_PRESET_NAME,
-        secondaryActionLabel: 'Visit site',
+        actionValue: HOMUNCULUS_PRESET_NAME,
+        secondaryActionLabel: 'Open Presets',
         secondaryActionIcon: 'fa-arrow-up-right-from-square',
-        secondaryActionType: 'open-link',
-        secondaryActionValue: GEECHAN_SITE_URL,
-    };
-}
-
-function buildTldStarterPackItem() {
-    const presetManager = getPresetManager('openai');
-    const isOpenAiStyleApi = main_api === 'openai';
-    const isSelected = isOpenAiStyleApi && presetManager?.getSelectedPresetName() === TLD_PRESET_NAME;
-    const body = 'TheLonelyDevil\'s card converter preset is ideal if you want to convert a character card into a robust, well-tested AliChat + PList format for roleplay and storywriting. Very useful if you find a card that\'s of poorer quality and want a formatting polish run applied. If you wish to see more of TheLonelyDevil\'s character cards and Discord Pals project, check out the links below!';
-
-    return {
-        title: 'TheLonelyDevil\'s Card Converter',
-        body,
-        icon: 'fa-shoe-prints',
-        statusLabel: !isOpenAiStyleApi ? 'Chat Completions' : (isSelected ? 'Selected' : 'Preset pack'),
-        statusTone: isSelected ? 'good' : 'warm',
-        actionLabel: isOpenAiStyleApi ? 'Apply preset' : 'API',
-        actionIcon: isOpenAiStyleApi ? 'fa-wand-magic-sparkles' : 'fa-arrow-up-right-from-square',
-        actionType: isOpenAiStyleApi ? 'apply-preset' : 'open-tab',
-        actionValue: isOpenAiStyleApi ? TLD_PRESET_NAME : 'left:api',
-        secondaryActionLabel: 'Visit site',
-        secondaryActionIcon: 'fa-arrow-up-right-from-square',
-        secondaryActionType: 'open-link',
-        secondaryActionValue: TLD_SITE_URL,
-        tertiaryActionLabel: 'Discord Pals',
-        tertiaryActionIcon: 'fa-arrow-up-right-from-square',
-        tertiaryActionType: 'open-link',
-        tertiaryActionValue: TLD_DISCORD_PALS_URL,
+        secondaryActionType: 'open-tab',
+        secondaryActionValue: 'left:presets',
     };
 }
 
@@ -746,8 +675,6 @@ function buildStarterPackItems() {
     return {
         preInstalled: [
             buildPresetStarterPackItem(),
-            buildGeechanStarterPackItem(),
-            buildTldStarterPackItem(),
         ],
         optionalOfficial: [
             buildExtensionStarterPackItem({
