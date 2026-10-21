@@ -1906,7 +1906,7 @@ export function render() {
     if (worldRow) parts.push(worldRow);
     const hasCast = Boolean(cast || enabledAgent('cast'));
     const hasWorld = Boolean(world || enabledAgent('world'));
-    // Co-author and Author: the Quests tab becomes Plot (Player gets Plot too when its tracker is on).
+    // Co-author and Author: Plot comes first (Player gets Plot too when its tracker is on).
     const authorRole = openRole() !== 'player';
     const hasPlot = authorRole || Boolean(plot || enabledAgent('plot'));
     const plotTab = { id: 'plot', label: 'Plot', count: (Array.isArray(plot?.data?.threads) ? plot.data.threads : []).filter(item => item && ['active', 'brewing'].includes(str(item.status || 'active').toLowerCase())).length };
@@ -1915,7 +1915,8 @@ export function render() {
     if (hasPlot && authorRole) tabs.push(plotTab);
     if (hasWorld) {
         const worldPreset = activePreset('world');
-        if (!authorRole && worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
+        // Quests belong to {{user}}: shown for Player and Co-author, not for Author (no {{user}} in the story).
+        if (openRole() !== 'author' && worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
         if (hasPlot && !authorRole) tabs.push(plotTab);
         if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
         tabs.push({ id: 'world', label: 'World', count: 0 });

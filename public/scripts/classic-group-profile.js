@@ -17,15 +17,16 @@
 // globalThis.HomunculusGroupProfile exposes the hooks used by the agent store, the lorebook
 // scanner and the Group Studio page.
 
-import { eventSource, event_types, saveSettingsDebounced } from '../script.js';
+import { eventSource, event_types, saveSettingsDebounced, getThumbnailUrl, name1 } from '../script.js';
 import { extension_settings } from './extensions.js';
-import { groups, selected_group, editGroup } from './group-chats.js';
+import { groups, selected_group, editGroup, createNewGroupChat } from './group-chats.js';
 import { getPresetManager } from './preset-manager.js';
 import { user_avatar, setUserAvatar, isPersonaLocked } from './personas.js';
 import { power_user } from './power-user.js';
 import { world_names } from './world-info.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { escapeHtml } from './utils.js';
+import { helpButton, closeHelp } from './classic-help.js';
 
 const SETTINGS_KEY = 'homunculusGroupMode';
 const PROFILE_KEY = 'homunculus_profile';
@@ -260,18 +261,18 @@ async function askToEnter(group, changes, dirty) {
         ? `<div class="ct-gm-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Your current preset <b>${escapeHtml(currentPresetName())}</b> has changes you haven't saved. They'll be lost if you switch without saving.</span></div>`
         : '';
     const html = `<div class="ct-gm-ask">
-        <h3>Enter group chat mode?</h3>
-        <p class="ct-gm-muted">${escapeHtml(group.name)} has its own profile. Opening this chat will change:</p>
+        <h3>Use this group's settings?</h3>
+        <p class="ct-gm-muted">${escapeHtml(group.name)} has its own settings. Using them in this chat will change:</p>
         <div class="ct-gm-changes">${rows}</div>
         ${warning}
-        <p class="ct-gm-muted">Your API, model and everything set to "Keep current" stay as they are. When you leave the group, your preset and persona go back to how they were.</p>
+        <p class="ct-gm-muted">Your API, model and everything set to "Keep current" stay as they are. When you leave the group, or turn its settings off, your preset and persona go back to how they were.</p>
     </div>`;
     const popup = new Popup(html, POPUP_TYPE.TEXT, '', {
-        okButton: dirty ? false : 'Enter group mode',
-        cancelButton: 'Not now',
+        okButton: dirty ? false : 'Use the group\'s settings',
+        cancelButton: 'Keep mine',
         customButtons: dirty ? [
-            { text: 'Enter without saving', result: 3, appendAtEnd: true },
-            { text: 'Save preset and enter', result: 2, classes: ['ct-gm-primary'], appendAtEnd: true },
+            { text: 'Switch without saving', result: 3, appendAtEnd: true },
+            { text: 'Save preset and switch', result: 2, classes: ['ct-gm-primary'], appendAtEnd: true },
         ] : null,
         customInputs: [{ id: 'ct-gm-no-ask', label: 'Don\'t ask again for this group', defaultState: false }],
         leftAlign: true,
@@ -320,7 +321,7 @@ async function reapply(group) {
 
 async function askToSaveBeforeLeaving() {
     const name = currentPresetName();
-    const popup = new Popup(`<div class="ct-gm-ask"><h3>Leaving group chat mode</h3><p>The group's preset <b>${escapeHtml(name)}</b> has changes you haven't saved. Save them before your own preset comes back?</p></div>`, POPUP_TYPE.CONFIRM, '', {
+    const popup = new Popup(`<div class="ct-gm-ask"><h3>Going back to your own settings</h3><p>The group's preset <b>${escapeHtml(name)}</b> has changes you haven't saved. Save them before your own preset comes back?</p></div>`, POPUP_TYPE.CONFIRM, '', {
         okButton: 'Save',
         cancelButton: 'Discard',
         leftAlign: true,
@@ -360,7 +361,7 @@ async function leave({ toast = true } = {}) {
     notify();
     if (toast) {
         const what = restored.length ? `Your ${restored.join(' and ')} ${restored.length > 1 ? 'are' : 'is'} back.` : 'Your own agents and lorebooks are back.';
-        toastr.info(`${escapeHtml(what)}<br><small>Click to keep the group's settings instead.</small>`, `Left group mode (${escapeHtml(groupName)})`, {
+        toastr.info(`${escapeHtml(what)}<br><small>Click to keep the group's settings instead.</small>`, `Your own settings are back (${escapeHtml(groupName)})`, {
             escapeHtml: false,
             timeOut: 7000,
             onclick: () => {
@@ -449,17 +450,246 @@ function notify() {
     renderBar();
 }
 
-// ───────────────────────── Group mode bar ─────────────────────────
+// ───────────────────────── Group bar ─────────────────────────
+//
+// Three parts, one button style:
+// - who: avatars, name and a plain line about the mode and your part; clicking it opens Group Studio;
+// - play: Let them act / Auto-play, only when you direct the story (Co-author, Author);
+// - tools: group settings (on/off in this chat), Agents, Scene, "?" and a "⋯" menu.
+// The small panels (group settings, Scene set-up, ⋯) open under their button as #ct-gm-pop.
 
-function summary(group) {
-    const profile = getProfile(group);
-    const parts = [];
-    if (profile.preset) parts.push(profile.preset);
-    if (profile.agents.mode === AGENT_MODES.ONLY) parts.push(`${profile.agents.on.length} agent${profile.agents.on.length === 1 ? '' : 's'}`);
-    else if (profile.agents.mode === AGENT_MODES.ADD) parts.push('usual agents +');
-    if (profile.lorebooks.length) parts.push(`${profile.lorebooks.length} lorebook${profile.lorebooks.length === 1 ? '' : 's'}`);
-    if (profile.persona) parts.push(personaName(profile.persona));
-    return parts.join(' · ');
+const BAR_HELP = `<p>The bar of the open group chat.</p>
+<ul>
+<li><b>Left</b>: who is in the group and your part in the story. Click it to open Group Studio.</li>
+<li><b>Let them act / Auto-play</b> (only when you direct the story): the characters take one turn, or several in a row, without a direction from you.</li>
+<li><b>Group settings</b>: the preset, persona, lorebooks and agents this group brings. You can turn them off for this chat.</li>
+<li><b>Agents</b>: the agents working in this group. <b>Scene</b>: the panel beside the chat with who is here, the time and the place.</li>
+</ul>`;
+const SETTINGS_HELP = `<p>A group can bring its own setup: a preset, a persona, lorebooks and agents. While its chat is open, they replace your usual ones.</p>
+<p>Turn on <b>Use my own settings in this chat</b> to keep your usual setup instead. Nothing in the group is lost: it is used again next time.</p>
+<p>Change the group's setup in Group Studio → Settings.</p>`;
+
+/** The open bar panel: { kind: 'settings'|'scene'|'more', el } */
+let barPop = null;
+
+function el(tag, className = '', text = '') {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
+}
+
+const studio = () => globalThis.HomunculusGroupStudio;
+
+function closeBarPop({ focus = false } = {}) {
+    if (!barPop) return;
+    const kind = barPop.kind;
+    barPop.el.remove();
+    barPop = null;
+    const anchor = /** @type {HTMLElement|null} */ (document.querySelector(`#ct-group-mode-bar [data-gm-pop="${kind}"]`));
+    anchor?.setAttribute('aria-expanded', 'false');
+    if (focus) anchor?.focus();
+}
+
+function placeBarPop() {
+    if (!barPop) return;
+    const anchor = document.querySelector(`#ct-group-mode-bar [data-gm-pop="${barPop.kind}"]`);
+    if (!anchor) {
+        closeBarPop();
+        return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(Number(barPop.el.dataset.width) || 380, window.innerWidth - 24);
+    barPop.el.style.width = `${width}px`;
+    barPop.el.style.left = `${Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12))}px`;
+    barPop.el.style.top = `${Math.round(rect.bottom + 8)}px`;
+}
+
+/**
+ * Opens a bar panel under its button (a second click on the same button closes it).
+ * @param {'settings'|'scene'|'more'} kind
+ * @param {(pop: HTMLElement) => void} fill
+ * @param {number} width
+ */
+function toggleBarPop(kind, fill, width) {
+    const same = barPop?.kind === kind;
+    closeBarPop();
+    if (same) return;
+    globalThis.HomunculusGroupAgents?.close?.();
+    closeHelp();
+    const pop = el('div', `ct-gm-pop ct-gm-pop-${kind}`);
+    pop.id = 'ct-gm-pop';
+    pop.dataset.width = String(width);
+    pop.setAttribute('role', kind === 'more' ? 'menu' : 'dialog');
+    pop.setAttribute('aria-label', kind === 'more' ? 'More' : kind === 'scene' ? 'Scene panel' : 'Group settings');
+    fill(pop);
+    document.body.append(pop);
+    barPop = { kind, el: pop };
+    placeBarPop();
+    document.querySelector(`#ct-group-mode-bar [data-gm-pop="${kind}"]`)?.setAttribute('aria-expanded', 'true');
+    if (kind === 'more') /** @type {HTMLElement|null} */ (pop.querySelector('button'))?.focus();
+}
+
+document.addEventListener('pointerdown', (event) => {
+    if (!barPop) return;
+    const target = /** @type {HTMLElement} */ (event.target);
+    if (barPop.el.contains(target) || target.closest?.(`#ct-group-mode-bar [data-gm-pop="${barPop.kind}"]`) || target.closest?.('.ct-help-card')) return;
+    closeBarPop();
+}, true);
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !barPop || document.querySelector('.ct-help-card, dialog[open]')) return;
+    event.stopPropagation();
+    closeBarPop({ focus: true });
+}, true);
+window.addEventListener('resize', () => closeBarPop());
+
+/** The group's setup as label/value rows ("Your usual one" where the group changes nothing). */
+function settingRows(profile) {
+    const books = new Set(Array.isArray(world_names) ? world_names : []);
+    const lore = profile.lorebooks.filter(name => books.has(name));
+    let agents = 'Your usual ones';
+    if (profile.agents.mode === AGENT_MODES.ONLY) {
+        agents = profile.agents.on.length ? `Only ${profile.agents.on.length} chosen for this group` : 'None';
+    } else if (profile.agents.mode === AGENT_MODES.ADD) {
+        const extra = [];
+        if (profile.agents.on.length) extra.push(`+ ${profile.agents.on.length} for this group`);
+        if (profile.agents.off.length) extra.push(`${profile.agents.off.length} off here`);
+        if (extra.length) agents = `Your usual ones ${extra.join(', ')}`;
+    }
+    return [
+        ['Preset', profile.preset && presetExists(profile.preset) ? profile.preset : '', 'Your usual one'],
+        ['Persona', profile.persona && personaExists(profile.persona) ? personaName(profile.persona) : '', 'Your usual one'],
+        ['Lorebooks', lore.join(', '), 'No extra ones'],
+        ['Agents', agents === 'Your usual ones' ? '' : agents, 'Your usual ones'],
+    ];
+}
+
+function fillSettings(pop, group) {
+    pop.replaceChildren();
+    const active = isActive(group.id);
+    const head = el('div', 'ct-gm-pop-head');
+    const titles = el('div', 'ct-gm-pop-titles');
+    titles.append(
+        el('div', 'ct-gm-pop-title', active ? 'Group settings are on' : 'Your own settings are in use'),
+        el('div', 'ct-gm-pop-sub', active ? 'While this chat is open, the group\'s setup replaces your usual one:' : 'This group has its own setup, turned off in this chat:'),
+    );
+    head.append(titles, helpButton('Group settings', SETTINGS_HELP));
+    const rows = el('div', `ct-gm-pop-rows${active ? '' : ' is-off'}`);
+    for (const [label, value, none] of settingRows(getProfile(group))) {
+        rows.append(el('span', 'ct-gm-pop-key', label), el('span', value ? '' : 'ct-gm-pop-none', value || none));
+    }
+    const own = el('label', 'ct-gm-pop-switch');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = !active;
+    input.setAttribute('role', 'switch');
+    input.addEventListener('change', async () => {
+        input.disabled = true;
+        await (input.checked ? leaveHere() : enterHere());
+        if (barPop?.kind === 'settings') fillSettings(pop, group);
+    });
+    const text = el('span', 'ct-gm-pop-switch-text');
+    text.append(el('span', 'ct-gm-pop-switch-label', 'Use my own settings in this chat'), el('span', 'ct-gm-pop-sub', 'Your usual preset and persona come back. The group keeps its setup for next time.'));
+    own.append(input, el('span', 'ct-gm-pop-track'), text);
+    const foot = el('div', 'ct-gm-pop-foot');
+    const edit = el('button', 'ct-gm-pop-link', 'Change them in Group Studio');
+    edit.type = 'button';
+    edit.addEventListener('click', () => {
+        closeBarPop();
+        studio()?.open?.(group.id, 'settings');
+    });
+    foot.append(edit);
+    pop.append(head, rows, own, foot);
+}
+
+function fillSceneSetup(pop, group) {
+    pop.append(el('div', 'ct-gm-pop-title', 'No Scene panel yet'));
+    pop.append(el('p', 'ct-gm-pop-sub', 'The Scene panel shows who is here, what they wear, the time and the place, beside the chat. It needs at least one Scene tracker turned on for this group.'));
+    const go = el('button', 'menu_button ct-gm-btn ct-gm-pop-primary', 'Set it up in Group Studio');
+    go.type = 'button';
+    go.addEventListener('click', () => {
+        closeBarPop();
+        studio()?.open?.(group.id, 'scene');
+    });
+    pop.append(go);
+}
+
+function fillMore(pop, group) {
+    const item = (icon, text, onClick) => {
+        const b = el('button', 'ct-gm-pop-item');
+        b.type = 'button';
+        b.setAttribute('role', 'menuitem');
+        b.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
+        b.append(el('span', '', text));
+        b.addEventListener('click', () => {
+            closeBarPop();
+            void onClick();
+        });
+        pop.append(b);
+    };
+    item('fa-users-gear', 'Open Group Studio', () => studio()?.open?.(group.id));
+    item('fa-plus', 'Start a new chat', () => createNewGroupChat(group.id));
+    item('fa-comments', 'Chats of this group', () => studio()?.open?.(group.id, 'chats'));
+    item('fa-pen', 'Rename group…', () => {
+        studio()?.open?.(group.id, 'setup');
+        requestAnimationFrame(() => document.getElementById('ct-gs-group-name')?.focus());
+    });
+}
+
+/** "Narrated · you play Kael" and the like. */
+function barLine(campaign) {
+    const mode = campaign.mode === 'narrated' ? 'Narrated' : 'Everyone replies';
+    const me = String(name1 || 'you');
+    if (campaign.role === 'coauthor') return `${mode} · Co-author: the AI writes ${me} from your directions`;
+    if (campaign.role === 'author') return `${mode} · Author: you direct, nobody plays`;
+    return `${mode} · you play ${me}`;
+}
+
+function barAvatars(group) {
+    const wrap = el('span', 'ct-gm-faces');
+    wrap.setAttribute('aria-hidden', 'true');
+    const members = Array.isArray(group.members) ? group.members : [];
+    for (const avatar of members.slice(0, 3)) {
+        const img = el('img', 'ct-gm-face');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.src = getThumbnailUrl('avatar', avatar);
+        wrap.append(img);
+    }
+    if (members.length > 3) wrap.append(el('span', 'ct-gm-face ct-gm-face-more', `+${members.length - 3}`));
+    return wrap;
+}
+
+function barButton(html, action, title = '', extraClass = '') {
+    const b = el('button', `menu_button ct-gm-btn${extraClass ? ` ${extraClass}` : ''}`);
+    b.type = 'button';
+    b.innerHTML = html;
+    b.dataset.gmAction = action;
+    if (title) b.title = title;
+    return b;
+}
+
+function onBarClick(event) {
+    const target = /** @type {HTMLElement} */ (event.target);
+    const action = target?.closest?.('[data-gm-action]')?.getAttribute('data-gm-action');
+    const group = selected_group ? findGroup(selected_group) : null;
+    if (!action || !group) return;
+    if (action === 'edit') studio()?.open?.(group.id);
+    if (action === 'agents') {
+        closeBarPop();
+        globalThis.HomunculusGroupAgents?.toggle?.();
+    }
+    if (action === 'scene') {
+        closeBarPop();
+        globalThis.HomunculusScene?.toggle?.();
+        renderBar();
+    }
+    if (action === 'settings') toggleBarPop('settings', pop => fillSettings(pop, group), 400);
+    if (action === 'scene-setup') toggleBarPop('scene', pop => fillSceneSetup(pop, group), 340);
+    if (action === 'more') toggleBarPop('more', pop => fillMore(pop, group), 240);
+    if (action === 'act') void globalThis.HomunculusGroupCampaign?.letThemAct?.(1);
+    if (action === 'auto') void globalThis.HomunculusGroupCampaign?.letThemAct?.(autoTurns());
+    if (action === 'stop') globalThis.HomunculusGroupCampaign?.stopAutoplay?.();
 }
 
 function renderBar() {
@@ -467,31 +697,20 @@ function renderBar() {
     if (!chat) return;
     let bar = document.getElementById('ct-group-mode-bar');
     const group = selected_group ? findGroup(selected_group) : null;
-    const hasProfile = Boolean(group && !profileIsEmpty(getProfile(group)));
-    const campaignApi = globalThis.HomunculusGroupCampaign;
-    const campaign = group && campaignApi ? campaignApi.getCampaign(group) : null;
-    const hasCampaign = Boolean(campaign && campaignApi.hasCampaignTools(campaign));
-    // Every open group chat gets the bar (it holds the Agents menu); groups without a profile just show "GROUP".
+    // Every open group chat gets the bar (it holds the Agents menu).
     if (!group) {
         bar?.remove();
+        closeBarPop();
         globalThis.HomunculusGroupAgents?.close?.();
         return;
     }
     if (!bar) {
         bar = document.createElement('div');
         bar.id = 'ct-group-mode-bar';
+        bar.setAttribute('role', 'toolbar');
+        bar.setAttribute('aria-label', 'Group chat');
         chat.before(bar);
-        bar.addEventListener('click', (event) => {
-            const action = /** @type {HTMLElement} */ (event.target)?.closest?.('[data-gm-action]')?.getAttribute('data-gm-action');
-            if (action === 'edit') globalThis.HomunculusGroupStudio?.open?.(selected_group);
-            if (action === 'leave') void leaveHere();
-            if (action === 'enter') void enterHere();
-            if (action === 'scene') globalThis.HomunculusScene?.toggle?.();
-            if (action === 'agents') globalThis.HomunculusGroupAgents?.toggle?.();
-            if (action === 'act') void globalThis.HomunculusGroupCampaign?.letThemAct?.(1);
-            if (action === 'auto') void globalThis.HomunculusGroupCampaign?.letThemAct?.(autoTurns());
-            if (action === 'stop') globalThis.HomunculusGroupCampaign?.stopAutoplay?.();
-        });
+        bar.addEventListener('click', onBarClick);
         bar.addEventListener('change', (event) => {
             const select = /** @type {HTMLSelectElement} */ (event.target);
             if (!select?.matches?.('[data-gm-auto]')) return;
@@ -499,37 +718,92 @@ function renderBar() {
             saveSettingsDebounced();
         });
     }
+    const hasProfile = !profileIsEmpty(getProfile(group));
     const active = hasProfile && isActive(group.id);
+    const campaignApi = globalThis.HomunculusGroupCampaign;
+    const campaign = campaignApi?.getCampaign?.(group) ?? { mode: 'ensemble', role: 'player' };
     bar.classList.toggle('is-active', active);
-    const sceneApi = globalThis.HomunculusScene;
+    bar.replaceChildren();
+
+    // Who
+    const who = el('button', 'ct-gm-who');
+    who.type = 'button';
+    who.dataset.gmAction = 'edit';
+    who.title = 'Open Group Studio';
+    who.setAttribute('aria-label', `Open Group Studio for ${group.name}`);
+    const names = el('span', 'ct-gm-who-text');
+    names.append(el('span', 'ct-gm-name', group.name), el('span', 'ct-gm-line', barLine(campaign)));
+    who.append(barAvatars(group), names);
+    who.insertAdjacentHTML('beforeend', '<i class="fa-solid fa-chevron-right ct-gm-who-arrow" aria-hidden="true"></i>');
+    bar.append(who);
+
+    // Play (only when you direct the story)
+    if (campaign.role !== 'player') {
+        const play = el('span', 'ct-gm-play');
+        const auto = campaignApi?.autoplayState?.() ?? { running: false, left: 0 };
+        if (auto.running) {
+            play.append(barButton('<i class="fa-solid fa-stop" aria-hidden="true"></i> Stop', 'stop', 'Stop the characters acting on their own', 'ct-gm-stop'));
+            if (auto.left > 0) play.append(el('span', 'ct-gm-play-note', `${auto.left} turn${auto.left === 1 ? '' : 's'} left`));
+        } else {
+            play.append(barButton('<i class="fa-solid fa-play" aria-hidden="true"></i> Let them act', 'act', 'One turn without a direction: the characters act on their own'));
+            const autoWrap = el('span', 'ct-gm-auto');
+            autoWrap.append(barButton('<i class="fa-solid fa-forward" aria-hidden="true"></i> Auto-play', 'auto', 'Several turns in a row without directions (Stop ends it)'));
+            const select = el('select', 'text_pole ct-gm-auto-count');
+            select.dataset.gmAuto = '';
+            select.setAttribute('aria-label', 'Auto-play turns');
+            const turns = autoTurns();
+            for (const n of [3, 5, 10]) {
+                const opt = el('option', '', `×${n}`);
+                opt.value = String(n);
+                opt.selected = n === turns;
+                select.append(opt);
+            }
+            autoWrap.append(select);
+            play.append(autoWrap);
+        }
+        bar.append(play);
+    }
+
+    // Tools
+    const tools = el('span', 'ct-gm-tools');
+    if (hasProfile) {
+        const set = barButton(`<span class="ct-gm-dot" aria-hidden="true"></span>${active ? 'Group settings on' : 'Your own settings'}`, 'settings', active ? 'This group\'s settings are in use in this chat' : 'Your own settings are in use in this chat', `ct-gm-settings${active ? ' is-group' : ''}`);
+        set.dataset.gmPop = 'settings';
+        set.setAttribute('aria-haspopup', 'dialog');
+        set.setAttribute('aria-expanded', String(barPop?.kind === 'settings'));
+        tools.append(set);
+    }
     const agentsMenu = globalThis.HomunculusGroupAgents;
     const counts = agentsMenu?.summary?.() ?? null;
-    const agentsButton = counts
-        ? `<button type="button" class="menu_button ct-gm-toggle ct-gm-agents${agentsMenu.isOpen() ? ' is-on' : ''}" data-gm-action="agents" aria-haspopup="dialog" aria-expanded="${agentsMenu.isOpen()}" title="Agents in this group"><i class="fa-solid fa-robot"></i> Agents <b>${counts.on}</b>${counts.running ? `<span class="ct-gm-running"><span class="ct-gm-running-dot"></span>${counts.running} running</span>` : ''}</button>`
-        : '';
-    const role = campaign?.role ?? 'player';
-    const auto = campaignApi?.autoplayState?.() ?? { running: false, left: 0 };
-    const turns = autoTurns();
-    const roleButtons = role === 'player' ? '' : auto.running
-        ? `<button type="button" class="menu_button ct-gm-toggle ct-gm-stop" data-gm-action="stop" title="Stop the characters acting on their own"><i class="fa-solid fa-stop"></i> Stop${auto.left > 1 ? ` (${auto.left} left)` : ''}</button>`
-        : `<button type="button" class="menu_button ct-gm-toggle" data-gm-action="act" title="One turn without a direction: the characters act on their own"><i class="fa-solid fa-play"></i> Let them act</button>
-           <span class="ct-gm-auto"><button type="button" class="menu_button ct-gm-toggle" data-gm-action="auto" title="Several turns in a row without directions (Stop ends it)"><i class="fa-solid fa-forward"></i> Auto-play</button><select class="text_pole ct-gm-auto-count" data-gm-auto aria-label="Auto-play turns">${[3, 5, 10].map(n => `<option value="${n}"${n === turns ? ' selected' : ''}>×${n}</option>`).join('')}</select></span>`;
-    const campaignButtons = [
-        role !== 'player' ? `<span class="ct-gm-chip ct-gm-role" title="Your role in this group (Group Studio → Setup)">${role === 'author' ? 'AUTHOR' : 'CO-AUTHOR'}</span>` : '',
-        hasCampaign ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
-        roleButtons,
-        agentsButton,
-        sceneApi?.isAvailable?.() ? `<button type="button" class="menu_button ct-gm-toggle${sceneApi.isOpen() ? ' is-on' : ''}" data-gm-action="scene" title="Show or hide the Scene panel"><i class="fa-solid fa-masks-theater"></i> Scene</button>` : '',
-    ].join('');
-    bar.innerHTML = `
-        <span class="ct-gm-badge">${hasProfile ? (active ? 'GROUP MODE' : 'GROUP MODE OFF') : 'GROUP'}</span>
-        <span class="ct-gm-name"></span>
-        <span class="ct-gm-summary"></span>
-        ${campaignButtons}
-        <button type="button" class="ct-gm-link" data-gm-action="edit">Group Studio</button>
-        ${hasProfile ? `<button type="button" class="menu_button ct-gm-toggle" data-gm-action="${active ? 'leave' : 'enter'}">${active ? 'Leave group mode' : 'Enter group mode'}</button>` : ''}`;
-    bar.querySelector('.ct-gm-name').textContent = group.name;
-    bar.querySelector('.ct-gm-summary').textContent = !hasProfile ? '' : active ? summary(group) : 'Your own settings are in use in this chat.';
+    if (counts) {
+        const agents = barButton(`<i class="fa-solid fa-robot" aria-hidden="true"></i> Agents <b>${counts.on}</b>${counts.running ? `<span class="ct-gm-running"><span class="ct-gm-running-dot"></span>${counts.running} running</span>` : ''}`, 'agents', 'Agents in this group', `ct-gm-agents${agentsMenu.isOpen() ? ' is-on' : ''}`);
+        agents.setAttribute('aria-haspopup', 'dialog');
+        agents.setAttribute('aria-expanded', String(agentsMenu.isOpen()));
+        tools.append(agents);
+    }
+    const sceneApi = globalThis.HomunculusScene;
+    if (sceneApi?.isAvailable?.()) {
+        const open = Boolean(sceneApi.isOpen?.());
+        const scene = barButton('<i class="fa-solid fa-masks-theater" aria-hidden="true"></i> Scene', 'scene', open ? 'Hide the Scene panel' : 'Show the Scene panel', `ct-gm-scene${open ? ' is-on' : ''}`);
+        scene.setAttribute('aria-pressed', String(open));
+        tools.append(scene);
+    } else if (sceneApi) {
+        const setup = barButton('<i class="fa-solid fa-masks-theater" aria-hidden="true"></i> Scene', 'scene-setup', 'No Scene panel yet: set it up', 'ct-gm-scene is-setup');
+        setup.dataset.gmPop = 'scene';
+        setup.setAttribute('aria-haspopup', 'dialog');
+        setup.setAttribute('aria-expanded', String(barPop?.kind === 'scene'));
+        tools.append(setup);
+    }
+    tools.append(helpButton('The group bar', BAR_HELP));
+    const more = barButton('<i class="fa-solid fa-ellipsis" aria-hidden="true"></i>', 'more', 'More', 'ct-gm-more');
+    more.dataset.gmPop = 'more';
+    more.setAttribute('aria-label', 'More');
+    more.setAttribute('aria-haspopup', 'menu');
+    more.setAttribute('aria-expanded', String(barPop?.kind === 'more'));
+    tools.append(more);
+    bar.append(tools);
+
+    if (barPop) placeBarPop();
 }
 
 function autoTurns() {
@@ -541,6 +815,7 @@ function autoTurns() {
 
 function init() {
     eventSource.on(event_types.CHAT_CHANGED, () => {
+        closeBarPop();
         if (!ready) return;
         // Let SillyTavern finish its own chat switch (persona locks, preset bindings) first.
         setTimeout(() => void queueTask(() => sync()), 0);

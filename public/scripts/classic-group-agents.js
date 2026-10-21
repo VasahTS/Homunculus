@@ -303,8 +303,8 @@ function render() {
 
     if (!isActive(group.id) && profile.agents.mode !== AGENT_MODES.KEEP) {
         const note = el('div', 'ct-ga-note');
-        note.append(el('span', '', 'Group mode is off in this chat, so your own agents are running right now.'));
-        const enter = el('button', 'menu_button ct-gm-toggle', 'Enter group mode');
+        note.append(el('span', '', 'The group\'s settings are off in this chat, so your own agents are running right now.'));
+        const enter = el('button', 'menu_button ct-gm-toggle', 'Use the group\'s settings');
         enter.type = 'button';
         enter.addEventListener('click', () => void globalThis.HomunculusGroupProfile?.enterHere?.());
         note.append(enter);

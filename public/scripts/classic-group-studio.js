@@ -120,7 +120,7 @@ const HELP = {
 <p>Each one goes where its <b>section</b> is in your Chat Completion preset (the Prompt Manager list), like any other part of the preset. The Default preset already has them; for other presets, press <b>Add them to my preset</b>.</p>
 <p>The switch turns a block off. <b>Details</b> shows what is sent and lets you place it without a section.</p>
 <p>These settings are the same for every group.</p>`,
-    profile: '<p>Applied when you open one of this group\'s chats ("group mode"). Anything on <b>Keep current</b> is left alone, and leaving the group puts your own preset and persona back.</p>',
+    profile: '<p>Applied when you open one of this group\'s chats (the group\'s settings). Anything on <b>Keep current</b> is left alone, and leaving the group puts your own preset and persona back.</p>',
     protagonist: '<p>Optional. A character the story follows most. The AI writes them like everyone else; they are not you.</p>',
     trackerProfile: '<p>The connection profile this tracker uses. A cheap, fast model is enough.</p>',
     promptSections: `<p>A section is a prompt in your Chat Completion preset (the Prompt Manager list). Each Homunculus section holds only a macro, like <code>{{storyStyle}}</code>.</p>
@@ -136,7 +136,7 @@ const HELP = {
     promptRole: '<p>Who "says" the block in the chat. <b>System</b> works for most models.</p>',
     page: `<p>Make and set up your groups here.</p>
 <p>Pick a group on the left, or press <b>New group</b>. Changes to an existing group are saved right away.</p>
-<p><b>Settings</b> and <b>Agents</b> are applied when you open one of the group's chats ("group mode"), and your own settings come back when you leave.</p>`,
+<p><b>Settings</b> and <b>Agents</b> are applied when you open one of the group's chats, and your own settings come back when you leave (or turn the group's settings off in the bar above the chat).</p>`,
     name: '<p>The name shown in your character list and above the chat. Leave it empty for a new group and the member names are used.</p>',
     mode: `<ul>
 <li><b>Ensemble</b>: a normal group chat. Each character replies in turn, with their own card.</li>
@@ -200,7 +200,7 @@ const HELP = {
 <li><b>Edit prompt</b> opens the agent editor: change what they track, add fields, or make them stricter.</li>
 <li>Pick a cheap, fast <b>connection profile</b> for them; they don't need your best model.</li>
 </ul>
-<p>Switching one on here only turns it on for this group (in group mode). Your other chats are not changed.</p>`,
+<p>Switching one on here only turns it on for this group (while its settings are on). Your other chats are not changed.</p>`,
     scenePreset: `<p>What this tracker writes down and what the Scene panel shows. <b>Standard</b> fits most stories; pick another one (for example <b>Superpowers</b>) or click <b>Edit fields</b> to make your own.</p>
 <p>The preset is saved in this group. Changing it takes effect from the next update.</p>`,
     sceneSend: '<p>When this is on, a short copy of the scene goes to the AI before each reply, so it remembers outfits, wounds, the time and the quests. Turn it off to keep the panel just for you.</p>',
@@ -432,6 +432,12 @@ const state = {
     npcs: null,
     /** Keys of the collapsed sections the user opened. */
     openMore: new Set(),
+    /** New group: 'pick' shows the starting points before the Setup; null shows the Setup. */
+    guide: null,
+    /** The starting point picked on the 'pick' screen (simple, narrated, write, scratch). */
+    guideChoice: null,
+    /** The starting point that filled the open New group form. */
+    guideApplied: null,
 };
 let root = null;
 let returnFocus = null;
@@ -705,8 +711,8 @@ function renderHeader() {
     root.querySelector('.ct-gs-name').textContent = t.isNew ? (t.name.trim() || 'New group') : t.name;
     const count = t.members.length;
     const status = t.isNew ? 'Not created yet'
-        : isActive(g.id) ? 'Group mode is on in the open chat'
-            : String(selected_group) === String(g.id) ? 'Open now · group mode off' : '';
+        : isActive(g.id) ? 'Group settings on in the open chat'
+            : String(selected_group) === String(g.id) ? 'Open now · group settings off' : '';
     const mode = t.campaign.mode === 'narrated' ? 'Narrated' : 'Ensemble';
     root.querySelector('.ct-cb-sub').textContent = [mode, `${count} member${count === 1 ? '' : 's'}`, status].filter(Boolean).join(' · ');
     const avatars = root.querySelector('.ct-gs-avatars');
@@ -831,11 +837,21 @@ function tabBadge(id, t) {
 // ───────────────────────── Setup tab ─────────────────────────
 
 function renderSetup(body, t) {
+    if (t.isNew && state.guideApplied) {
+        const from = el('div', 'ct-gs-guide-from');
+        from.append(el('span', '', `Filled in from "${GUIDE_TITLES[state.guideApplied] ?? 'a starting point'}". Everything stays editable.`));
+        from.append(button('ct-gm-link', 'Change starting point', '', () => {
+            state.guide = 'pick';
+            state.guideChoice = state.guideApplied;
+            render();
+        }));
+        body.append(from);
+    }
     const basics = card(t.isNew ? 'New group' : 'Basics', HELP.page);
     const name = el('input', 'text_pole');
     name.id = 'ct-gs-group-name';
     name.type = 'text';
-    name.placeholder = t.isNew ? 'Name (optional), e.g. The Ashen Road' : 'Group name';
+    name.placeholder = !t.isNew ? 'Group name' : t.members.length ? `Name (optional) · if empty: ${suggestedName(t)}` : 'Name (optional), e.g. The Ashen Road';
     name.value = t.name;
     name.addEventListener(t.isNew ? 'input' : 'change', () => void setName(name.value));
     basics.append(field('Name', '', name));
@@ -1081,6 +1097,159 @@ async function saveStartToVault() {
         vaultId: t.start.vaultId,
     });
     if (saved) await setStart({ vaultId: saved.id, vaultName: saved.name }, { rerender: true });
+}
+
+// ───────────────────────── New group: starting points ─────────────────────────
+
+const GUIDE_CHOICES = [
+    {
+        id: 'simple',
+        icon: 'fa-comments',
+        title: 'Simple group chat',
+        line: 'Everyone replies in turn and you play your persona. Nothing extra.',
+        sets: ['Everyone replies', 'You: Player', 'No Scene panel'],
+    },
+    {
+        id: 'narrated',
+        icon: 'fa-feather-pointed',
+        title: 'Narrated adventure',
+        line: 'One narrator voices the whole cast and keeps track of the world for you.',
+        sets: ['Built-in narrator', 'You: Player', 'Scene panel: world + characters'],
+    },
+    {
+        id: 'write',
+        icon: 'fa-pen-nib',
+        title: 'Write a story together',
+        line: 'You guide the story and the AI writes it. The characters act on their own; step in whenever you want.',
+        sets: ['You: Author (you guide, nobody plays)', 'Plot panel with your planned beats', 'Let them act and Auto-play'],
+    },
+];
+const GUIDE_TITLES = { simple: 'Simple group chat', narrated: 'Narrated adventure', write: 'Write a story together', scratch: 'Start from scratch' };
+const ROLE_NAMES = { player: 'Player', coauthor: 'Co-author', author: 'Author' };
+
+function guideCard(choice) {
+    const isOn = state.guideChoice === choice.id;
+    const node = button(`ct-gs-guide-card${isOn ? ' is-on' : ''}`, `<span class="ct-gs-guide-icon"><i class="fa-solid ${choice.icon}" aria-hidden="true"></i></span>`, '', () => {
+        state.guideChoice = choice.id;
+        render();
+    });
+    node.setAttribute('aria-pressed', String(isOn));
+    node.append(el('span', 'ct-gs-guide-title', choice.title), el('span', 'ct-gs-guide-line', choice.line), el('span', 'ct-gs-guide-kicker', 'Sets up'));
+    const list = el('span', 'ct-gs-guide-sets');
+    for (const item of choice.sets) list.append(el('span', '', item));
+    node.append(list);
+    return node;
+}
+
+/** The first screen of a new group: pick a starting point (it only fills in the Setup). */
+function renderGuide(page) {
+    const wrap = el('div', 'ct-gs-guide');
+    const head = el('div', 'ct-gs-guide-head');
+    head.append(el('h2', 'ct-gs-guide-heading', 'How do you want to play?'), el('p', 'ct-gs-guide-sub', 'Pick a starting point. It only fills in the setup; you can change everything afterwards.'));
+    const grid = el('div', 'ct-gs-guide-grid');
+    const standard = el('div', 'ct-gs-guide-group');
+    standard.append(el('span', 'ct-gs-guide-group-title', 'Standard SillyTavern'), el('span', 'ct-gs-guide-group-sub', 'The group chat SillyTavern already has.'));
+    const added = el('div', 'ct-gs-guide-group ct-gs-guide-group-wide');
+    added.append(el('span', 'ct-gs-guide-group-title', 'Added by Homunculus'), el('span', 'ct-gs-guide-group-sub', 'Modes this project adds on top of SillyTavern.'));
+    grid.append(standard, added, ...GUIDE_CHOICES.map(guideCard));
+    const actions = el('div', 'ct-gs-guide-actions');
+    const next = button('ct-cb-btn is-primary ct-gs-guide-next', '<span>Continue</span>', '', () => void applyGuide(state.guideChoice));
+    next.disabled = !state.guideChoice;
+    const others = el('div', 'ct-gs-guide-others');
+    const scratch = button(`ct-gs-guide-scratch${state.guideChoice === 'scratch' ? ' is-on' : ''}`, '<span>Start from scratch</span>', '', () => {
+        state.guideChoice = 'scratch';
+        render();
+    });
+    scratch.setAttribute('aria-pressed', String(state.guideChoice === 'scratch'));
+    scratch.append(el('span', 'ct-gs-guide-muted', ' · empty setup, everything off'));
+    const vault = button('ct-gm-link', 'Or start from a scenario in the Vault', '', async () => {
+        await loadFromVault();
+        if (!isEmptyStart(state.draft.start)) {
+            state.guide = null;
+            state.guideApplied = null;
+            render();
+        }
+    });
+    others.append(scratch, vault);
+    actions.append(next, others);
+    wrap.append(head, grid, actions);
+    page.append(wrap);
+}
+
+/** Fills the New group form from a starting point; the name and the characters already picked stay. */
+async function applyGuide(choice) {
+    if (!choice) return;
+    const before = state.draft;
+    const narrator = narratorAvatar(before.campaign);
+    state.draft = emptyDraft();
+    state.draft.name = before.name;
+    state.draft.members = before.members.filter(avatar => avatar !== narrator);
+    state.draft.disabled = before.disabled.filter(avatar => state.draft.members.includes(avatar));
+    state.draft.start = before.start;
+    state.guide = null;
+    state.guideApplied = choice;
+    state.tab = 'setup';
+    if (choice === 'narrated' || choice === 'write') {
+        state.draft.behavior.generation_mode = 0;
+        state.draft.campaign = normalizeCampaign({
+            ...state.draft.campaign,
+            mode: 'narrated',
+            role: choice === 'write' ? 'author' : 'player',
+            narrator: { ...state.draft.campaign.narrator, type: 'builtin' },
+        });
+        const kinds = choice === 'write' ? ['world', 'cast', 'plot'] : ['world', 'cast'];
+        for (const tracker of SCENE_TRACKERS.filter(item => kinds.includes(item.kind))) await setTracker(tracker, true);
+    }
+    render();
+    root?.querySelector('.ct-gs-body')?.scrollTo?.(0, 0);
+}
+
+/** A name for a group left unnamed: the Vault scenario, else the cast ("Aria & Bram", "Harley Quinn & co."). */
+function suggestedName(t) {
+    if (t.start?.vaultName) return t.start.vaultName;
+    const narrator = narratorAvatar(t.campaign);
+    const cast = t.members.filter(avatar => avatar !== narrator).map(characterName);
+    const narrated = t.campaign.mode === 'narrated';
+    if (!cast.length) return narrated ? 'Narrated story' : 'New group';
+    if (cast.length === 1) return narrated ? `${cast[0]} & co.` : cast[0];
+    if (cast.length === 2) return `${cast[0]} & ${cast[1]}`;
+    return `${cast[0]}, ${cast[1]} & co.`;
+}
+
+function sceneTrackersOn(t) {
+    const api = agentsApi();
+    if (!api?.getAgents) return [];
+    const agents = api.getAgents();
+    return SCENE_TRACKERS.filter(tracker => agents.some(agent => agent.sourceTemplateId === tracker.templateId && agentOnInGroup(t.profile, agent))).map(tracker => tracker.title);
+}
+
+/** What the new group has and still needs ("Ready to play"). state: ok | todo | optional. */
+function readyChecks(t) {
+    const c = t.campaign;
+    const narrator = narratorAvatar(c);
+    const builtin = c.mode === 'narrated' && c.narrator.type === 'builtin';
+    const cast = t.members.filter(avatar => avatar !== narrator);
+    const checks = [];
+    if (cast.length) {
+        const names = cast.slice(0, 3).map(characterName).join(', ');
+        checks.push({ state: 'ok', text: `Cast: ${names}${cast.length > 3 ? ` +${cast.length - 3}` : ''}`, tab: 'cast' });
+    } else if (builtin) {
+        checks.push({ state: 'optional', text: 'Cast (optional): the narrator can invent characters', tab: 'cast' });
+    } else {
+        checks.push({ state: 'todo', text: 'Add at least one character', tab: 'cast' });
+    }
+    if (c.mode === 'narrated') {
+        if (builtin) checks.push({ state: 'ok', text: 'Narrator: built-in', tab: 'setup' });
+        else if (narrator) checks.push({ state: 'ok', text: `Narrator: ${characterName(narrator)}`, tab: 'setup' });
+        else checks.push({ state: 'todo', text: 'Choose the narrator', tab: 'setup' });
+    } else {
+        checks.push({ state: 'ok', text: 'Everyone replies in turn', tab: 'setup' });
+    }
+    checks.push({ state: 'ok', text: `You: ${ROLE_NAMES[c.role] ?? 'Player'}`, tab: 'setup' });
+    const trackers = sceneTrackersOn(t);
+    if (trackers.length) checks.push({ state: 'ok', text: `Scene panel: ${trackers.join(', ')}`, tab: 'scene' });
+    checks.push(isEmptyStart(t.start) ? { state: 'optional', text: 'Opening message (optional)', tab: 'setup' } : { state: 'ok', text: 'Story start written', tab: 'setup' });
+    return checks;
 }
 
 const ROLE_TILES = [
@@ -1480,8 +1649,8 @@ function renderSceneTab(body, t) {
     }
     if (g && isOpenChat && !isActive(g.id) && t.profile.agents.mode !== AGENT_MODES.KEEP) {
         const row = el('div', 'ct-gs-warn ct-gs-inline-note');
-        row.append(el('span', '', 'Group mode is off in the open chat, so this group\'s trackers are not running there.'));
-        row.append(button('menu_button ct-gs-btn', 'Enter group mode', '', async () => {
+        row.append(el('span', '', 'The group\'s settings are off in the open chat, so its trackers are not running there.'));
+        row.append(button('menu_button ct-gs-btn', 'Use the group\'s settings', '', async () => {
             await enterHere();
             render();
         }));
@@ -1672,7 +1841,7 @@ function renderProfileTab(body, t) {
     const profile = t.profile;
     const section = card('When this group is open', HELP.profile);
 
-    if (!t.isNew) section.append(checkRow('Ask before entering group mode', shouldAsk(state.groupId), checked => setShouldAsk(state.groupId, checked), HELP.ask));
+    if (!t.isNew) section.append(checkRow('Ask before using the group\'s settings', shouldAsk(state.groupId), checked => setShouldAsk(state.groupId, checked), HELP.ask));
 
     const presets = getPresetManager('openai')?.getAllPresets?.() ?? [];
     const preset = el('select', 'text_pole');
@@ -1924,14 +2093,32 @@ function renderBehaviorTab(body, t) {
 function renderFooter(t) {
     const footer = root.querySelector('.ct-gs-footer');
     footer.replaceChildren();
-    footer.hidden = !t.isNew;
-    if (!t.isNew) return;
-    const builtinNeeded = t.campaign.mode === 'narrated' && t.campaign.narrator.type === 'builtin';
-    const ready = t.members.length || builtinNeeded;
-    footer.append(el('span', 'ct-gs-note', ready ? 'Ready. The chat opens as soon as the group is made.' : 'Add at least one character (Cast tab) to make the group.'));
-    const createButton = button('ct-cb-btn is-primary', '<i class="fa-solid fa-check"></i><span>Create group and open chat</span>', '', () => void createGroupNow());
+    footer.hidden = !t.isNew || state.guide === 'pick';
+    if (footer.hidden) return;
+    footer.classList.add('ct-gs-ready');
+    footer.append(el('span', 'ct-gs-ready-kicker', 'Ready to play'));
+    const list = el('div', 'ct-gs-ready-list');
+    const checks = readyChecks(t);
+    const icons = { ok: 'fa-circle-check', todo: 'fa-circle-exclamation', optional: 'fa-circle-minus' };
+    const labels = { ok: 'Done', todo: 'To do', optional: 'Optional' };
+    for (const check of checks) {
+        const html = `<i class="fa-solid ${icons[check.state]}" aria-hidden="true"></i><span class="sr-only">${labels[check.state]}: </span>`;
+        const item = button(`ct-gs-ready-item is-${check.state}`, html, '', () => {
+            if (check.tab && check.tab !== state.tab) {
+                state.tab = check.tab;
+                render();
+                root.querySelector('.ct-gs-body').scrollTop = 0;
+            }
+        });
+        item.append(el('span', '', check.text));
+        list.append(item);
+    }
+    footer.append(list);
+    const left = checks.filter(check => check.state === 'todo').length;
+    const label = left ? `${left} thing${left === 1 ? '' : 's'} left` : 'Create group and open chat';
+    const createButton = button('ct-cb-btn is-primary', `<i class="fa-solid fa-check" aria-hidden="true"></i><span>${label}</span>`, '', () => void createGroupNow());
     createButton.id = 'ct-gs-create';
-    createButton.disabled = !ready || state.creating;
+    createButton.disabled = left > 0 || state.creating;
     footer.append(createButton);
 }
 
@@ -1946,11 +2133,24 @@ function render() {
     if (!visibleTabs(t).some(tab => tab.id === state.tab)) state.tab = 'setup';
     renderHeader();
     renderSide();
-    renderTabs(t);
     const body = root.querySelector('.ct-gs-body');
     const keepScroll = body.scrollTop;
     const focusedId = document.activeElement?.id;
     body.replaceChildren();
+    const guiding = t.isNew && state.guide === 'pick';
+    const nav = root.querySelector('.ct-gs-tabs');
+    nav.hidden = guiding;
+    if (guiding) {
+        body.removeAttribute('aria-labelledby');
+        const guidePage = el('div', 'ct-gs-page ct-gs-page-guide');
+        renderGuide(guidePage);
+        body.append(guidePage);
+        renderFooter(t);
+        body.scrollTop = keepScroll;
+        if (focusedId) document.getElementById(focusedId)?.focus();
+        return;
+    }
+    renderTabs(t);
     body.setAttribute('aria-labelledby', `ct-gs-tab-${state.tab}`);
     const page = el('div', `ct-gs-page ct-gs-page-${state.tab}`);
     ({
@@ -2006,6 +2206,7 @@ async function createGroupNow() {
     if (!t.isNew || state.creating) return;
     const builtinNeeded = t.campaign.mode === 'narrated' && t.campaign.narrator.type === 'builtin' && !t.campaign.narrator.builtinAvatar;
     if (!t.members.length && !builtinNeeded) return;
+    if (readyChecks(t).some(check => check.state === 'todo')) return;
     state.creating = true;
     renderFooter(t);
     try {
@@ -2014,9 +2215,8 @@ async function createGroupNow() {
             t.campaign = normalizeCampaign({ ...t.campaign, narrator: { ...t.campaign.narrator, builtinAvatar: avatar } });
             t.members = [avatar, ...t.members];
         }
-        const names = t.members.map(characterName).join(', ');
         const data = await postGroup({
-            name: t.name.trim() || `Group: ${names}`,
+            name: t.name.trim() || suggestedName(t),
             members: t.members,
             allow_self_responses: t.behavior.allow_self_responses,
             activation_strategy: t.behavior.activation_strategy,
@@ -2132,6 +2332,9 @@ function open(groupId = openGroupId ?? selected_group, tab = '') {
     } else if (state.mode !== 'new') {
         state.mode = 'new';
         state.draft = emptyDraft();
+        state.guide = 'pick';
+        state.guideChoice = null;
+        state.guideApplied = null;
     }
     const wanted = TAB_ALIASES[tab] ?? tab;
     if (wanted && TABS.some(item => item.id === wanted)) state.tab = wanted;
@@ -2148,6 +2351,10 @@ function create(options = {}) {
         state.charSearch = '';
         state.npcSearch = '';
         state.agentSearch = '';
+        // A scenario from the Vault already says how the story starts, so its form opens on the Setup.
+        state.guide = options.scenarioId ? null : 'pick';
+        state.guideChoice = null;
+        state.guideApplied = null;
     }
     if (options.scenarioId) {
         state.draft.name = String(options.name ?? '');
