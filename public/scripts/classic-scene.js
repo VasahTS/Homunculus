@@ -38,7 +38,26 @@ export const SCENE_TEMPLATES = Object.freeze({
 const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST', plot: 'PLOT' });
 const BEATS_KEY = 'homunculus_beats';
 const THREAD_STATES = Object.freeze(['brewing', 'active', 'done', 'failed']);
-const BEAT_STATES = Object.freeze([['planned', 'Planned'], ['steer', 'Steer toward'], ['hold', 'Not yet']]);
+const THREAD_INFO = Object.freeze({
+    brewing: ['Brewing', 'Hinted at, not started yet'],
+    active: ['Active', 'Happening now'],
+    done: ['Done', 'Resolved'],
+    failed: ['Failed', 'Ended badly or dropped'],
+});
+const BEAT_INFO = Object.freeze({
+    planned: ['Planned', 'Just a note for you'],
+    steer: ['Steer toward', 'The story moves there, without rushing'],
+    hold: ['Not yet', 'Held back for now'],
+    done: ['Done', 'Already happened'],
+});
+/** Plot items edited in the panel's form: the list they live in (Scene: Plot data) and their fields. */
+const PLOT_FORMS = Object.freeze({
+    thread: { list: 'threads', name: 'thread', titleKey: 'title', blank: () => ({ title: '', status: 'active', note: '' }), fields: [['title', 'Title', 'text', 'What the thread is about'], ['status', 'Status', 'thread'], ['note', 'Note', 'multiline', 'Where it stands now']] },
+    goal: { list: 'goals', name: 'goal', titleKey: 'name', blank: () => ({ name: '', want: '', next: '' }), fields: [['name', 'Character', 'text', 'Who wants it'], ['want', 'Wants', 'multiline', 'What they are after'], ['next', 'Next move', 'multiline', 'What they will do next']] },
+    secret: { list: 'secrets', name: 'secret', titleKey: 'fact', blank: () => ({ fact: '', knows: [], unaware: [] }), fields: [['fact', 'Secret', 'multiline', 'The hidden fact'], ['knows', 'Knows', 'list', 'Names, separated by commas'], ['unaware', 'Doesn\'t know', 'list', 'Names, separated by commas']] },
+});
+const BEAT_FORM = Object.freeze({ name: 'beat', titleKey: 'title', fields: [['title', 'Beat', 'multiline', 'Something you want to happen'], ['status', 'When', 'beat']] });
+const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
 const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
@@ -496,6 +515,82 @@ function textField(label, value, { multiline = false, placeholder = '', id = '' 
     if (multiline) autoGrow(control);
     return { wrap, control };
 }
+
+// ───────────────────────── Status menu ─────────────────────────
+// A small list of choices under a status pill (thread status, beat timing); a pick saves right away.
+
+let menu = null;
+
+function closeMenu() {
+    if (!menu) return;
+    menu.el.remove();
+    menu.anchor?.setAttribute?.('aria-expanded', 'false');
+    menu = null;
+}
+
+/**
+ * @param {HTMLElement} anchor the pill that opens it
+ * @param {Array<[string, string, string]>} items value, label, one-line description
+ * @param {string} current
+ * @param {(value: string) => void} onPick
+ */
+function openMenu(anchor, items, current, onPick) {
+    const same = menu?.anchor === anchor;
+    closeMenu();
+    if (same) return;
+    const node = el('div', 'ct-sc-menu');
+    node.setAttribute('role', 'menu');
+    for (const [value, label, desc] of items) {
+        const isOn = value === current;
+        const item = button(`ct-sc-menu-item${isOn ? ' is-on' : ''}`, '', '', () => {
+            closeMenu();
+            if (!isOn) onPick(value);
+        });
+        item.setAttribute('role', 'menuitemradio');
+        item.setAttribute('aria-checked', String(isOn));
+        item.append(el('span', `ct-sc-pill is-${value}`, label), el('span', 'ct-sc-menu-desc', desc));
+        if (isOn) item.insertAdjacentHTML('beforeend', '<i class="fa-solid fa-check ct-sc-menu-check" aria-hidden="true"></i>');
+        node.append(item);
+    }
+    document.body.append(node);
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(270, window.innerWidth - 16);
+    node.style.width = `${width}px`;
+    node.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
+    const height = node.offsetHeight;
+    node.style.top = `${rect.bottom + 6 + height > window.innerHeight - 8 ? Math.max(8, rect.top - height - 6) : rect.bottom + 6}px`;
+    anchor.setAttribute('aria-expanded', 'true');
+    menu = { el: node, anchor };
+    /** @type {HTMLElement|null} */ (node.querySelector('.is-on') ?? node.querySelector('button'))?.focus();
+}
+
+document.addEventListener('pointerdown', (event) => {
+    if (!menu) return;
+    const target = /** @type {Node} */ (event.target);
+    if (menu.el.contains(target) || menu.anchor.contains(target)) return;
+    closeMenu();
+}, true);
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !menu) return;
+    event.stopPropagation();
+    const anchor = menu.anchor;
+    closeMenu();
+    anchor?.focus?.();
+}, true);
+window.addEventListener('resize', closeMenu);
+
+/** A status pill that opens the menu. */
+function statusPill(className, states, current, onPick) {
+    const [label] = states.find(([value]) => value === current)?.slice(1) ?? [current];
+    const pill = button(`ct-sc-pill ct-sc-status-pill ${className} is-${current}`, '', `${label}. Click to change`, event => openMenu(/** @type {HTMLElement} */ (event.currentTarget), states, current, onPick));
+    pill.textContent = label;
+    pill.setAttribute('aria-haspopup', 'menu');
+    pill.setAttribute('aria-expanded', 'false');
+    return pill;
+}
+
+const threadStates = () => THREAD_STATES.map(value => [value, ...THREAD_INFO[value]]);
+const beatStates = () => Object.entries(BEAT_INFO).map(([value, info]) => [value, ...info]);
 
 // ───────────────────────── State ─────────────────────────
 
@@ -1166,13 +1261,12 @@ function renderPlot(body, plot) {
     for (const { thread, index } of threads.sort((a, b) => THREAD_STATES.indexOf(statusOf(a.thread) === 'brewing' ? 'active' : statusOf(a.thread)) - THREAD_STATES.indexOf(statusOf(b.thread) === 'brewing' ? 'active' : statusOf(b.thread)))) {
         const status = statusOf(thread);
         const row = el('div', `ct-sc-thread is-${status}`);
-        const pill = button(`ct-sc-pill ct-sc-thread-pill is-${status}`, '', `Status: ${status}. Click to change`, () => void saveData('plot', (next) => {
+        const pill = statusPill('ct-sc-thread-pill', threadStates(), status, value => void saveData('plot', (next) => {
             const item = next.threads?.[index];
             if (!item) return false;
-            item.status = THREAD_STATES[(THREAD_STATES.indexOf(status) + 1) % THREAD_STATES.length];
+            item.status = value;
         }));
-        pill.textContent = status;
-        const text = el('div', 'ct-sc-thread-text');
+        const text = button('ct-sc-thread-text', '', `Edit ${str(thread.title).trim()}`, () => openPeek('thread', String(index)));
         text.append(el('span', 'ct-sc-quest-title', str(thread.title).trim()));
         if (str(thread.note).trim()) text.append(el('span', 'ct-sc-row-sub', str(thread.note).trim()));
         row.append(pill, text, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${str(thread.title).trim()}`, () => void saveData('plot', (next) => {
@@ -1189,11 +1283,11 @@ function renderPlot(body, plot) {
     })));
 
     // Goals
-    const goals = (Array.isArray(data.goals) ? data.goals : []).filter(item => item && str(item.name).trim());
+    const goals = (Array.isArray(data.goals) ? data.goals : []).map((goal, index) => ({ goal, index })).filter(({ goal }) => goal && str(goal.name).trim());
     body.append(el('div', 'ct-sc-plot-title', 'What each character wants'));
     const goalList = el('div', 'ct-sc-rows');
-    for (const goal of goals) {
-        const box = el('div', 'ct-sc-goal');
+    for (const { goal, index } of goals) {
+        const box = button('ct-sc-goal', '', `Edit what ${str(goal.name).trim()} wants`, () => openPeek('goal', String(index)));
         box.append(el('div', 'ct-sc-goal-name', str(goal.name).trim()));
         if (str(goal.want).trim()) {
             const line = el('div', 'ct-sc-goal-line');
@@ -1209,6 +1303,7 @@ function renderPlot(body, plot) {
     }
     if (!goals.length) goalList.append(el('p', 'ct-sc-empty-line', plot ? 'No goals noted yet.' : 'Nothing tracked yet.'));
     body.append(goalList);
+    if (plot) body.append(button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a goal', '', () => openPeek('goal', '', true)));
 
     // Planned beats
     const beats = getBeats();
@@ -1225,27 +1320,14 @@ function renderPlot(body, plot) {
             next[index].status = box.checked ? 'done' : 'planned';
             saveBeats(next);
         });
-        const select = el('select', 'text_pole ct-sc-beat-status');
-        select.setAttribute('aria-label', `When: ${beat.title}`);
-        select.disabled = beat.status === 'done';
-        for (const [value, label] of BEAT_STATES) {
-            const node = el('option', '', label);
-            node.value = value;
-            node.selected = beat.status === value;
-            select.append(node);
-        }
-        if (beat.status === 'done') {
-            const node = el('option', '', 'Done');
-            node.value = 'done';
-            node.selected = true;
-            select.append(node);
-        }
-        select.addEventListener('change', () => {
+        const pill = statusPill('ct-sc-beat-pill', beatStates(), beat.status, (value) => {
             const next = getBeats();
-            next[index].status = select.value;
+            next[index].status = value;
             saveBeats(next);
         });
-        row.append(box, el('span', 'ct-sc-beat-title', beat.title), select, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${beat.title}`, () => {
+        const title = button('ct-sc-beat-title', '', `Edit ${beat.title}`, () => openPeek('beat', String(index)));
+        title.textContent = beat.title;
+        row.append(box, title, pill, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${beat.title}`, () => {
             const next = getBeats();
             next.splice(index, 1);
             saveBeats(next);
@@ -1258,11 +1340,11 @@ function renderPlot(body, plot) {
     }));
 
     // Secrets
-    const secrets = (Array.isArray(data.secrets) ? data.secrets : []).filter(item => item && str(item.fact).trim());
+    const secrets = (Array.isArray(data.secrets) ? data.secrets : []).map((secret, index) => ({ secret, index })).filter(({ secret }) => secret && str(secret.fact).trim());
     body.append(el('div', 'ct-sc-plot-title', 'Who knows what'));
     const secretList = el('div', 'ct-sc-rows');
-    for (const secret of secrets) {
-        const box = el('div', 'ct-sc-secret');
+    for (const { secret, index } of secrets) {
+        const box = button('ct-sc-secret', '', 'Edit this secret', () => openPeek('secret', String(index)));
         box.append(el('div', 'ct-sc-goal-name', str(secret.fact).trim()));
         const knows = listValue(secret.knows);
         const unaware = listValue(secret.unaware);
@@ -1280,6 +1362,7 @@ function renderPlot(body, plot) {
     }
     if (!secrets.length) secretList.append(el('p', 'ct-sc-empty-line', plot ? 'No secrets noted.' : 'Nothing tracked yet.'));
     body.append(secretList);
+    if (plot) body.append(button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a secret', '', () => openPeek('secret', '', true)));
 }
 
 function addRow(id, placeholder, label, onAdd) {
@@ -1492,6 +1575,16 @@ function openPeek(type, key, isNew = false) {
         if (isNew) requestAnimationFrame(() => root?.querySelector('.ct-sc-peek input, .ct-sc-peek textarea')?.focus());
         else requestAnimationFrame(() => root?.querySelector('.ct-sc-peek .ct-sc-peek-edit')?.focus());
         return;
+    } else if (PLOT_FORMS[type]) {
+        const form = PLOT_FORMS[type];
+        const list = findResult('plot')?.data?.[form.list];
+        const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
+        if (!isNew && (!found || typeof found !== 'object')) return;
+        draft = structuredClone(found ?? form.blank());
+    } else if (type === 'beat') {
+        const found = isNew ? null : getBeats()[Number(key)];
+        if (!isNew && !found) return;
+        draft = structuredClone(found ?? { id: Math.random().toString(36).slice(2, 9), title: '', status: 'planned' });
     } else {
         const quests = Array.isArray(findResult('world')?.data?.quests) ? findResult('world').data.quests : [];
         const found = isNew ? null : quests[Number(key)];
@@ -1566,6 +1659,36 @@ async function savePeek() {
         }
         return;
     }
+    if (PLOT_FORMS[peek.type]) {
+        const form = PLOT_FORMS[peek.type];
+        const item = peek.draft;
+        if (!str(item[form.titleKey]).trim()) {
+            toastr.warning(`Fill in "${form.fields[0][1]}".`);
+            return;
+        }
+        const saved = await saveData('plot', (data) => {
+            const list = Array.isArray(data[form.list]) ? data[form.list] : (data[form.list] = []);
+            if (peek.isNew) list.push(item);
+            else if (list[Number(peek.key)] !== undefined) list[Number(peek.key)] = item;
+            else return false;
+        });
+        if (saved) closePeek();
+        return;
+    }
+    if (peek.type === 'beat') {
+        const item = peek.draft;
+        if (!str(item.title).trim()) {
+            toastr.warning('Write the beat.');
+            return;
+        }
+        const beats = getBeats();
+        const clean = { ...item, title: str(item.title).trim() };
+        if (peek.isNew) beats.push(clean);
+        else if (beats[Number(peek.key)]) beats[Number(peek.key)] = clean;
+        view.peek = null;
+        saveBeats(beats);
+        return;
+    }
     const draft = peek.draft;
     if (!str(draft.title).trim()) {
         toastr.warning('Give the quest a title.');
@@ -1583,6 +1706,21 @@ async function savePeek() {
 async function deletePeek() {
     const peek = view.peek;
     if (!peek || peek.isNew) return closePeek();
+    if (PLOT_FORMS[peek.type]) {
+        const form = PLOT_FORMS[peek.type];
+        const removed = await saveData('plot', (data) => {
+            data[form.list] = (Array.isArray(data[form.list]) ? data[form.list] : []).filter((_, i) => i !== Number(peek.key));
+        });
+        if (removed) closePeek();
+        return;
+    }
+    if (peek.type === 'beat') {
+        const beats = getBeats();
+        beats.splice(Number(peek.key), 1);
+        view.peek = null;
+        saveBeats(beats);
+        return;
+    }
     const ok = peek.type === 'character'
         ? await saveData('cast', (data) => {
             data.characters = (Array.isArray(data.characters) ? data.characters : []).filter(character => keyOf(character?.name) !== peek.key);
@@ -1712,12 +1850,53 @@ function renderSheet(peek) {
     return panel;
 }
 
+/** The form for a thread, goal, secret or planned beat (fields from PLOT_FORMS / BEAT_FORM). */
+function renderPlotForm(peek, head, body) {
+    const draft = peek.draft;
+    const form = peek.type === 'beat' ? BEAT_FORM : PLOT_FORMS[peek.type];
+    const titles = el('div', 'ct-sc-peek-titles');
+    const name = str(draft[form.titleKey]).trim();
+    titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? `New ${form.name}` : (name.length > 60 ? `${name.slice(0, 60)}…` : name) || humanize(form.name)));
+    head.append(titles);
+    for (const [key, label, kind, hint] of form.fields) {
+        if (kind === 'thread' || kind === 'beat') {
+            const states = kind === 'thread' ? threadStates() : beatStates();
+            const current = str(draft[key]).toLowerCase() || (kind === 'thread' ? 'active' : 'planned');
+            const wrap = el('div', 'ct-sc-field');
+            wrap.append(el('span', 'ct-sc-field-label', label));
+            const group = el('div', 'ct-sc-status-choices');
+            group.setAttribute('role', 'group');
+            group.setAttribute('aria-label', label);
+            for (const [value, text, desc] of states) {
+                const isOn = value === current;
+                const choice = button(`ct-sc-status-choice${isOn ? ' is-on' : ''}`, '', '', () => {
+                    draft[key] = value;
+                    render();
+                });
+                choice.setAttribute('aria-pressed', String(isOn));
+                choice.append(el('span', `ct-sc-pill is-${value}`, text), el('span', 'ct-sc-menu-desc', desc));
+                group.append(choice);
+            }
+            wrap.append(group);
+            body.append(wrap);
+            continue;
+        }
+        const value = kind === 'list' ? listValue(draft[key]).join(', ') : str(draft[key]);
+        const { wrap, control } = textField(label, value, { multiline: kind !== 'text', placeholder: hint, id: `ct-sc-peek-${peek.type}-${key}` });
+        control.addEventListener('input', () => {
+            draft[key] = kind === 'list' ? control.value.split(',').map(part => part.trim()).filter(Boolean) : control.value;
+        });
+        body.append(wrap);
+    }
+}
+
 function renderPeek() {
     const peek = view.peek;
     if (peek.type === 'character' && peek.mode === 'view') return renderSheet(peek);
     const panel = el('div', 'ct-sc-peek');
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', peek.type === 'character' ? 'Character' : 'Quest');
+    const peekLabel = PEEK_LABELS[peek.type] ?? 'Quest';
+    panel.setAttribute('aria-label', peekLabel);
     const draft = peek.draft;
     const head = el('div', 'ct-sc-peek-head');
     head.append(button('ct-sc-icon', '<i class="fa-solid fa-arrow-left"></i>', peek.type === 'character' && !peek.isNew ? 'Back to the character' : 'Back to the list', cancelPeek));
@@ -1810,6 +1989,8 @@ function renderPeek() {
                 body.append(wrap);
             }
         }
+    } else if (PLOT_FORMS[peek.type] || peek.type === 'beat') {
+        renderPlotForm(peek, head, body);
     } else {
         const titles = el('div', 'ct-sc-peek-titles');
         titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New quest' : (str(draft.title).trim() || 'Quest')));
@@ -1839,7 +2020,7 @@ function renderPeek() {
     }
 
     const foot = el('div', 'ct-sc-peek-foot');
-    if (!peek.isNew) foot.append(button('ct-sc-danger', '<i class="fa-solid fa-trash-can"></i> Delete', peek.type === 'character' ? 'Remove from the list' : 'Delete the quest', () => void deletePeek()));
+    if (!peek.isNew) foot.append(button('ct-sc-danger', '<i class="fa-solid fa-trash-can"></i> Delete', peek.type === 'character' ? 'Remove from the list' : `Delete the ${peekLabel.toLowerCase()}`, () => void deletePeek()));
     foot.append(el('span', 'ct-sc-grow', ''), button('menu_button ct-sc-btn', 'Cancel', '', cancelPeek), button('menu_button ct-sc-btn is-primary', '<i class="fa-solid fa-check"></i> Save', '', () => void savePeek()));
     panel.append(head, body, foot);
     panel.addEventListener('keydown', (event) => {
@@ -1875,6 +2056,7 @@ function renderStrip(cast, world) {
 }
 
 export function render() {
+    closeMenu();
     if (!root) build();
     const available = isAvailable();
     const open = isOpen();

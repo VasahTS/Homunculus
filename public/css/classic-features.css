@@ -2762,3 +2762,59 @@ button.ct-sc-thread-pill { margin: 0; background: none; font: inherit; font-size
 }
 .ct-gs-tabs[hidden] { display: none; }
 .ct-gs-ready #ct-gs-create { margin-left: auto; }
+
+/* Plot tab: clickable items, status pills that open a menu, and the edit form (scripts/classic-scene.js) */
+button.ct-sc-thread-text, button.ct-sc-goal, button.ct-sc-secret, button.ct-sc-beat-title {
+    margin: 0;
+    color: var(--cf-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+button.ct-sc-thread-text, button.ct-sc-beat-title { padding: 0; border: 0; background: none; }
+button.ct-sc-goal, button.ct-sc-secret { width: 100%; box-sizing: border-box; }
+button.ct-sc-thread-text:hover .ct-sc-quest-title, button.ct-sc-beat-title:hover { text-decoration: underline; }
+button.ct-sc-goal:hover, button.ct-sc-secret:hover { border-color: color-mix(in srgb, var(--cf-accent) 45%, transparent); }
+button.ct-sc-status-pill { flex: none; margin: 0; background: none; font: inherit; font-size: .72em; font-weight: 600; text-transform: uppercase; cursor: pointer; }
+button.ct-sc-status-pill::after { content: "\25BE"; margin-left: 4px; opacity: .7; }
+button.ct-sc-status-pill:hover, button.ct-sc-status-pill[aria-expanded="true"] { background: var(--cf-surface-2); }
+.ct-sc-pill.is-planned { border-color: var(--cf-line); color: var(--cf-muted); }
+.ct-sc-pill.is-steer { border-color: rgb(143 199 232 / 60%); color: rgb(143 199 232); }
+.ct-sc-pill.is-hold { border-color: rgb(224 180 108 / 60%); color: rgb(224 180 108); }
+.ct-sc-menu {
+    position: fixed;
+    z-index: 9100;
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    box-sizing: border-box;
+    border: 1px solid var(--cf-line);
+    border-radius: 10px;
+    background: var(--cf-solid);
+    color: var(--cf-text);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 55%);
+    font-size: calc(var(--mainFontSize, 15px) * .9);
+}
+.ct-sc-menu-item, .ct-sc-status-choice {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 7px 8px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: none;
+    color: var(--cf-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.ct-sc-menu-item .ct-sc-pill, .ct-sc-status-choice .ct-sc-pill { min-width: 84px; text-align: center; text-transform: uppercase; }
+.ct-sc-menu-item:hover, .ct-sc-menu-item:focus-visible { background: var(--cf-surface-2); }
+.ct-sc-menu-item.is-on { background: color-mix(in srgb, var(--cf-accent) 10%, transparent); }
+.ct-sc-menu-desc { flex: 1 1 auto; min-width: 0; color: var(--cf-muted); font-size: .9em; }
+.ct-sc-menu-check { color: var(--cf-accent); }
+.ct-sc-status-choices { display: flex; flex-direction: column; gap: 4px; }
+.ct-sc-status-choice { border-color: var(--cf-line); }
+.ct-sc-status-choice:hover { border-color: color-mix(in srgb, var(--cf-accent) 40%, var(--cf-line)); }
+.ct-sc-status-choice.is-on { border-color: var(--cf-accent); background: color-mix(in srgb, var(--cf-accent) 10%, transparent); }
