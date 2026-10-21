@@ -1204,7 +1204,10 @@ function suggestedName(t) {
     const narrator = narratorAvatar(t.campaign);
     const cast = t.members.filter(avatar => avatar !== narrator).map(characterName);
     const narrated = t.campaign.mode === 'narrated';
-    if (!cast.length) return narrated ? 'Narrated story' : 'New group';
+    if (!cast.length) {
+        if (narrated && t.campaign.narrator.type === 'card' && narrator) return characterName(narrator);
+        return narrated ? 'Narrated story' : 'New group';
+    }
     if (cast.length === 1) return narrated ? `${cast[0]} & co.` : cast[0];
     if (cast.length === 2) return `${cast[0]} & ${cast[1]}`;
     return `${cast[0]}, ${cast[1]} & co.`;
@@ -1227,7 +1230,7 @@ function readyChecks(t) {
     if (cast.length) {
         const names = cast.slice(0, 3).map(characterName).join(', ');
         checks.push({ state: 'ok', text: `Cast: ${names}${cast.length > 3 ? ` +${cast.length - 3}` : ''}`, tab: 'cast' });
-    } else if (builtin) {
+    } else if (c.mode === 'narrated') {
         checks.push({ state: 'optional', text: 'Cast (optional): the narrator can invent characters', tab: 'cast' });
     } else {
         checks.push({ state: 'todo', text: 'Add at least one character', tab: 'cast' });

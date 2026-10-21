@@ -332,6 +332,14 @@
         "type": "world"
     },
     {
+        "filename": "The Ninth Summoning.png",
+        "type": "character"
+    },
+    {
+        "filename": "Kaldmere.json",
+        "type": "world"
+    },
+    {
         "filename": "user-default.png",
         "type": "avatar"
     },
