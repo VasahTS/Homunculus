@@ -641,7 +641,7 @@ function barLine(campaign) {
     const mode = campaign.mode === 'narrated' ? 'Narrated' : 'Everyone replies';
     const me = String(name1 || 'you');
     if (campaign.role === 'coauthor') return `${mode} · Co-author: the AI writes ${me} from your directions`;
-    if (campaign.role === 'author') return `${mode} · Author: you direct, nobody plays`;
+    if (campaign.role === 'author') return `${mode} · Director: you direct, nobody plays`;
     return `${mode} · you play ${me}`;
 }
 

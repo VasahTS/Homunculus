@@ -170,9 +170,9 @@ const HELP = {
     role: `<ul>
 <li><b>Player</b>: you are {{user}}, a character in the story. Your messages are what your character says and does.</li>
 <li><b>Co-author</b>: {{user}} is still a character, but your messages are <b>directions</b>. The AI writes {{user}} like everyone else, in their own voice, spread through the reply.</li>
-<li><b>Author</b>: there is no {{user}} in the story. You stay outside, like a god: give directions for anyone, or press <b>Let them act</b> (on the bar above the chat) and just watch.</li>
+<li><b>Director</b>: there is no {{user}} in the story. You stay outside, like a god: give directions for anyone, or press <b>Let them act</b> (on the bar above the chat) and just watch.</li>
 </ul>
-<p>Co-author and Author send role instructions to the AI (open <b>Instructions for the AI</b> to read or change them). Turn on <b>Scene: Plot</b> in the Scene tab to plan beats.</p>`,
+<p>Co-author and Director send role instructions to the AI (open <b>Instructions for the AI</b> to read or change them). Turn on <b>Scene: Plot</b> in the Scene tab to plan beats.</p>`,
     roleSend: '<p>Off: only the main character, autonomy and "when I send nothing" lines are sent. A preset with its own &lt;author_vs_protagonist&gt; or &lt;author_mode&gt; prompt is found by itself, so you rarely need this.</p>',
     autonomy: `<ul>
 <li><b>Low</b>: the characters wait for your directions.</li>
@@ -1121,11 +1121,11 @@ const GUIDE_CHOICES = [
         icon: 'fa-pen-nib',
         title: 'Write a story together',
         line: 'You guide the story and the AI writes it. The characters act on their own; step in whenever you want.',
-        sets: ['You: Author (you guide, nobody plays)', 'Plot panel with your planned beats', 'Let them act and Auto-play'],
+        sets: ['You: Director (you guide, nobody plays)', 'Plot panel with your planned beats', 'Let them act and Auto-play'],
     },
 ];
 const GUIDE_TITLES = { simple: 'Simple group chat', narrated: 'Narrated adventure', write: 'Write a story together', scratch: 'Start from scratch' };
-const ROLE_NAMES = { player: 'Player', coauthor: 'Co-author', author: 'Author' };
+const ROLE_NAMES = { player: 'Player', coauthor: 'Co-author', author: 'Director' };
 
 function guideCard(choice) {
     const isOn = state.guideChoice === choice.id;
@@ -1255,7 +1255,7 @@ function readyChecks(t) {
 const ROLE_TILES = [
     ['player', 'fa-user', 'Player', 'You play {{user}}.'],
     ['coauthor', 'fa-feather', 'Co-author', 'You give directions. The AI writes {{user}} too.'],
-    ['author', 'fa-eye', 'Author', 'No {{user}}. You direct from outside, or watch.'],
+    ['author', 'fa-clapperboard', 'Director', 'No {{user}}. You direct from outside, or watch.'],
 ];
 
 function renderRoleCard(t) {
