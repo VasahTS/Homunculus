@@ -35,7 +35,6 @@ export const CAMPAIGN_CHANGED_EVENT = 'homunculus:group-campaign-changed';
 export const CAST_STATES = Object.freeze({ SCENE: 'scene', OFFSCREEN: 'offscreen', OFF: 'off' });
 
 export const ROLES = Object.freeze(['player', 'coauthor', 'author']);
-export const AUTONOMY = Object.freeze(['low', 'medium', 'high']);
 
 /** Co-author: Daniel's own prompt, written for SillyTavern role-play (directions for {{user}}, spread over the reply). */
 export const DEFAULT_COAUTHOR_PROMPT = `<author_vs_protagonist>
@@ -77,11 +76,6 @@ The person writing to you is the AUTHOR of this story, not a character in it. Th
 - Treat every direction as the start of a scene that keeps developing, not as a one-shot to execute and wrap up.
 </author_mode>`;
 
-const AUTONOMY_TEXT = {
-    low: 'Character autonomy: LOW. The characters wait for the author\'s directions and do not start big moves on their own.',
-    medium: 'Character autonomy: MEDIUM. The characters follow the author\'s directions and fill the gaps with their own goals and choices.',
-    high: 'Character autonomy: HIGH. The characters chase their own goals, even against what the author seems to want. The author steers by nudging, not by commanding.',
-};
 const IDLE_TEXT = {
     act: 'When the latest message is not a new direction (the author sent nothing), the characters act on their own: each one pursues their goals and the scene moves forward.',
     continue: 'When the latest message is not a new direction (the author sent nothing), simply continue the scene from where it stopped.',
@@ -133,7 +127,6 @@ export function normalizeCampaign(value) {
         roleSend: raw.roleSend !== false,
         protagonist: str(raw.protagonist),
         idle: raw.idle === 'continue' ? 'continue' : 'act',
-        autonomy: AUTONOMY.includes(raw.autonomy) ? raw.autonomy : 'medium',
         previousGenerationMode: Number.isInteger(raw.previousGenerationMode) ? raw.previousGenerationMode : null,
     };
 }
@@ -256,7 +249,7 @@ export function roleText(group = openGroup()) {
         const name = characterName(campaign.protagonist);
         if (name) lines.push(`Main character: ${name}. A character like any other, written by you; not the author.`);
     }
-    lines.push(AUTONOMY_TEXT[campaign.autonomy], IDLE_TEXT[campaign.idle]);
+    lines.push(IDLE_TEXT[campaign.idle]);
     return lines.filter(Boolean).join('\n');
 }
 

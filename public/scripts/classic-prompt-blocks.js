@@ -20,7 +20,7 @@ export const PROMPTS_CHANGED_EVENT = 'homunculus:prompt-blocks-changed';
 export const BLOCKS = Object.freeze([
     {
         id: 'role', key: 'homunculus_role', tag: 'story_role', macro: 'homunculusRole', label: 'Role instructions',
-        about: 'The Co-author or Director instructions, the main character, character autonomy and what an empty turn means (Setup → Your role).',
+        about: 'The Co-author or Director instructions, the main character and what an empty turn means (Setup → Your role).',
         placement: { mode: 'macro', depth: 4, role: 'system' },
         section: { after: 'main' },
     },

@@ -61,7 +61,6 @@ import { normalizeStart, getStart, saveStart, usableOpenings, isEmptyStart, open
 import { listVars, normalizeStyle, getStyle, saveStyle, styleText, conflicts as styleConflicts, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
 import { BLOCKS as PROMPT_BLOCKS, getPlacement, setPlacement, resetPlacement, status as blockStatus, preview as blockPreview, presetMacrosOf, missingSections, addSectionsToPreset, wrap, PROMPTS_CHANGED_EVENT } from './classic-prompt-blocks.js';
 import {
-    AUTONOMY,
     CAST_STATES,
     DEFAULT_TURN_PROMPT,
     defaultRolePrompt,
@@ -173,12 +172,7 @@ const HELP = {
 <li><b>Director</b>: there is no {{user}} in the story. You stay outside, like a god: give directions for anyone, or press <b>Let them act</b> (on the bar above the chat) and just watch.</li>
 </ul>
 <p>Co-author and Director send role instructions to the AI (open <b>Instructions for the AI</b> to read or change them). Turn on <b>Scene: Plot</b> in the Scene tab to plan beats.</p>`,
-    roleSend: '<p>Off: only the main character, autonomy and "when I send nothing" lines are sent. A preset with its own &lt;author_vs_protagonist&gt; or &lt;author_mode&gt; prompt is found by itself, so you rarely need this.</p>',
-    autonomy: `<ul>
-<li><b>Low</b>: the characters wait for your directions.</li>
-<li><b>Medium</b>: they follow your directions and fill the gaps with their own goals.</li>
-<li><b>High</b>: they chase their own goals, even against your plan; you steer by nudging.</li>
-</ul>`,
+    roleSend: '<p>Off: only the main character and "when I send nothing" lines are sent. A preset with its own &lt;author_vs_protagonist&gt; or &lt;author_mode&gt; prompt is found by itself, so you rarely need this.</p>',
     idle: '<p>What happens on a turn without a direction: when you press <b>Let them act</b>, use auto-play, or send an empty message.</p>',
     members: `<p>The characters in this group.</p>
 <ul>
@@ -1294,7 +1288,6 @@ function renderRoleCard(t) {
     idle.append(option('act', 'The characters act', c.idle === 'act'), option('continue', 'The scene just continues', c.idle === 'continue'));
     idle.addEventListener('change', () => void setCampaign({ idle: idle.value }));
     grid.append(field('When I send nothing', HELP.idle, idle));
-    grid.append(field('Character autonomy', HELP.autonomy, segment('Character autonomy', AUTONOMY.map(level => [level, level[0].toUpperCase() + level.slice(1)]), c.autonomy, level => void setCampaign({ autonomy: level }), true)));
     section.append(grid);
 
     const inPreset = !t.isNew && roleInPreset(group());
