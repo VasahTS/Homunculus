@@ -360,6 +360,11 @@ const MODULE_RULES = {
     factions: ['factions', '[{"name": "", "standing": ""}]', 'factions: named groups {{user}} has dealt with, and how they stand with {{user}}.'],
 };
 
+// Author role: no {{user}} in the story, so quests have no owner and goals live in Scene: Plot.
+// The list is copied unchanged instead of dropped, so it is still there if the group goes back to Player.
+const AUTHOR_QUESTS_RULE = 'quests: copy the list from your previous state exactly as it is ([] if there is none). Do not add, change or resolve quests: this story has no player character, and goals are tracked elsewhere.';
+const isAuthorRole = () => globalThis.HomunculusGroupCampaign?.openRole?.() === 'author';
+
 /** Format and field rules for the Scene: World tracker ({{sceneWorldFields}}). */
 export function worldFieldsPrompt(preset = activePreset('world')) {
     const parts = [];
@@ -368,7 +373,7 @@ export function worldFieldsPrompt(preset = activePreset('world')) {
         if (!preset.modules[key]) continue;
         const [name, sample, rule] = MODULE_RULES[key];
         parts.push(`"${name}": ${sample}`);
-        rules.push(`- ${rule}`);
+        rules.push(`- ${key === 'quests' && isAuthorRole() ? AUTHOR_QUESTS_RULE : rule}`);
     }
     for (const field of preset.fields) {
         parts.push(`"${field.key}": ${field.type === 'list' ? '[""]' : '""'}`);

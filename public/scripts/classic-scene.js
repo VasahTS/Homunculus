@@ -297,7 +297,9 @@ function castPrompt(data) {
 
 function worldPrompt(data) {
     const preset = activePreset('world');
-    const on = key => worldModuleOn(key, preset);
+    // Author role: quests stay saved but are not sent (no {{user}} to own them; Plot carries the goals).
+    const author = openRole() === 'author';
+    const on = key => worldModuleOn(key, preset) && !(author && key === 'quests');
     const lines = [];
     const head = [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => on(key) && str(data[key]).trim()).map(([key, label]) => `${label}: ${str(data[key]).trim()}`);
     if (head.length) lines.push(head.join(' · '));
@@ -1868,7 +1870,7 @@ function renderStrip(cast, world) {
         strip.append(el('i', 'fa-solid fa-user-group ct-sc-strip-icon'), count);
     }
     const quests = (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length;
-    if (world) strip.append(el('i', 'fa-solid fa-scroll ct-sc-strip-icon'), el('span', 'ct-sc-strip-count', String(quests)));
+    if (world && openRole() !== 'author') strip.append(el('i', 'fa-solid fa-scroll ct-sc-strip-icon'), el('span', 'ct-sc-strip-count', String(quests)));
     strip.append(el('span', 'ct-sc-strip-label', 'Scene'));
 }
 
