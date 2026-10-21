@@ -324,6 +324,14 @@
         "type": "world"
     },
     {
+        "filename": "Hob.png",
+        "type": "character"
+    },
+    {
+        "filename": "Homunculus Manual.json",
+        "type": "world"
+    },
+    {
         "filename": "user-default.png",
         "type": "avatar"
     },
