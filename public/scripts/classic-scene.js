@@ -337,7 +337,8 @@ function feedbackOn(agent) {
 
 /** The scene text sent before each reply (empty when nothing should be sent). */
 export function scenePrompt({ before = chat.length } = {}) {
-    if (!settings().inject || !getCurrentChatId?.()) return '';
+    // On/off lives in Group Studio → Settings → Prompts now (the old homunculusScene.inject switch is ignored).
+    if (!getCurrentChatId?.()) return '';
     const parts = [];
     const worldAgent = enabledAgent('world');
     if (worldAgent && !feedbackOn(worldAgent)) {

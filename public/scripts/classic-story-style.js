@@ -147,7 +147,8 @@ function applyPrompt() {
     const style = openStyle();
     // A preset that writes {{pov}}, {{tense}}… already has the style, so the block is not added again.
     setExtraMacros('style', listVars().map(variable => variable.key));
-    setPromptBlock('style', style && style.inject ? styleText(style) : '');
+    // On/off lives in Group Studio → Settings → Prompts (the per-group inject flag is ignored).
+    setPromptBlock('style', style ? styleText(style) : '');
 }
 
 const CONFLICT_RULES = {

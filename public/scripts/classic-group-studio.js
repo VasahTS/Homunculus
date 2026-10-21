@@ -41,7 +41,6 @@ import {
     getRequestHeaders,
     getThumbnailUrl,
     saveMetadata,
-    saveSettingsDebounced,
 } from '../script.js';
 import {
     AGENT_MODES,
@@ -84,11 +83,11 @@ const TABS = [
     { id: 'cast', label: 'Cast', icon: 'fa-users' },
     { id: 'scene', label: 'Scene', icon: 'fa-masks-theater' },
     { id: 'chats', label: 'Chats', icon: 'fa-comments', existingOnly: true },
-    { id: 'profile', label: 'Profile', icon: 'fa-id-card' },
     { id: 'agents', label: 'Agents', icon: 'fa-robot' },
-    { id: 'behavior', label: 'Behavior', icon: 'fa-sliders' },
-    { id: 'prompts', label: 'Prompts', icon: 'fa-layer-group' },
+    { id: 'settings', label: 'Settings', icon: 'fa-gear' },
 ];
+// Tabs that became sections of Settings (callers may still ask for them).
+const TAB_ALIASES = { profile: 'settings', behavior: 'settings', prompts: 'settings' };
 
 const SCENE_TRACKERS = [
     {
@@ -96,43 +95,47 @@ const SCENE_TRACKERS = [
         templateId: 'tpl-homunculus-scene-world',
         icon: 'fa-earth-americas',
         title: 'World',
-        text: 'Time, place, weather, quests, items and factions, plus the fields of its preset.',
+        text: 'Time, place, weather, quests, items.',
     },
     {
         kind: 'cast',
         templateId: 'tpl-homunculus-scene-characters',
         icon: 'fa-user-group',
         title: 'Characters',
-        text: 'Who is in the scene and what can be seen of them: description, traits, height, weight, face, hair, outfit, mood.',
+        text: 'Who is here: looks, outfit, mood.',
     },
     {
         kind: 'plot',
         templateId: 'tpl-homunculus-scene-plot',
         icon: 'fa-diagram-project',
         title: 'Plot',
-        text: 'Story threads, what each character wants and will do next, secrets, and which of your planned beats happened. Made for the Co-author and Author roles.',
+        text: 'Threads, goals, secrets and your beats.',
         presets: false,
     },
 ];
 
 const HELP = {
-    prompts: `<p>Everything Homunculus adds to the prompt, and where it goes.</p>
-<p><b>End of the Main Prompt</b>: added after your preset's Main Prompt, like a system rule.</p>
-<p><b>In the chat, near the end</b>: added between the last messages. <b>Depth 0</b> is after the last message, <b>1</b> is just before it, and so on. Close to the end, the AI follows it more, and it does not fight with your preset's own rules.</p>
-<p><b>Only where I put the macro</b>: nothing is added by itself. Write the macro (for example <code>{{storyStyle}}</code>) in a prompt of your preset, where you want it.</p>
-<p>If your preset already has the macro, the block is not added a second time.</p>
-<p>Each block is sent inside a tag, like <code>&lt;story_style&gt;…&lt;/story_style&gt;</code>, so the AI knows where it starts and ends.</p>
+    prompts: `<p>What Homunculus adds to the prompt: role instructions, story style, your plan, the scene and the cast.</p>
+<p>Each one goes where its <b>section</b> is in your Chat Completion preset (the Prompt Manager list), like any other part of the preset. The Default preset already has them; for other presets, press <b>Add them to my preset</b>.</p>
+<p>The switch turns a block off. <b>Details</b> shows what is sent and lets you place it without a section.</p>
 <p>These settings are the same for every group.</p>`,
+    profile: '<p>Applied when you open one of this group\'s chats ("group mode"). Anything on <b>Keep current</b> is left alone, and leaving the group puts your own preset and persona back.</p>',
+    protagonist: '<p>Optional. A character the story follows most. The AI writes them like everyone else; they are not you.</p>',
+    trackerProfile: '<p>The connection profile this tracker uses. A cheap, fast model is enough.</p>',
     promptSections: `<p>A section is a prompt in your Chat Completion preset (the Prompt Manager list). Each Homunculus section holds only a macro, like <code>{{storyStyle}}</code>.</p>
 <p>With the section in the preset, the block goes exactly where the section is, and it is not added anywhere else. Drag it up or down, or switch it off, in the Prompt Manager.</p>
 <p>The Default preset already comes with them. Other presets get them with this button.</p>
 <p>The sections are added to the preset you are using now. Save the preset to keep them in its file.</p>`,
-    promptWhere: '<p>Where this block goes in the prompt. See the "?" at the top of this tab.</p>',
+    promptWhere: `<ul>
+<li><b>Where my preset has it</b>: only where your preset has the macro (its section). Nothing is added anywhere else.</li>
+<li><b>End of the Main Prompt</b>: added after your preset's Main Prompt.</li>
+<li><b>In the chat, near the end</b>: added between the last messages, where the AI follows it most.</li>
+</ul>`,
     promptDepth: '<p>How many messages from the end. 0 = after the last message, 1 = just before the last message.</p>',
     promptRole: '<p>Who "says" the block in the chat. <b>System</b> works for most models.</p>',
     page: `<p>Make and set up your groups here.</p>
 <p>Pick a group on the left, or press <b>New group</b>. Changes to an existing group are saved right away.</p>
-<p>The <b>Profile</b> and <b>Agents</b> tabs are applied when you open one of the group's chats ("group mode"), and your own settings come back when you leave.</p>`,
+<p><b>Settings</b> and <b>Agents</b> are applied when you open one of the group's chats ("group mode"), and your own settings come back when you leave.</p>`,
     name: '<p>The name shown in your character list and above the chat. Leave it empty for a new group and the member names are used.</p>',
     mode: `<ul>
 <li><b>Ensemble</b>: a normal group chat. Each character replies in turn, with their own card.</li>
@@ -159,8 +162,8 @@ const HELP = {
 <li><b>Co-author</b>: {{user}} is still a character, but your messages are <b>directions</b>. The AI writes {{user}} like everyone else, in their own voice, spread through the reply.</li>
 <li><b>Author</b>: there is no {{user}} in the story. You stay outside, like a god: give directions for anyone, or press <b>Let them act</b> (on the bar above the chat) and just watch.</li>
 </ul>
-<p>Co-author and Author send role instructions before each reply (below), and work in Ensemble and Narrated groups. In the Scene panel, the Quests tab becomes <b>Plot</b>.</p>`,
-    roleSend: '<p>The role instructions are sent before each reply. If your preset already has them (for example your own &lt;author_vs_protagonist&gt; prompt), turn this off: then only the main character, autonomy and "when I send nothing" lines are sent.</p>',
+<p>Co-author and Author send role instructions to the AI (open <b>Instructions for the AI</b> to read or change them). Turn on <b>Scene: Plot</b> in the Scene tab to plan beats.</p>`,
+    roleSend: '<p>Off: only the main character, autonomy and "when I send nothing" lines are sent. A preset with its own &lt;author_vs_protagonist&gt; or &lt;author_mode&gt; prompt is found by itself, so you rarely need this.</p>',
     autonomy: `<ul>
 <li><b>Low</b>: the characters wait for your directions.</li>
 <li><b>Medium</b>: they follow your directions and fill the gaps with their own goals.</li>
@@ -303,6 +306,21 @@ function segment(label, items, value, onPick, small = false) {
     return wrap;
 }
 
+/** A collapsed section ("▸ title"); stays open across re-renders. */
+function more(key, title, ...children) {
+    const details = el('details', 'ct-gs-more');
+    details.open = state.openMore.has(key);
+    details.addEventListener('toggle', () => {
+        if (details.open) state.openMore.add(key);
+        else state.openMore.delete(key);
+    });
+    const summary = el('summary', '');
+    if (typeof title === 'string') summary.textContent = title;
+    else summary.append(title);
+    details.append(summary, ...children.filter(Boolean));
+    return details;
+}
+
 function toggleSwitch(label, checked, onChange) {
     const wrap = el('label', 'ct-gs-switch');
     const box = el('input');
@@ -392,6 +410,8 @@ const state = {
     chats: null,
     /** Vault scenarios for the "Start from the Vault" card (null = not loaded yet). */
     vaultScenarios: null,
+    /** Keys of the collapsed sections the user opened. */
+    openMore: new Set(),
 };
 let root = null;
 let returnFocus = null;
@@ -762,27 +782,20 @@ function tabBadge(id, t) {
 function renderVaultCard(t) {
     const vault = globalThis.HomunculusVault;
     if (!vault?.listItems) return null;
-    const aside = button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Open the Vault</span>', '', () => vault.open('scenarios'));
-    const section = card('Start from the Vault', HELP.vault, { aside });
     if (state.vaultScenarios === null) {
-        section.append(el('p', 'ct-gs-note', 'Loading…'));
         vault.listItems('scenarios').then((items) => {
             state.vaultScenarios = items.sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt);
             if (state.open) render();
         }).catch(() => {
             state.vaultScenarios = [];
         });
-        return section;
+        return null;
     }
-    if (!state.vaultScenarios.length) {
-        section.append(el('p', 'ct-gs-note', 'No scenarios in the Vault yet. Open the Vault to make one, or save this chat\'s scenario from the Scenario card.'));
-        return section;
-    }
+    if (!state.vaultScenarios.length) return null;
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Open the Vault</span>', '', () => vault.open('scenarios'));
+    const section = card('Start from the Vault', HELP.vault, { aside });
     const g = group();
     const picked = t.isNew ? state.draft.scenarioId : '';
-    section.append(el('p', 'ct-gs-intro', t.isNew
-        ? (picked ? 'The first chat of the new group starts with the scenario you picked. Click it again to un-pick it.' : 'Pick one and the first chat of the new group starts with it.')
-        : 'Click one to use it in this group\'s open chat (you choose what to use first).'));
     const list = el('div', 'ct-gs-vault-list');
     for (const scenario of state.vaultScenarios.slice(0, 9)) {
         const isOn = picked === scenario.id;
@@ -799,7 +812,6 @@ function renderVaultCard(t) {
         });
         item.setAttribute('aria-pressed', String(isOn));
         item.append(el('b', '', `${scenario.favorite ? '★ ' : ''}${scenario.name}`));
-        if (scenario.description) item.append(el('span', '', scenario.description));
         item.append(el('span', '', `${scenario.npcs.length} NPC${scenario.npcs.length === 1 ? '' : 's'} · ${scenario.firstMessages.length} opening${scenario.firstMessages.length === 1 ? '' : 's'}`));
         list.append(item);
     }
@@ -817,7 +829,7 @@ function renderSetup(body, t) {
     name.placeholder = t.isNew ? 'Name (optional), e.g. The Ashen Road' : 'Group name';
     name.value = t.name;
     name.addEventListener(t.isNew ? 'input' : 'change', () => void setName(name.value));
-    basics.append(field('Name', HELP.name, name));
+    basics.append(field('Name', '', name));
 
     const modeHead = el('div', 'ct-gs-field-head');
     modeHead.append(el('span', 'ct-gs-label', 'Mode'), helpButton('Mode', HELP.mode));
@@ -825,8 +837,8 @@ function renderSetup(body, t) {
     tiles.setAttribute('role', 'radiogroup');
     tiles.setAttribute('aria-label', 'Mode');
     for (const [mode, icon, title, text] of [
-        ['ensemble', 'fa-users', 'Ensemble', 'Each character replies in turn, with their own card. A normal group chat.'],
-        ['narrated', 'fa-feather-pointed', 'Narrated', 'One narrator replies and voices everyone. The others are the cast.'],
+        ['ensemble', 'fa-users', 'Ensemble', 'Everyone replies in turn.'],
+        ['narrated', 'fa-feather-pointed', 'Narrated', 'One narrator voices everyone.'],
     ]) {
         const isOn = t.campaign.mode === mode;
         const tile = button(`ct-gs-tile${isOn ? ' is-on' : ''}`, `<i class="fa-solid ${icon}" aria-hidden="true"></i>`, '', () => void setMode(mode));
@@ -847,9 +859,9 @@ function renderSetup(body, t) {
 }
 
 const ROLE_TILES = [
-    ['player', 'fa-user', 'Player', 'You are {{user}}, a character inside the story. Your messages are what your character says and does.'],
-    ['coauthor', 'fa-feather', 'Co-author', '{{user}} is a character, but your messages are directions: the AI writes {{user}} like everyone else, in their own voice.'],
-    ['author', 'fa-eye', 'Author', 'There is no {{user}} in the story. You stay outside, like a god: direct anyone, or just watch the characters act.'],
+    ['player', 'fa-user', 'Player', 'You play {{user}}.'],
+    ['coauthor', 'fa-feather', 'Co-author', 'You give directions. The AI writes {{user}} too.'],
+    ['author', 'fa-eye', 'Author', 'No {{user}}. You direct from outside, or watch.'],
 ];
 
 function renderRoleCard(t) {
@@ -873,69 +885,55 @@ function renderRoleCard(t) {
     section.append(tiles);
     if (c.role === 'player') return section;
 
-    const box = el('div', 'ct-gs-role-box');
     const grid = el('div', 'ct-gs-role-grid');
     if (c.role === 'author') {
         const main = el('select', 'text_pole');
         main.id = 'ct-gs-protagonist';
-        main.append(option('', 'None: an ensemble story', !c.protagonist));
+        main.append(option('', 'None', !c.protagonist));
         const narrator = narratorAvatar(c);
-        for (const avatar of t.members.filter(item => item !== narrator)) main.append(option(avatar, `${characterName(avatar)} (written by the AI like everyone else)`, avatar === c.protagonist));
+        for (const avatar of t.members.filter(item => item !== narrator)) main.append(option(avatar, characterName(avatar), avatar === c.protagonist));
         main.addEventListener('change', () => void setCampaign({ protagonist: main.value }));
-        grid.append(field('Main character (optional, not you)', '', main));
-    } else {
-        grid.append(field('{{user}} is played by', '', el('div', 'ct-gs-note', 'Your persona: the one picked in the Profile tab, or your current persona. The AI writes them from your directions.')));
+        grid.append(field('Main character', HELP.protagonist, main));
     }
     const idle = el('select', 'text_pole');
     idle.id = 'ct-gs-idle';
-    idle.append(option('act', 'The characters act on their own', c.idle === 'act'), option('continue', 'The narrator just continues the scene', c.idle === 'continue'));
+    idle.append(option('act', 'The characters act', c.idle === 'act'), option('continue', 'The scene just continues', c.idle === 'continue'));
     idle.addEventListener('change', () => void setCampaign({ idle: idle.value }));
     grid.append(field('When I send nothing', HELP.idle, idle));
-    box.append(grid);
+    grid.append(field('Character autonomy', HELP.autonomy, segment('Character autonomy', AUTONOMY.map(level => [level, level[0].toUpperCase() + level.slice(1)]), c.autonomy, level => void setCampaign({ autonomy: level }), true)));
+    section.append(grid);
 
-    const autonomyHead = el('div', 'ct-gs-field-head');
-    autonomyHead.append(el('span', 'ct-gs-label', 'Character autonomy'), helpButton('Character autonomy', HELP.autonomy));
-    const autonomyNote = { low: 'Characters wait for your directions.', medium: 'Characters follow your directions and fill the gaps with their own goals.', high: 'Characters chase their own goals, even against your plan. You steer by nudging.' }[c.autonomy];
-    box.append(autonomyHead, segment('Character autonomy', AUTONOMY.map(level => [level, level[0].toUpperCase() + level.slice(1)]), c.autonomy, level => void setCampaign({ autonomy: level }), true), el('div', 'ct-gs-note', autonomyNote));
-
-    box.append(checkRow('Send the role instructions to the AI', c.roleSend, checked => void setCampaign({ roleSend: checked }), HELP.roleSend));
-    if (c.roleSend) {
-        const fallback = defaultRolePrompt(c.role);
-        const area = el('textarea', 'text_pole ct-gs-role-text');
-        area.id = `ct-gs-role-text-${c.role}`;
-        area.rows = 10;
-        area.value = c.roleText[c.role] || fallback;
-        area.addEventListener('change', () => {
-            const value = area.value.trim() === fallback.trim() ? '' : area.value;
-            void setCampaign({ roleText: { [c.role]: value } });
-        });
-        const restore = button('menu_button ct-gs-btn', '<i class="fa-solid fa-rotate-left"></i> Restore the default text', '', () => void setCampaign({ roleText: { [c.role]: '' } }));
-        restore.disabled = !c.roleText[c.role];
-        box.append(field(c.role === 'coauthor' ? 'Co-author instructions' : 'Author instructions', '', area, c.role === 'coauthor' ? 'Your own author_vs_protagonist + input_expansion prompt. Edit freely.' : 'Edit freely. {{user}} is replaced by your persona\'s name.'), restore);
-    } else {
-        box.append(el('p', 'ct-gs-note', 'Only the main character, autonomy and "when I send nothing" lines are sent. Your preset carries the rest.'));
-    }
-    const plotNote = el('div', 'ct-gs-inline-note');
-    plotNote.append(el('span', 'ct-gs-note', 'Turn on Scene: Plot to keep threads, what each character wants, your planned beats and secrets in the Scene panel.'));
-    plotNote.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-diagram-project"></i> Scene tab', '', () => {
-        state.tab = 'scene';
-        render();
-    }));
-    box.append(plotNote);
-    section.append(box);
+    const inPreset = !t.isNew && roleInPreset(group());
+    const fallback = defaultRolePrompt(c.role);
+    const inside = [];
+    if (inPreset) inside.push(el('p', 'ct-gs-note', 'Your preset already has these instructions, so they are not sent twice.'));
+    inside.push(checkRow('Send these instructions', c.roleSend, checked => void setCampaign({ roleSend: checked }), HELP.roleSend));
+    const area = el('textarea', 'text_pole ct-gs-role-text');
+    area.id = `ct-gs-role-text-${c.role}`;
+    area.rows = 10;
+    area.value = c.roleText[c.role] || fallback;
+    area.disabled = !c.roleSend;
+    area.addEventListener('change', () => {
+        const value = area.value.trim() === fallback.trim() ? '' : area.value;
+        void setCampaign({ roleText: { [c.role]: value } });
+    });
+    inside.push(area);
+    if (c.roleText[c.role]) inside.push(button('menu_button ct-gs-btn', '<i class="fa-solid fa-rotate-left"></i> Restore the default text', '', () => void setCampaign({ roleText: { [c.role]: '' } })));
+    const summary = `Instructions for the AI${inPreset ? ' · in your preset' : c.roleText[c.role] ? ' · edited' : ''}`;
+    section.append(more(`role-${c.role}`, summary, ...inside));
     return section;
 }
 
 function renderStyleCard(t) {
     const style = t.style;
-    const aside = button('ct-cb-btn', '<i class="fa-solid fa-sliders"></i><span>Edit variables</span>', 'Change the options or add your own variables', async () => {
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-sliders"></i><span>Edit options</span>', 'Change the options or add your own', async () => {
         if (await openVarsEditor()) render();
     });
     const section = card('Story style', STYLE_HELP, { aside });
     for (const variable of listVars()) {
         const row = el('div', 'ct-gs-style-row');
         const label = el('div', 'ct-gs-style-label');
-        label.append(el('span', 'ct-gs-label', variable.label), el('code', 'ct-gs-style-macro', `{{${variable.key}}}`));
+        label.append(el('span', 'ct-gs-label', variable.label));
         const chips = el('div', 'ct-gs-style-options');
         chips.setAttribute('role', 'group');
         chips.setAttribute('aria-label', variable.label);
@@ -949,16 +947,9 @@ function renderStyleCard(t) {
         row.append(label, chips);
         section.append(row);
     }
-    section.append(checkRow('Send the story style to the AI before each reply', style.inject, checked => void setStyle({ inject: checked })));
-    const preview = el('div', 'ct-gs-style-preview');
-    preview.append(el('div', 'ct-gs-label', 'What the AI receives'));
-    const text = wrap('style', styleText(style));
-    const lines = [style.inject ? (text || 'Nothing picked yet.') : 'Nothing is sent by itself: use the macros in your preset.'];
-    if (t.campaign.role !== 'player') lines.push(`+ the ${t.campaign.role === 'author' ? 'Author' : 'Co-author'} lines from "Your role in the story".`);
-    preview.append(el('pre', 'ct-gs-style-text', lines.join('\n')));
-    section.append(preview);
     for (const warning of styleConflicts(style)) section.append(el('p', 'ct-gs-warn', warning));
-    section.append(el('p', 'ct-gs-note', 'Where it goes in the prompt: Prompts tab.'));
+    const text = wrap('style', styleText(style));
+    section.append(more('style-preview', 'What the AI gets', el('pre', 'ct-gs-style-text', text || 'Nothing picked yet.')));
     return section;
 }
 
@@ -995,7 +986,7 @@ function renderNarratorCard(t) {
     builtinRadio.checked = campaign.narrator.type === 'builtin';
     builtinRadio.addEventListener('change', () => void setNarrator({ type: 'builtin' }));
     const builtinBody = el('span', 'ct-gs-choice-body');
-    builtinBody.append(el('span', 'ct-gs-label', 'Built-in narrator'), el('span', 'ct-gs-note', 'No card needed. Write how the narrator should tell the story.'));
+    builtinBody.append(el('span', 'ct-gs-label', 'Built-in narrator'));
     const style = el('textarea', 'text_pole');
     style.id = 'ct-gs-narrator-style';
     style.rows = 3;
@@ -1024,21 +1015,25 @@ function renderNarratorCard(t) {
     turn.placeholder = DEFAULT_TURN_PROMPT;
     turn.value = campaign.narrator.turnPrompt;
     turn.addEventListener('change', () => void setCampaign({ narrator: { turnPrompt: turn.value.trim() } }));
-    const turnField = field('Turn instruction', HELP.turn, turn, 'Empty: the default above is used.');
+    const turnField = field('Turn instruction', HELP.turn, turn);
     if (campaign.narrator.turnPrompt) {
         turnField.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-rotate-left"></i> Use the default', '', () => void setCampaign({ narrator: { turnPrompt: '' } })));
     }
-    section.append(turnField);
-    section.append(checkRow('Put the cast in the prompt automatically', campaign.castPlacement === 'prompt', checked => void setCampaign({ castPlacement: checked ? 'prompt' : 'macro' }), HELP.placement));
+    section.append(more('narrator-more', 'More narrator options', turnField,
+        checkRow('Put the cast in the prompt automatically', campaign.castPlacement === 'prompt', checked => void setCampaign({ castPlacement: checked ? 'prompt' : 'macro' }), HELP.placement)));
     return section;
 }
 
 function renderScenarioCard() {
     const g = group();
-    const section = card('Scenario', HELP.scenario, { intro: 'The situation the story starts from, shared by the whole group.' });
-    if (String(selected_group) !== String(g.id)) {
+    const isOpen = String(selected_group) === String(g.id);
+    const aside = isOpen && globalThis.HomunculusVault?.saveChatScenario
+        ? button('ct-cb-btn', '<i class="fa-solid fa-vault"></i><span>Save to the Vault</span>', 'Keep it to start other groups or chats with it', () => void globalThis.HomunculusVault.saveChatScenario({ name: g.name }))
+        : null;
+    const section = card('Scenario', HELP.scenario, { aside });
+    if (!isOpen) {
         const row = el('div', 'ct-gs-inline-note');
-        row.append(el('span', 'ct-gs-note', 'Each chat keeps its own scenario. Open one of this group\'s chats to edit it.'));
+        row.append(el('span', 'ct-gs-note', 'Open one of this group\'s chats to edit its scenario.'));
         row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-comments"></i> Open chat', '', async () => {
             await openGroupById(g.id);
             render();
@@ -1048,21 +1043,16 @@ function renderScenarioCard() {
     }
     const area = el('textarea', 'text_pole');
     area.id = 'ct-gs-scenario';
-    area.rows = 5;
-    area.placeholder = 'e.g. The party travels the Ashen Road toward the border fort of Varn, three days behind the caravan they were hired to guard.';
+    area.rows = 4;
+    area.setAttribute('aria-label', 'Scenario of the open chat');
+    area.placeholder = 'Where and when the story starts, e.g. The party travels the Ashen Road toward the border fort of Varn.';
     area.value = String(chat_metadata?.scenario ?? '');
     area.addEventListener('change', async () => {
         chat_metadata.scenario = area.value.trim();
         await saveMetadata();
         toastr.success('Scenario saved for this chat.');
     });
-    section.append(field('Scenario of the open chat', '', area, 'Saved in this chat (and its branches made from now on).'));
-    if (globalThis.HomunculusVault?.saveChatScenario) {
-        const row = el('div', 'ct-gs-inline-note');
-        row.append(el('span', 'ct-gs-note', 'Keep it to start other groups or chats with it.'));
-        row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-vault"></i> Save to the Vault', '', () => void globalThis.HomunculusVault.saveChatScenario({ name: g.name })));
-        section.append(row);
-    }
+    section.append(area);
     return section;
 }
 
@@ -1183,14 +1173,21 @@ function renderPicker(t, title) {
 
 function renderSceneTab(body, t) {
     const api = agentsApi();
-    const intro = card('Scene panel', HELP.scene, { intro: 'A panel beside the chat with who is in the scene (outfit, body, face, mood) and the world (time, place, quests, items). Two Scene trackers fill it; each one is an agent with its own prompt.' });
+    const sceneApi = globalThis.HomunculusScene;
+    const g = group();
+    const isOpenChat = g && String(selected_group) === String(g.id);
+    const aside = sceneApi && isOpenChat && sceneApi.isAvailable()
+        ? button('ct-cb-btn', `<i class="fa-solid fa-masks-theater"></i><span>${sceneApi.isOpen() ? 'Hide' : 'Show'} the panel</span>`, '', () => {
+            sceneApi.toggle();
+            render();
+        })
+        : null;
+    const intro = card('Scene panel', HELP.scene, { aside, intro: 'Trackers fill a panel beside the chat. Turn on the ones you want.' });
     if (!api?.getAgents) {
         intro.append(el('p', 'ct-gs-warn', 'In-Chat Agents are not loaded, so the Scene trackers can\'t run.'));
         body.append(intro);
         return;
     }
-    const g = group();
-    const isOpenChat = g && String(selected_group) === String(g.id);
     if (g && isOpenChat && !isActive(g.id) && t.profile.agents.mode !== AGENT_MODES.KEEP) {
         const row = el('div', 'ct-gs-warn ct-gs-inline-note');
         row.append(el('span', '', 'Group mode is off in the open chat, so this group\'s trackers are not running there.'));
@@ -1200,23 +1197,6 @@ function renderSceneTab(body, t) {
         }));
         intro.append(row);
     }
-    const sceneApi = globalThis.HomunculusScene;
-    if (sceneApi && isOpenChat) {
-        const row = el('div', 'ct-gs-inline-note');
-        row.append(el('span', 'ct-gs-note', sceneApi.isAvailable() ? 'The panel is available in the open chat.' : 'The panel appears in the chat once a tracker is on.'));
-        if (sceneApi.isAvailable()) {
-            row.append(button('menu_button ct-gs-btn', `<i class="fa-solid fa-masks-theater"></i> ${sceneApi.isOpen() ? 'Hide' : 'Show'} the panel`, '', () => {
-                sceneApi.toggle();
-                render();
-            }));
-        }
-        intro.append(row);
-    }
-    intro.append(checkRow('Send the scene to the AI before each reply', extension_settings.homunculusScene?.inject !== false, (checked) => {
-        extension_settings.homunculusScene = { ...(extension_settings.homunculusScene ?? {}), inject: checked };
-        saveSettingsDebounced();
-        sceneApi?.refresh?.();
-    }, HELP.sceneSend));
     body.append(intro);
 
     const grid = el('div', 'ct-gs-tracker-grid');
@@ -1246,7 +1226,7 @@ function renderTrackerCard(tracker, t, isOpenChat) {
     section.append(toggleSwitch(on ? 'On in this group' : 'Off in this group', on, enabled => void setTracker(tracker, enabled)));
 
     if (!agent) {
-        section.append(el('p', 'ct-gs-note', 'Switch it on to add the tracker to your agents. You can edit its prompt after that.'));
+        // Not made yet: switching it on adds the agent.
         return section;
     }
     const profileSelect = el('select', 'text_pole');
@@ -1259,7 +1239,7 @@ function renderTrackerCard(tracker, t, isOpenChat) {
         await api.updateAgent?.(agent.id, { connectionProfile: profileSelect.value });
         toastr.success('Connection profile saved.');
     });
-    section.append(field('Connection profile', '', profileSelect, 'A cheap, fast model is enough.'));
+    section.append(field('Model', HELP.trackerProfile, profileSelect));
 
     const g = group();
     const fieldKind = tracker.kind === 'cast' ? 'cast' : 'world';
@@ -1283,9 +1263,10 @@ function renderTrackerCard(tracker, t, isOpenChat) {
             render();
         }));
         const used = activePreset(fieldKind, g.id);
-        section.append(field('Fields', HELP.scenePreset, fieldsRow, presetSummary(fieldKind, used)));
+        fieldsRow.title = presetSummary(fieldKind, used);
+        section.append(field('Fields', HELP.scenePreset, fieldsRow));
     } else {
-        section.append(el('p', 'ct-gs-note', 'Create the group first to pick its field preset.'));
+        // A new group picks its field preset after it is made.
     }
 
     const actions = el('div', 'ct-gs-actions');
@@ -1399,7 +1380,7 @@ function renderChatsTab(body) {
 
 function renderProfileTab(body, t) {
     const profile = t.profile;
-    const section = card('Group profile', HELP.page, { intro: 'Applied when you open this group\'s chats. Anything on "Keep current" is left alone. Leaving the group puts your preset and persona back.' });
+    const section = card('When this group is open', HELP.profile);
 
     if (!t.isNew) section.append(checkRow('Ask before entering group mode', shouldAsk(state.groupId), checked => setShouldAsk(state.groupId, checked), HELP.ask));
 
@@ -1410,7 +1391,7 @@ function renderProfileTab(body, t) {
     for (const name of presets) preset.append(option(name, name, name === profile.preset));
     if (profile.preset && !presets.includes(profile.preset)) preset.append(option(profile.preset, `${profile.preset} (missing)`, true));
     preset.addEventListener('change', () => void setProfile({ preset: preset.value }));
-    section.append(field('Chat Completion preset', HELP.preset, preset, 'Only the preset. Your API and model stay as they are.'));
+    section.append(field('Chat Completion preset', HELP.preset, preset));
 
     const personas = Object.entries(power_user.personas ?? {}).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
     const persona = el('select', 'text_pole');
@@ -1430,7 +1411,6 @@ function renderProfileTab(body, t) {
         chip.append(button('ct-gs-chip-x', '×', `Remove ${name}`, () => void setProfile({ lorebooks: profile.lorebooks.filter(x => x !== name) })));
         chips.append(chip);
     }
-    if (!profile.lorebooks.length) chips.append(el('span', 'ct-gs-note', 'No extra lorebooks.'));
     const add = el('select', 'text_pole');
     add.id = 'ct-gs-lore-add';
     add.append(option('', '+ Add a lorebook…', true));
@@ -1441,7 +1421,7 @@ function renderProfileTab(body, t) {
         if (add.value) void setProfile({ lorebooks: [...profile.lorebooks, add.value] });
     });
     lore.append(chips, add);
-    section.append(field('Lorebooks', HELP.lorebooks, lore, 'Scanned on top of your global lorebooks while this group\'s chat is open.'));
+    section.append(field('Extra lorebooks', HELP.lorebooks, lore));
     body.append(section);
 }
 
@@ -1458,12 +1438,7 @@ function renderAgentsTab(body, t) {
             : mode === AGENT_MODES.ADD ? [] : profile.agents.on;
         void setProfile({ agents: { mode, on: list, off: [] } });
     }));
-    const hint = {
-        [AGENT_MODES.KEEP]: 'This group uses your usual agents for group chats. Pick "Only these" or "Add to my usual" to choose agents for it.',
-        [AGENT_MODES.ONLY]: 'Only the ticked agents run in this group.',
-        [AGENT_MODES.ADD]: 'Your usual agents run here. Tick more to add them, untick to turn one off just here.',
-    }[profile.agents.mode];
-    section.append(el('p', 'ct-gs-note', hint));
+    if (profile.agents.mode === AGENT_MODES.KEEP) section.append(el('p', 'ct-gs-note', 'Your usual agents run here. Pick "Only these" or "Add to my usual" to choose.'));
 
     const api = agentsApi();
     if (!api?.getAgents) {
@@ -1527,14 +1502,18 @@ function renderAgentsTab(body, t) {
 
 // ───────────────────────── Prompts tab ─────────────────────────
 
-const PLACEMENTS = [['main', 'End of the Main Prompt'], ['chat', 'In the chat, near the end'], ['macro', 'Only where I put the macro']];
-const STATUS_TEXT = {
-    sent: 'Sent before each reply.',
-    empty: 'Nothing to send in the open chat right now.',
-    off: 'Off: never sent.',
-    macro: 'Sent only where your preset has the macro.',
-    'preset-macro': 'Your preset already has the macro, so it is not added again.',
-};
+const PLACEMENTS = [['macro', 'Where my preset has it'], ['main', 'End of the Main Prompt'], ['chat', 'In the chat, near the end']];
+
+/** The short status shown on a prompt row: [text, kind]. */
+function promptStatus(block) {
+    const current = blockStatus(block.id);
+    const placement = getPlacement(block.id);
+    if (current === 'off') return ['Off', 'muted'];
+    if (current === 'preset-macro') return ['In your preset', 'good'];
+    if (current === 'no-place') return ['Not sent: no place in your preset', 'warn'];
+    const where = placement.mode === 'chat' ? `In the chat (depth ${placement.depth})` : 'End of the Main Prompt';
+    return current === 'empty' ? [`${where} · nothing now`, 'muted'] : [where, 'good'];
+}
 
 function openLastPromptItemization() {
     const buttons = [...document.querySelectorAll('#chat .mes .mes_prompt')];
@@ -1547,23 +1526,27 @@ function openLastPromptItemization() {
     last.click();
 }
 
-function renderPromptBlock(block, t) {
+function renderPromptRow(block, t) {
     const placement = getPlacement(block.id);
     const current = blockStatus(block.id);
-    const section = el('section', `ct-gs-card ct-gs-prompt-block${placement.enabled ? '' : ' is-off'}`);
-    section.dataset.block = block.id;
-    const head = el('div', 'ct-gs-card-head');
-    const titleRow = el('div', 'ct-gs-title-row');
-    titleRow.append(el('h3', 'ct-gs-title', block.label), el('code', 'ct-gs-prompt-tag', `<${block.tag}>`));
-    head.append(titleRow, toggleSwitch('Send', placement.enabled, enabled => setPlacement(block.id, { enabled })));
-    section.append(head, el('p', 'ct-gs-intro', block.about));
+    const row = el('div', `ct-gs-prow${placement.enabled ? '' : ' is-off'}`);
+    row.dataset.block = block.id;
+    const head = el('div', 'ct-gs-prow-head');
+    const onOff = toggleSwitch('', placement.enabled, enabled => setPlacement(block.id, { enabled }));
+    onOff.querySelector('input').setAttribute('aria-label', `Send ${block.label}`);
+    const [statusText, kind] = promptStatus(block);
+    const title = el('span', 'ct-gs-prow-title');
+    const name = el('span', 'ct-gs-prow-name', block.label);
+    name.title = block.about;
+    title.append(name, el('span', `ct-gs-prow-status is-${kind}`, statusText));
 
-    const row = el('div', 'ct-gs-prompt-row');
+    const inside = [];
     const where = el('select', 'text_pole');
     where.id = `ct-gs-prompt-where-${block.id}`;
-    for (const [value, label] of PLACEMENTS) where.append(option(value, label, placement.mode === value));
+    for (const [value, label] of PLACEMENTS) where.append(option(value, value === 'macro' ? `${label} ({{${block.macro}}})` : label, placement.mode === value));
     where.addEventListener('change', () => setPlacement(block.id, { mode: where.value }));
-    row.append(field('Where', HELP.promptWhere, where));
+    const placeRow = el('div', 'ct-gs-prompt-row');
+    placeRow.append(field('Where', HELP.promptWhere, where));
     if (placement.mode === 'chat') {
         const depth = el('input', 'text_pole');
         depth.type = 'number';
@@ -1571,79 +1554,64 @@ function renderPromptBlock(block, t) {
         depth.max = '50';
         depth.value = String(placement.depth);
         depth.id = `ct-gs-prompt-depth-${block.id}`;
-        depth.addEventListener('change', () => {
-            const value = Math.min(50, Math.max(0, Number.parseInt(depth.value, 10) || 0));
-            setPlacement(block.id, { depth: value });
-        });
-        row.append(field('Depth', HELP.promptDepth, depth));
+        depth.addEventListener('change', () => setPlacement(block.id, { depth: Math.min(50, Math.max(0, Number.parseInt(depth.value, 10) || 0)) }));
+        placeRow.append(field('Depth', HELP.promptDepth, depth));
         const role = el('select', 'text_pole');
         role.id = `ct-gs-prompt-role-${block.id}`;
         for (const [value, label] of [['system', 'System'], ['user', 'User'], ['assistant', 'AI']]) role.append(option(value, label, placement.role === value));
         role.addEventListener('change', () => setPlacement(block.id, { role: role.value }));
-        row.append(field('As', HELP.promptRole, role));
+        placeRow.append(field('As', HELP.promptRole, role));
     }
-    // With the macro in the preset, the preset decides where the block goes.
-    if (current !== 'preset-macro') section.append(row);
-
-    const info = el('div', 'ct-gs-prompt-info');
-    const statusText = current === 'preset-macro'
-        ? `Your preset already has ${presetMacrosOf(block.id).map(macro => `{{${macro}}}`).join(', ')}: it goes where that is (move it in the Prompt Manager) and is not added again.`
-        : STATUS_TEXT[current];
-    info.append(el('span', `ct-gs-prompt-status is-${current}`, statusText));
-    const macro = el('code', 'ct-gs-prompt-macro', `{{${block.macro}}}`);
-    macro.title = 'Click to copy';
-    macro.addEventListener('click', () => {
+    if (current === 'preset-macro') inside.push(el('p', 'ct-gs-note', `Your preset has ${presetMacrosOf(block.id).map(macro => `{{${macro}}}`).join(', ')}. Move it in the Prompt Manager.`));
+    else inside.push(placeRow);
+    if (block.id === 'role' && roleInPreset(group())) inside.push(el('p', 'ct-gs-note', 'Your preset has the role prompt itself, so only the extra lines are sent.'));
+    if (block.id === 'style') for (const warning of styleConflicts(t.style)) inside.push(el('p', 'ct-gs-warn', warning));
+    inside.push(el('pre', 'ct-gs-style-text ct-gs-prow-preview', blockPreview(block.id) || '(nothing in the open chat right now)'));
+    const tools = el('div', 'ct-gs-prompt-info');
+    const copy = button('ct-cb-btn', `<i class="fa-regular fa-copy"></i><span>{{${block.macro}}}</span>`, 'Copy the macro', () => {
         navigator.clipboard?.writeText(`{{${block.macro}}}`).then(() => toastr.success('Macro copied.')).catch(() => {});
     });
-    info.append(el('span', 'ct-gs-note', 'Macro:'), macro);
-    info.append(button('ct-cb-btn ct-gs-prompt-reset', '<i class="fa-solid fa-rotate-left"></i><span>Default</span>', 'Back to the default place', () => resetPlacement(block.id)));
-    section.append(info);
-
-    if (block.id === 'role' && roleInPreset(group())) {
-        section.append(el('p', 'ct-gs-note', `Your preset already has the ${t.campaign.role === 'author' ? 'Author' : 'Co-author'} prompt, so only the extra lines (main character, autonomy, empty turns) are sent.`));
-    }
-    if (block.id === 'style') {
-        for (const warning of styleConflicts(t.style)) section.append(el('p', 'ct-gs-warn', warning));
-    }
-
-    const text = blockPreview(block.id);
-    const details = el('details', 'ct-gs-prompt-preview');
-    details.append(el('summary', '', 'What the AI receives'), el('pre', 'ct-gs-style-text', text || '(empty in the open chat)'));
-    section.append(details);
-    return section;
+    tools.append(copy, button('ct-cb-btn', '<i class="fa-solid fa-rotate-left"></i><span>Default</span>', 'Back to the default place', () => resetPlacement(block.id)));
+    inside.push(tools);
+    head.append(onOff, more(`prompt-${block.id}`, title, ...inside));
+    row.append(head);
+    return row;
 }
 
-function renderPromptsTab(body, t) {
-    const aside = button('ct-cb-btn', '<i class="fa-solid fa-magnifying-glass"></i><span>See the last prompt</span>', 'Opens SillyTavern\'s view of exactly what was sent for the last reply', openLastPromptItemization);
-    const intro = card('Where Homunculus prompts go', HELP.prompts, { aside, intro: 'Pick where each block is added. "What the AI receives" shows the open chat.' });
-    const g = group();
-    if (g && String(selected_group) !== String(g.id)) intro.append(el('p', 'ct-gs-warn', 'This group is not the open chat, so the previews show the open chat.'));
+function renderPromptsCard(t) {
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-magnifying-glass"></i><span>See the last prompt</span>', 'What was sent for the last reply', openLastPromptItemization);
+    const section = card('Prompts', HELP.prompts, { aside, className: 'ct-gs-prompts' });
     const missing = missingSections();
-    const sections = el('div', 'ct-gs-inline-note ct-gs-prompt-sections');
-    sections.append(el('span', 'ct-gs-note', missing.length
-        ? `Your Chat Completion preset has no section for: ${missing.map(block => block.label).join(', ')}. Add them to move each block by hand in the preset (Prompt Manager), like any other section.`
-        : 'Your preset has a section for every block. Move or switch them off in the Prompt Manager.'));
     if (missing.length) {
-        sections.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-plus"></i> Add the sections to my preset', '', async () => {
+        const row = el('div', 'ct-gs-warn ct-gs-inline-note ct-gs-prompt-sections');
+        row.append(el('span', '', `Your preset has no place for ${missing.length === PROMPT_BLOCKS.length ? 'these' : missing.map(block => block.label).join(', ')}.`));
+        row.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-plus"></i> Add them to my preset', '', async () => {
             try {
                 const added = await addSectionsToPreset();
-                toastr.success(`${added} section${added === 1 ? '' : 's'} added. To keep them in the preset file, save the preset.`);
+                toastr.success(`${added} section${added === 1 ? '' : 's'} added. Save the preset to keep them.`);
             } catch (error) {
                 toastr.error(String(error?.message ?? error));
             }
             render();
-        }));
+        }), helpButton('Preset sections', HELP.promptSections));
+        section.append(row);
     }
-    sections.append(helpButton('Preset sections', HELP.promptSections));
-    intro.append(sections);
-    body.append(intro);
-    for (const block of PROMPT_BLOCKS) body.append(renderPromptBlock(block, t));
+    const list = el('div', 'ct-gs-prow-list');
+    for (const block of PROMPT_BLOCKS) list.append(renderPromptRow(block, t));
+    section.append(list);
+    return section;
+}
+
+function renderSettingsTab(body, t) {
+    renderProfileTab(body, t);
+    body.append(renderPromptsCard(t));
+    renderBehaviorTab(body, t);
 }
 
 function renderBehaviorTab(body, t) {
-    const section = card('Behavior', HELP.behavior);
+    const section = card('Who replies', HELP.behavior);
     if (t.campaign.mode === 'narrated') {
-        section.append(el('p', 'ct-gs-note', 'Narrated: the narrator replies to every message, and only the narrator\'s card is sent (the cast goes in as sheets). To make a cast member speak anyway, use the member bar under the chat.'));
+        section.append(el('p', 'ct-gs-note', 'Narrated: the narrator replies to every message.'));
         body.append(section);
         return;
     }
@@ -1651,7 +1619,7 @@ function renderBehaviorTab(body, t) {
     strategy.id = 'ct-gs-strategy';
     for (const [value, label] of STRATEGIES) strategy.append(option(value, label, value === t.behavior.activation_strategy));
     strategy.addEventListener('change', () => void setBehavior({ activation_strategy: Number(strategy.value) }));
-    section.append(field('Who replies', '', strategy));
+    section.append(field('Order', '', strategy));
     const mode = el('select', 'text_pole');
     mode.id = 'ct-gs-genmode';
     for (const [value, label] of GEN_MODES) mode.append(option(value, label, value === t.behavior.generation_mode));
@@ -1700,10 +1668,8 @@ function render() {
         cast: renderCastTab,
         scene: renderSceneTab,
         chats: renderChatsTab,
-        profile: renderProfileTab,
         agents: renderAgentsTab,
-        behavior: renderBehaviorTab,
-        prompts: renderPromptsTab,
+        settings: renderSettingsTab,
     })[state.tab](page, t);
     body.append(page);
     renderFooter(t);
@@ -1861,7 +1827,7 @@ function show() {
 /**
  * Opens the Studio on a group (the open or edited group by default, else the New group form).
  * @param {string|null} [groupId]
- * @param {string} [tab] setup, cast, scene, chats, profile, agents or behavior
+ * @param {string} [tab] setup, cast, scene, chats, agents or settings (profile, behavior and prompts open Settings)
  */
 function open(groupId = openGroupId ?? selected_group, tab = '') {
     const id = groupId ? String(groupId) : null;
@@ -1878,7 +1844,8 @@ function open(groupId = openGroupId ?? selected_group, tab = '') {
         state.mode = 'new';
         state.draft = emptyDraft();
     }
-    if (tab && TABS.some(item => item.id === tab)) state.tab = tab;
+    const wanted = TAB_ALIASES[tab] ?? tab;
+    if (wanted && TABS.some(item => item.id === wanted)) state.tab = wanted;
     show();
 }
 

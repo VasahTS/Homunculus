@@ -21,31 +21,31 @@ export const BLOCKS = Object.freeze([
     {
         id: 'role', key: 'homunculus_role', tag: 'story_role', macro: 'homunculusRole', label: 'Role instructions',
         about: 'The Co-author or Author instructions, the main character, character autonomy and what an empty turn means (Setup → Your role).',
-        placement: { mode: 'main', depth: 4, role: 'system' },
+        placement: { mode: 'macro', depth: 4, role: 'system' },
         section: { after: 'main' },
     },
     {
         id: 'style', key: 'homunculus_style', tag: 'story_style', macro: 'storyStyle', label: 'Story style',
         about: 'Perspective, tense, reply length, tone and your own variables (Setup → Story style).',
-        placement: { mode: 'chat', depth: 1, role: 'system' },
+        placement: { mode: 'macro', depth: 1, role: 'system' },
         section: { after: 'chatHistory' },
     },
     {
         id: 'beats', key: 'homunculus_beats', tag: 'author_plan', macro: 'authorPlan', label: 'The author\'s plan',
         about: 'Your planned beats marked "Steer toward" or "Not yet" (Scene panel → Plot).',
-        placement: { mode: 'chat', depth: 1, role: 'system' },
+        placement: { mode: 'macro', depth: 1, role: 'system' },
         section: { after: 'chatHistory' },
     },
     {
         id: 'scene', key: 'homunculus_scene', tag: 'current_scene', macro: 'currentScene', label: 'Current scene',
         about: 'Who is in the scene and how they look, the world state and the plot notes (the Scene trackers).',
-        placement: { mode: 'main', depth: 4, role: 'system' },
+        placement: { mode: 'macro', depth: 4, role: 'system' },
         section: { after: 'scenario' },
     },
     {
         id: 'cast', key: 'homunculus_cast', tag: 'cast_sheets', macro: 'cast', label: 'Cast sheets',
         about: 'The sheets of the cast in a Narrated group (Cast tab).',
-        placement: { mode: 'main', depth: 4, role: 'system' },
+        placement: { mode: 'macro', depth: 4, role: 'system' },
         section: { after: 'scenario' },
     },
 ]);
@@ -63,9 +63,17 @@ const byId = id => BLOCKS.find(block => block.id === id) ?? null;
 
 // ───────────────────────── Settings ─────────────────────────
 
+const SETTINGS_VERSION = 2;
+
 function settings() {
     extension_settings.homunculusPrompts ??= {};
-    return extension_settings.homunculusPrompts;
+    const saved = extension_settings.homunculusPrompts;
+    // v2: the default became "only where the preset has the macro"; places picked under v1 are dropped once.
+    if ((saved.version ?? 1) < SETTINGS_VERSION) {
+        for (const block of BLOCKS) delete saved[block.id];
+        saved.version = SETTINGS_VERSION;
+    }
+    return saved;
 }
 
 /** The placement of a block: { enabled, mode: 'main'|'chat'|'macro', depth, role }. */
@@ -182,16 +190,17 @@ export function wrap(id, text) {
 }
 
 /**
- * Why a block is or isn't sent right now: 'sent' | 'empty' | 'off' | 'macro' | 'preset-macro'.
+ * Why a block is or isn't sent right now: 'off' | 'preset-macro' (the preset has its macro: sent there) |
+ * 'no-place' (macro only, and the preset has no macro: never sent) | 'empty' | 'sent' (added by itself).
  * @param {string} id
  */
 export function status(id) {
     const block = byId(id);
     const placement = getPlacement(id);
     if (!placement.enabled) return 'off';
-    if (!str(texts.get(id)).trim()) return 'empty';
-    if (placement.mode === 'macro') return 'macro';
     if (presetMacrosOf(block.id).length) return 'preset-macro';
+    if (placement.mode === 'macro') return 'no-place';
+    if (!str(texts.get(id)).trim()) return 'empty';
     return 'sent';
 }
 
