@@ -500,6 +500,22 @@
         "type": "openai_preset"
     },
     {
+        "filename": "presets/openai/Homunculus - Roleplay.json",
+        "type": "openai_preset"
+    },
+    {
+        "filename": "presets/openai/Homunculus - Game Master.json",
+        "type": "openai_preset"
+    },
+    {
+        "filename": "presets/openai/Homunculus - Co-author.json",
+        "type": "openai_preset"
+    },
+    {
+        "filename": "presets/openai/Homunculus - Director.json",
+        "type": "openai_preset"
+    },
+    {
         "filename": "presets/openai/Pura's Director Preset (SillyBunny).json",
         "type": "openai_preset"
     },

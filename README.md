@@ -64,6 +64,7 @@ The interface is in English. Most screens have small **?** buttons that explain 
 | **Quick Connection** | Switch connection profile and model from the message box. | Chain button in the message box |
 | **Home** | Recent chats, characters, lorebooks and your persona in one place, with a Continue button. | House icon |
 | **Customize** | Visual profiles (Classic, Arcane Lantern, Blood & Ink), two layouts, and effects you can switch on one by one. | Palette icon |
+| **Homunculus presets** | Four ready-made Chat Completion presets: Roleplay, Game Master, Co-author and Director. | Presets |
 | **Hob** | A built-in guide character that answers questions about the app. | Characters |
 | **The Ninth Summoning** | A short isekai adventure, ready to play, that uses the Group Studio and the Scene panel. | Characters |
 
@@ -264,9 +265,22 @@ Your own agent lists are not changed.
 - **See the last prompt**: shows exactly what was sent on the last reply.
 - **Who replies** (Ensemble): *Natural order*, *List order*, *Pooled order* or *Manual*; which cards are sent; whether a character may reply twice in a row.
 
+#### Homunculus presets
+
+Four Chat Completion presets come with the app. Pick one in **Presets**, or set it as the group's preset here.
+
+| Preset | Use it for |
+| --- | --- |
+| **Homunculus - Roleplay** | One-on-one chats and Simple group chats. You play your persona. |
+| **Homunculus - Game Master** | Narrated adventures. The AI runs the world and every NPC. |
+| **Homunculus - Co-author** | The Co-author role. Your messages are directions; the AI writes your character too. |
+| **Homunculus - Director** | The Director role. Nobody plays a character; you direct from outside. |
+
+All four share the same rules for story, NPCs, dialogue and narration, and differ only in the first block. Each block is a separate entry in the Prompt Manager, so you can switch pieces off without editing text. The Co-author and Director presets contain the role instructions themselves, so the app does not send them twice.
+
 #### Prompt blocks
 
-Homunculus sends these blocks only where your preset has a place for them (a section in the Prompt Manager that holds their macro). The default preset that ships with the app already has all five.
+Homunculus sends these blocks only where your preset has a place for them (a section in the Prompt Manager that holds their macro). The *Default* preset and the four *Homunculus* presets that ship with the app already have all five.
 
 | Block | Macro | What it carries |
 | --- | --- | --- |

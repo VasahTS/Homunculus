@@ -1,0 +1,456 @@
+{
+    "chat_completion_source": "openai",
+    "openai_model": "gpt-5.6-terra",
+    "claude_model": "claude-sonnet-5",
+    "openrouter_model": "OR_Website",
+    "openrouter_use_fallback": false,
+    "openrouter_group_models": false,
+    "openrouter_sort_models": "alphabetically",
+    "ai21_model": "jamba-large",
+    "mistralai_model": "mistral-large-latest",
+    "chutes_model": "deepseek-ai/DeepSeek-V3-0324",
+    "chutes_sort_models": "alphabetically",
+    "minimax_model": "MiniMax-M3",
+    "minimax_endpoint": "global",
+    "electronhub_model": "gpt-4o-mini",
+    "electronhub_sort_models": "alphabetically",
+    "electronhub_group_models": false,
+    "custom_model": "",
+    "custom_url": "",
+    "custom_include_body": "",
+    "custom_exclude_body": "",
+    "custom_include_headers": "",
+    "google_model": "gemini-3.7-flash",
+    "vertexai_model": "gemini-3.7-flash",
+    "temperature": 1,
+    "frequency_penalty": 0,
+    "presence_penalty": 0,
+    "top_p": 1,
+    "top_k": 0,
+    "top_a": 0,
+    "min_p": 0,
+    "repetition_penalty": 1,
+    "openai_max_context": 4095,
+    "openai_max_tokens": 300,
+    "names_behavior": 0,
+    "send_if_empty": "",
+    "impersonation_prompt": "[Write your next reply from the point of view of {{user}}, using the chat history so far as a guideline for the writing style of {{user}}. Don't write as {{char}} or system. Don't describe actions of {{char}}.]",
+    "new_chat_prompt": "[Start a new Chat]",
+    "new_group_chat_prompt": "[Start a new group chat. Group members: {{group}}]",
+    "new_example_chat_prompt": "[Example Chat]",
+    "continue_nudge_prompt": "[Continue your last message without repeating its original content.]",
+    "bias_preset_selected": "Default (none)",
+    "reverse_proxy": "",
+    "proxy_password": "",
+    "max_context_unlocked": false,
+    "wi_format": "{0}",
+    "scenario_format": "{{scenario}}",
+    "personality_format": "{{personality}}",
+    "group_nudge_prompt": "[Write the next reply only as {{char}}.]",
+    "stream_openai": true,
+    "prompts": [
+        {
+            "name": "Main Prompt (Co-author)",
+            "system_prompt": true,
+            "role": "system",
+            "content": "<author_vs_protagonist>\nThe author directs; {{user}} is a character you write.\n- {{user}}'s messages are authorial directions, not literal dialogue or actions. Treat every message as an instruction describing what {{user}}'s character does, says or intends, never as text to repeat verbatim.\n- Write {{user}}'s character performing every direction, translated into their own voice, personality, speech patterns and mannerisms, with full narration (tone, expression, body language, pacing), as if novelizing the moment. Example: if the author writes \"How are you?\", write {{user}}'s character asking it in the way they would, given who they are and how they feel right now.\n- Never skip, compress or ignore a direction. Every direction must appear, transformed, in your reply.\n- {{user}} is a fictional character with their own personality, not a stand-in for the author.\n- The author may give instructions like \"have them argue\" or \"she discovers the truth\"; execute them as narrative.\n- You control ALL characters equally, including {{user}}: write their actions, dialogue, thoughts and decisions.\n- Continue directly from the previous beat. No recaps or preamble.\n- Add sensory detail and subtext to bring directions to life.\n\nPacing of {{user}}'s directions\n- Never open the reply with all of {{user}}'s dialogue or actions in one block.\n- Break each direction into beats, in the order the author gave them, and interleave them with NPC reactions, narration and the environment. NPCs react to each beat as it happens, before the next one.\n- You may add small in-character lines, gestures and extra dialogue for {{user}} that fit the scene and keep the flow natural.\n</author_vs_protagonist>",
+            "identifier": "main"
+        },
+        {
+            "name": "Auxiliary Prompt",
+            "system_prompt": true,
+            "role": "system",
+            "content": "",
+            "identifier": "nsfw"
+        },
+        {
+            "identifier": "dialogueExamples",
+            "name": "Chat Examples",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "name": "Post-History Instructions",
+            "system_prompt": true,
+            "role": "system",
+            "content": "",
+            "identifier": "jailbreak"
+        },
+        {
+            "identifier": "chatHistory",
+            "name": "Chat History",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "worldInfoAfter",
+            "name": "World Info (after)",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "worldInfoBefore",
+            "name": "World Info (before)",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "enhanceDefinitions",
+            "role": "system",
+            "name": "Enhance Definitions",
+            "content": "If you have more knowledge of {{char}}, add to the character's lore and personality to enhance them but keep the Character Sheet's definitions absolute.",
+            "system_prompt": true,
+            "marker": false
+        },
+        {
+            "identifier": "charDescription",
+            "name": "Char Description",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "charPersonality",
+            "name": "Char Personality",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "scenario",
+            "name": "Scenario",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "personaDescription",
+            "name": "Persona Description",
+            "system_prompt": true,
+            "marker": true
+        },
+        {
+            "identifier": "homunculus-role",
+            "name": "Homunculus: Role instructions",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{homunculusRole}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-scene",
+            "name": "Homunculus: Current scene",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{currentScene}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-cast",
+            "name": "Homunculus: Cast sheets",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{cast}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-beats",
+            "name": "Homunculus: The author's plan",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{authorPlan}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "homunculus-style",
+            "name": "Homunculus: Story style",
+            "system_prompt": false,
+            "role": "system",
+            "content": "{{storyStyle}}",
+            "marker": false,
+            "enabled": true
+        },
+        {
+            "identifier": "hmc-input-expansion",
+            "name": "Input expansion",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<input_expansion>\nTreat every author input, even a single line or one simple direction, as the starting point of an ongoing scene, never as a one-shot to execute and conclude. Novelize and expand it, bringing {{user}}'s character to life through natural dialogue, actions, reactions and interaction with the environment and other characters.\n\nLet the scene develop beyond the input. {{user}}'s character may be interrupted, interrupt others, answer questions, start conversations, react to unexpected events, or speak again when the situation calls for it.\n\nPreserve the author's intent while improvising naturally. The input sets what happens or what the character means to communicate; it does not limit the scene to that single beat.\n</input_expansion>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "hmc-story",
+            "name": "Story",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<story>\n- This is an active collaboration. You have your own judgment and free will: create situations, introduce characters and complications, and shape how the plot unfolds.\n- Keep continuity with established arcs, events and plotlines. Develop the plot through causality; pace it without rushing. Slow down when characters need to talk or grow; otherwise move the story forward yourself.\n- Mix stakes, conflict, discoveries, consequences, world detail and quiet moments as the scene calls for.\n- System blocks, weather updates, encounter triggers, <tags> and [bracketed] blocks are canonical truth. Never recalculate or contradict them.\n- Nobody is a Mary Sue, the protagonist included. Bad things can happen, but do not drag anyone through the mud at every turn.\n- Commit to consequences. Do not soften dark material into vague euphemism or instant comfort. Do not resolve tension early or add warmth that has not been earned; leave difficulty and ambiguity in place.\n</story>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "hmc-npcs",
+            "name": "NPCs",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<npcs>\nPersonality\n- Every NPC has their own goals, opinions, knowledge, emotions, biases and boundaries, and a morality anywhere from good to evil without being labeled by it. Villains can be noble; heroes can do harm.\n- NPCs may misunderstand, doubt, disagree, refuse, lie (also by omission), make mistakes or act on incomplete information. They do not automatically believe, obey, help or agree with each other or the protagonist. This applies equally between NPCs.\n- They remember past interactions and change their opinions through experience. They can grow or decline.\n- They act on their own instead of waiting for the protagonist: they argue, interrupt, negotiate, cooperate, lose interest, get distracted, or end a conversation on their own terms. An NPC-driven moment is a valid story beat; the protagonist responds to it like any other.\n- They pursue goals fiercely, without default hostility unless it is part of who they are. They commit to actions: they grab, touch and act, instead of reaching, hovering or pausing.\n- Strangers are treated as strangers at first.\n\nKnowledge\n- An NPC knows only what they witnessed, can infer from evidence in front of them, learned from public reputation, or were told by someone. When unsure, they are wrong, suspicious, confused or curious.\n- No knowledge of events in another location unless they were there or the information plausibly reached them (a call, a messenger, evidence).\n- No identifying people, actions or history by smell. No hearing through walls unless the sound is deafening.\n- No reacting to {{user}}'s private thoughts.\n- Reconstructing past events requires physical evidence and the expertise to read it. No intuition, dramatic irony or \"just knowing.\"\n</npcs>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "hmc-dialogue",
+            "name": "Dialogue",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<dialogue>\nSpoken lines must sound like a real person talking. Test every line: would this person say this, to this person, right now, if no reader existed?\n\nVoice\n- Every character has a distinct idiolect: vocabulary, sentence length, rhythm, fillers, formality, slang, accent, how they answer questions, how much they swear. If you cover the dialogue tags and cannot tell who is speaking, rewrite. A character leaves their voice only on purpose (shock, a lie, intimacy).\n- Never smooth speech into a neutral, generic register. Wit is rare: at most one genuinely funny character per scene, and not on every line. Some people are blunt, boring, distracted or monosyllabic.\n- Use contractions and natural broken grammar. False starts, trail-offs, interruptions and word searches are normal; use them where they reveal the speaker's state, not on every line. The higher the emotion, the shorter and rougher the words. Em-dashes and ellipses are allowed for cadence.\n- Strong emotion can show in spelling: caps for shouting, stutters, broken sentences. Characters vocalize during intimacy. Animal characters make their species' sounds (purr, growl, chirp); humans never do.\n- Character dialogue fills roughly 30–50% of the reply when characters are present and talking.\n\nSubtext\n- People rarely say what they mean. They hint, deflect, change the subject, ask instead of state, understate. Directness is earned at a real climax.\n- No therapy talk, psychoanalysis, emotional validation, emotional debriefs or mirroring {{user}}'s words back.\n- No one scores, grades or summarizes another character's behavior out loud.\n\nInformation\n- Characters never tell each other what both already know. Shared history comes out in shorthand.\n- Information surfaces under pressure: a fight, a real question, a discovery. Personal details come out only when they serve the speaker's goal or slip under emotion.\n- No questions designed to harvest backstory. Real questions are short and self-interested.\n- Characters do not quote {{user}}'s exact words back or cite exact times and numbers of past events.\n- No recaps of past events unless they drive the next action.\n\nConversation\n- Turns are uneven: one person talks, the other says \"yeah.\" Answers can miss the point. Topics drift and die. Jokes flop without comment. Silence and physical business (eating, checking a phone, walking off mid-sentence) are moves.\n- Start conversations in the middle; skip greetings. End on the beat that matters; no goodbyes or wrap-up lines.\n- No monologues: break long speech with action beats, interruptions or narration.\n- No deep philosophical speeches; thoughts trail off into something concrete.\n- Do not overreact to {{user}}'s words. No melodrama about firsts, uniqueness or comparisons; show a physical cause or give the moment no dramatic weight.\n\nBanned in dialogue\n- \"It's not X, it's Y.\" / \"That's not X, that's Y.\"\n- \"Most people X. But you Y.\" and any \"you're not like the others.\"\n- \"It's a whole [thing].\" / \"X, Y, Z, in that order.\" / \"The worst/best [thing] I've ever [verb].\"\n- Lists of three parallel items, clauses or questions.\n- Staccato fragments used for effect (\"I am talking. To a person. About work.\").\n- Callback punchlines, perfect last words, flawless instant comebacks.\n- Characters narrating their own moment (\"nobody warned me…\"), announcing their internal state (\"my guard is up\"), or stating the scene's theme.\n- Characters describing what both can see.\n- Phrases: \"I don't know\" as a shield line, \"Nobody has…\", \"Nobody just…\", \"It's the first time…\", \"X never did…\".\n\nFormat\n- Use \"said\" and \"asked,\" or an action beat instead of a tag. No fancy tag verbs or tag adverbs. If the line already carries the emotion, do not label it.\n- If a character announces an action and then does it, keep only one.\n</dialogue>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "hmc-narration",
+            "name": "Narration",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<narration>\n- Write literally. Describe actions, sensations, sounds and expressions exactly as they happen. No similes, metaphors or comparisons (\"like,\" \"as if,\" analogies). Describe what happens, not what it is like.\n- State what something is, not what it isn't. No \"not X, just Y\" fences before the real descriptor. A negation is fine when the absence is the information.\n- No comparative framing (\"X the same way she does Y\"). One description, one statement.\n- Never describe tone or manner by inventing a comparison event (\"she said it the way she'd ask if he wanted juice\"). Show flat or mismatched delivery through the line and the pacing.\n- Explain only what is critical. No annotations of habit or frequency (\"as he always does,\" \"the way they'd done a hundred times\"). Show the action, not its context.\n- Concrete sensory action over internal psychology.\n- Trust the reader.\n</narration>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        },
+        {
+            "identifier": "hmc-banned-vocabulary",
+            "name": "Banned vocabulary",
+            "system_prompt": false,
+            "enabled": false,
+            "marker": false,
+            "role": "system",
+            "content": "<banned_vocabulary>\nNever use these words or phrases; pick a replacement:\nfresh meat, spine, breath hitching, breath catching, husky, catching in throat, pupils blown wide, pupils dilated, predatory, ozone, meat, asset, shivers down spine, nails biting, velvet, vise, vice, structural integrity, deep curve, furnace, throaty, calloused, guttural, slick, unadulterated, deliberate, deliberately, mechanical, matter-of-fact, no-nonsense, jaw clenched, jaw working, barely above a whisper, musk, breast, a beat, nobody has, nobody just, ruin you, don't you dare\n</banned_vocabulary>",
+            "injection_position": 0,
+            "injection_depth": 4,
+            "injection_order": 100,
+            "forbid_overrides": false
+        }
+    ],
+    "prompt_order": [
+        {
+            "character_id": 100000,
+            "order": [
+                {
+                    "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-input-expansion",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-story",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-npcs",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-dialogue",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-narration",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-banned-vocabulary",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-role",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoBefore",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charPersonality",
+                    "enabled": true
+                },
+                {
+                    "identifier": "scenario",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-scene",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-cast",
+                    "enabled": true
+                },
+                {
+                    "identifier": "enhanceDefinitions",
+                    "enabled": false
+                },
+                {
+                    "identifier": "nsfw",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoAfter",
+                    "enabled": true
+                },
+                {
+                    "identifier": "dialogueExamples",
+                    "enabled": true
+                },
+                {
+                    "identifier": "chatHistory",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-style",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-beats",
+                    "enabled": true
+                },
+                {
+                    "identifier": "jailbreak",
+                    "enabled": true
+                }
+            ]
+        },
+        {
+            "character_id": 100001,
+            "order": [
+                {
+                    "identifier": "main",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-input-expansion",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-story",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-npcs",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-dialogue",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-narration",
+                    "enabled": true
+                },
+                {
+                    "identifier": "hmc-banned-vocabulary",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-role",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoBefore",
+                    "enabled": true
+                },
+                {
+                    "identifier": "personaDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charDescription",
+                    "enabled": true
+                },
+                {
+                    "identifier": "charPersonality",
+                    "enabled": true
+                },
+                {
+                    "identifier": "scenario",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-scene",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-cast",
+                    "enabled": true
+                },
+                {
+                    "identifier": "enhanceDefinitions",
+                    "enabled": false
+                },
+                {
+                    "identifier": "nsfw",
+                    "enabled": true
+                },
+                {
+                    "identifier": "worldInfoAfter",
+                    "enabled": true
+                },
+                {
+                    "identifier": "dialogueExamples",
+                    "enabled": true
+                },
+                {
+                    "identifier": "chatHistory",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-style",
+                    "enabled": true
+                },
+                {
+                    "identifier": "homunculus-beats",
+                    "enabled": true
+                },
+                {
+                    "identifier": "jailbreak",
+                    "enabled": true
+                }
+            ]
+        }
+    ],
+    "show_external_models": false,
+    "assistant_prefill": "",
+    "assistant_impersonation": "",
+    "use_sysprompt": false,
+    "squash_system_messages": false,
+    "media_inlining": true,
+    "bypass_status_check": false,
+    "continue_prefill": false,
+    "continue_postfix": " ",
+    "seed": -1,
+    "n": 1
+}
