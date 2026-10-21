@@ -4159,5 +4159,70 @@
             "tracker"
         ],
         "prompt": "### Scene Characters Tracker\nYou track the characters of this roleplay for a side panel: who is in the current scene, and what can be seen and known about each one right now. You never write story text.\nRead the recent conversation and your previous state, then answer with the NEW state.\n\nSheets of the cast (empty when the group has none):\n{{cast}}\n\n{{sceneCastFields}}\n\nRules:\n- Keep every character from your previous state. Set \"present\": false for anyone who left the scene; never delete them.\n- Include {{user}} with \"role\": \"player\".\n- Add a NEW character only if they have a proper name and actually did or said something in the story (not \"the innkeeper\" or \"a guard\"). When in doubt, leave them out.\n- Fill every REQUIRED field from the moment a character is added, so the player can picture them at once: the story first, then the character card, cast sheet or persona. If those do not say, choose values that fit the character, their role and the setting, and keep them.\n- Change a value only when the story changes it (new clothes, a wound, a lost weapon). If the story contradicts an earlier choice, the story wins.\n- Valid JSON only: double quotes, no comments, no trailing commas."
+    },
+    {
+        "icon": "",
+        "category": "custom",
+        "version": 1,
+        "author": "Homunculus",
+        "phase": "post",
+        "execution": "companion",
+        "companion": {
+            "trigger": "auto",
+            "displayMode": "hidden",
+            "format": "text",
+            "rawPrompt": true,
+            "contextMessages": 8,
+            "includeCharacterCard": true,
+            "includePersona": false,
+            "includeWorldInfo": true,
+            "includeAuthorsNote": false,
+            "includeSystemPrompt": false,
+            "includeHistory": true,
+            "historyDepth": 1,
+            "feedback": {
+                "enabled": false,
+                "depth": 1
+            },
+            "batch": false,
+            "maxTokens": 2500
+        },
+        "injection": {
+            "position": 0,
+            "depth": 4,
+            "role": 0,
+            "order": 100,
+            "scan": false
+        },
+        "postProcess": {
+            "enabled": false,
+            "type": "regex",
+            "regexFind": "",
+            "regexReplace": "",
+            "regexFlags": "g",
+            "appendText": "",
+            "extractPattern": "",
+            "extractVariable": ""
+        },
+        "enabled": false,
+        "conditions": {
+            "triggerKeywords": [],
+            "triggerProbability": 100,
+            "generationTypes": [
+                "normal",
+                "continue",
+                "swipe",
+                "regenerate"
+            ]
+        },
+        "id": "tpl-homunculus-scene-plot",
+        "name": "Scene: Plot",
+        "description": "Keeps the plot notes for the Scene panel (Plot tab): story threads, what each character wants and will do next, secrets, and which of the author's planned beats the story reached. Made for the Co-author and Author roles of the Group Studio.",
+        "tags": [
+            "homunculus-scene",
+            "plot",
+            "tracker"
+        ],
+        "prompt": "### Scene Plot Tracker\nYou keep the plot notes of this story for the author, in a side panel. You never write story text.\nRead the recent conversation, the author's planned beats and your previous notes, then answer with the NEW notes.\n\nThe author's planned beats:\n{{scenePlotBeats}}\n\nAnswer with exactly one block in this format and nothing else:\n[PLOT]\n{\"threads\":[{\"title\":\"\",\"status\":\"active\",\"note\":\"\"}],\"goals\":[{\"name\":\"\",\"want\":\"\",\"next\":\"\"}],\"secrets\":[{\"fact\":\"\",\"knows\":[\"\"],\"unaware\":[\"\"]}],\"beatsDone\":[\"\"]}\n[/PLOT]\n\nRules:\n- threads: the open arcs and questions of the story. status is \"brewing\" (set up, not started yet), \"active\", \"done\" or \"failed\". Keep every thread from your previous notes; change its status only when the story does. Add a thread only when the story clearly opens one. note: one short line on where it stands.\n- goals: one entry per named character who matters right now (never the author or the user's persona in the Author role): what they want, and the next thing they will try on their own. Update them when the story changes them.\n- secrets: facts that some characters know and others don't. knows and unaware are character names. Drop a secret once everyone knows it.\n- beatsDone: titles of the author's planned beats that the story has now reached, copied exactly. Empty list when none.\n- Lorebook entries ([World Info]) and character cards are canon.\n- Valid JSON only: double quotes, no comments, no trailing commas."
     }
 ]

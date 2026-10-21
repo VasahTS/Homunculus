@@ -34,8 +34,13 @@ import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIEL
 export const SCENE_TEMPLATES = Object.freeze({
     world: 'tpl-homunculus-scene-world',
     cast: 'tpl-homunculus-scene-characters',
+    plot: 'tpl-homunculus-scene-plot',
 });
-const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST' });
+const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST', plot: 'PLOT' });
+const BEATS_KEY = 'homunculus_beats';
+const BEATS_PROMPT_KEY = 'homunculus_beats';
+const THREAD_STATES = Object.freeze(['brewing', 'active', 'done', 'failed']);
+const BEAT_STATES = Object.freeze([['planned', 'Planned'], ['steer', 'Steer toward'], ['hold', 'Not yet']]);
 const PROMPT_KEY = 'homunculus_scene';
 const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
@@ -65,6 +70,13 @@ const HELP = {
     items: '<p>Notable things the player carries. The tracker adds items that are clearly taken, bought or given, and removes the ones lost or used up.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
 <p>To add your own field (for example "Corruption"), add it to the tracker's prompt in the agent editor.</p>`,
+    plot: `<p>The shape of the story, for you as the author.</p>
+<ul>
+<li><b>Threads</b>: open arcs and questions, kept by the <b>Scene: Plot</b> tracker (brewing, active, done, failed). Click the status to change it.</li>
+<li><b>What each character wants</b>: their goal and what they will try next on their own.</li>
+<li><b>Your planned beats</b>: your own outline. <b>Steer toward</b> tells the AI to move the story there; <b>Not yet</b> tells it to keep that from happening for now. The tracker ticks a beat when the story reaches it.</li>
+<li><b>Who knows what</b>: secrets, and who is still in the dark.</li>
+</ul>`,
     send: `<p>When this is on, a short copy of the scene goes to the AI before each reply: present characters in full, absent ones as one line, and the world as short lines.</p>
 <p>Turn it off to keep the panel just for you.</p>`,
 };
@@ -183,7 +195,65 @@ const keyOf = name => str(name).trim().toLowerCase();
 /** Whether the panel has anything to show in the open chat. */
 export function isAvailable() {
     if (!getCurrentChatId?.()) return false;
-    return Boolean(enabledAgent('world') || enabledAgent('cast') || findResult('world') || findResult('cast'));
+    return Boolean(enabledAgent('world') || enabledAgent('cast') || enabledAgent('plot') || findResult('world') || findResult('cast') || findResult('plot'));
+}
+
+// ───────────────────────── Plot: the author's planned beats ─────────────────────────
+
+const openRole = () => globalThis.HomunculusGroupCampaign?.openRole?.() ?? 'player';
+
+/** The author's planned beats of the open chat ({ id, title, status: planned|steer|hold|done }). */
+export function getBeats() {
+    const list = Array.isArray(chat_metadata?.[BEATS_KEY]) ? chat_metadata[BEATS_KEY] : [];
+    return list.filter(beat => beat && str(beat.title).trim()).map(beat => ({
+        id: str(beat.id) || Math.random().toString(36).slice(2, 9),
+        title: str(beat.title).trim(),
+        status: ['planned', 'steer', 'hold', 'done'].includes(beat.status) ? beat.status : 'planned',
+    }));
+}
+
+function saveBeats(list) {
+    chat_metadata[BEATS_KEY] = list;
+    saveMetadataDebounced();
+    applyPrompt();
+    render();
+}
+
+function beatsMacro() {
+    const beats = getBeats();
+    if (!beats.length) return '(none)';
+    const label = { planned: 'planned', steer: 'STEER TOWARD', hold: 'NOT YET', done: 'done' };
+    return beats.map(beat => `- [${label[beat.status]}] ${beat.title}`).join('\n');
+}
+
+/** Instructions from the planned beats, sent before each reply (steer toward / not yet). */
+function beatsPrompt() {
+    const beats = getBeats();
+    const steer = beats.filter(beat => beat.status === 'steer').map(beat => beat.title);
+    const hold = beats.filter(beat => beat.status === 'hold').map(beat => beat.title);
+    const parts = [];
+    if (steer.length) parts.push(`Steer the story toward these beats, naturally and without rushing: ${steer.join('; ')}.`);
+    if (hold.length) parts.push(`Do not let these happen yet: ${hold.join('; ')}.`);
+    return parts.length ? `[The author's plan]\n${parts.join('\n')}` : '';
+}
+
+/** Ticks the beats the Plot tracker says the story reached. */
+function syncBeatsDone() {
+    const plot = findResult('plot');
+    const done = (Array.isArray(plot?.data?.beatsDone) ? plot.data.beatsDone : []).map(item => keyOf(item)).filter(Boolean);
+    if (!done.length) return;
+    const beats = getBeats();
+    let changed = false;
+    for (const beat of beats) {
+        if (beat.status !== 'done' && done.includes(keyOf(beat.title))) {
+            beat.status = 'done';
+            changed = true;
+        }
+    }
+    if (changed) {
+        chat_metadata[BEATS_KEY] = beats;
+        saveMetadataDebounced();
+    }
 }
 
 // ───────────────────────── Prompt ─────────────────────────
@@ -253,6 +323,17 @@ function worldPrompt(data) {
     return lines.join('\n');
 }
 
+function plotPrompt(data) {
+    const lines = [];
+    const threads = (Array.isArray(data.threads) ? data.threads : []).filter(item => item && str(item.title).trim() && ['active', 'brewing'].includes(str(item.status || 'active').toLowerCase()));
+    if (threads.length) lines.push(`Open threads: ${threads.map(item => `${str(item.title).trim()}${str(item.note).trim() ? ` (${str(item.note).trim()})` : ''}`).join('; ')}`);
+    const goals = (Array.isArray(data.goals) ? data.goals : []).filter(item => item && str(item.name).trim());
+    if (goals.length) lines.push(`What the characters want: ${goals.map(item => `${str(item.name).trim()}: ${[str(item.want).trim(), str(item.next).trim() ? `next: ${str(item.next).trim()}` : ''].filter(Boolean).join(', ')}`).join('; ')}`);
+    const secrets = (Array.isArray(data.secrets) ? data.secrets : []).filter(item => item && str(item.fact).trim());
+    if (secrets.length) lines.push(`Secrets: ${secrets.map(item => `${str(item.fact).trim()} (known by ${listValue(item.knows).join(', ') || 'nobody'}; unaware: ${listValue(item.unaware).join(', ') || 'everyone else'})`).join('; ')}`);
+    return lines.join('\n');
+}
+
 function feedbackOn(agent) {
     return Boolean(agent?.companion?.feedback?.enabled);
 }
@@ -271,11 +352,17 @@ export function scenePrompt({ before = chat.length } = {}) {
         const text = castPrompt(findResult('cast', { before })?.data ?? {});
         if (text) parts.push(text);
     }
+    const plotAgent = enabledAgent('plot');
+    if (plotAgent && !feedbackOn(plotAgent)) {
+        const text = plotPrompt(findResult('plot', { before })?.data ?? {});
+        if (text) parts.push(text);
+    }
     return parts.length ? `[Current scene, for continuity. Do not repeat it back.]\n${parts.join('\n')}` : '';
 }
 
 function applyPrompt() {
     setExtensionPrompt(PROMPT_KEY, scenePrompt(), extension_prompt_types.IN_PROMPT, 0, false);
+    setExtensionPrompt(BEATS_PROMPT_KEY, getCurrentChatId?.() ? beatsPrompt() : '', extension_prompt_types.IN_PROMPT, 0, false);
 }
 
 /**
@@ -1059,6 +1146,165 @@ function renderQuests(body, world) {
     body.append(list, button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a quest', '', () => openPeek('quest', '', true)));
 }
 
+function renderPlot(body, plot) {
+    const data = plot ?? {};
+    const head = el('div', 'ct-sc-section-head');
+    head.append(el('span', 'ct-sc-kicker', 'Plot'), helpButton('Plot', HELP.plot));
+    body.append(head);
+    if (!enabledAgent('plot') && !plot) {
+        const note = el('div', 'ct-sc-plot-note');
+        note.append(el('span', '', 'Threads, goals and secrets come from the Scene: Plot tracker. Your planned beats below work without it.'));
+        note.append(button('menu_button ct-sc-btn', '<i class="fa-solid fa-sliders"></i> Set up', 'Open Group Studio → Scene', openSetup));
+        body.append(note);
+    }
+
+    // Threads
+    body.append(el('div', 'ct-sc-plot-title', 'Threads'));
+    const threads = (Array.isArray(data.threads) ? data.threads : []).map((thread, index) => ({ thread, index })).filter(({ thread }) => thread && str(thread.title).trim());
+    const threadList = el('div', 'ct-sc-rows');
+    const statusOf = thread => (THREAD_STATES.includes(str(thread.status).toLowerCase()) ? str(thread.status).toLowerCase() : 'active');
+    for (const { thread, index } of threads.sort((a, b) => THREAD_STATES.indexOf(statusOf(a.thread) === 'brewing' ? 'active' : statusOf(a.thread)) - THREAD_STATES.indexOf(statusOf(b.thread) === 'brewing' ? 'active' : statusOf(b.thread)))) {
+        const status = statusOf(thread);
+        const row = el('div', `ct-sc-thread is-${status}`);
+        const pill = button(`ct-sc-pill ct-sc-thread-pill is-${status}`, '', `Status: ${status}. Click to change`, () => void saveData('plot', (next) => {
+            const item = next.threads?.[index];
+            if (!item) return false;
+            item.status = THREAD_STATES[(THREAD_STATES.indexOf(status) + 1) % THREAD_STATES.length];
+        }));
+        pill.textContent = status;
+        const text = el('div', 'ct-sc-thread-text');
+        text.append(el('span', 'ct-sc-quest-title', str(thread.title).trim()));
+        if (str(thread.note).trim()) text.append(el('span', 'ct-sc-row-sub', str(thread.note).trim()));
+        row.append(pill, text, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${str(thread.title).trim()}`, () => void saveData('plot', (next) => {
+            if (!Array.isArray(next.threads)) return false;
+            next.threads.splice(index, 1);
+        })));
+        threadList.append(row);
+    }
+    if (!threads.length) threadList.append(el('p', 'ct-sc-empty-line', plot ? 'No threads yet.' : 'Nothing tracked yet.'));
+    body.append(threadList);
+    if (plot) body.append(addRow('ct-sc-new-thread', 'New thread…', 'Add a thread', title => void saveData('plot', (next) => {
+        next.threads = Array.isArray(next.threads) ? next.threads : [];
+        next.threads.push({ title, status: 'active', note: '' });
+    })));
+
+    // Goals
+    const goals = (Array.isArray(data.goals) ? data.goals : []).filter(item => item && str(item.name).trim());
+    body.append(el('div', 'ct-sc-plot-title', 'What each character wants'));
+    const goalList = el('div', 'ct-sc-rows');
+    for (const goal of goals) {
+        const box = el('div', 'ct-sc-goal');
+        box.append(el('div', 'ct-sc-goal-name', str(goal.name).trim()));
+        if (str(goal.want).trim()) {
+            const line = el('div', 'ct-sc-goal-line');
+            line.append(el('span', 'ct-sc-goal-label is-want', 'Wants'), el('span', '', str(goal.want).trim()));
+            box.append(line);
+        }
+        if (str(goal.next).trim()) {
+            const line = el('div', 'ct-sc-goal-line');
+            line.append(el('span', 'ct-sc-goal-label is-next', 'Next'), el('span', '', str(goal.next).trim()));
+            box.append(line);
+        }
+        goalList.append(box);
+    }
+    if (!goals.length) goalList.append(el('p', 'ct-sc-empty-line', plot ? 'No goals noted yet.' : 'Nothing tracked yet.'));
+    body.append(goalList);
+
+    // Planned beats
+    const beats = getBeats();
+    body.append(el('div', 'ct-sc-plot-title', 'Your planned beats'));
+    const beatList = el('div', 'ct-sc-rows');
+    beats.forEach((beat, index) => {
+        const row = el('div', `ct-sc-beat is-${beat.status}`);
+        const box = el('input');
+        box.type = 'checkbox';
+        box.checked = beat.status === 'done';
+        box.setAttribute('aria-label', `Done: ${beat.title}`);
+        box.addEventListener('change', () => {
+            const next = getBeats();
+            next[index].status = box.checked ? 'done' : 'planned';
+            saveBeats(next);
+        });
+        const select = el('select', 'text_pole ct-sc-beat-status');
+        select.setAttribute('aria-label', `When: ${beat.title}`);
+        select.disabled = beat.status === 'done';
+        for (const [value, label] of BEAT_STATES) {
+            const node = el('option', '', label);
+            node.value = value;
+            node.selected = beat.status === value;
+            select.append(node);
+        }
+        if (beat.status === 'done') {
+            const node = el('option', '', 'Done');
+            node.value = 'done';
+            node.selected = true;
+            select.append(node);
+        }
+        select.addEventListener('change', () => {
+            const next = getBeats();
+            next[index].status = select.value;
+            saveBeats(next);
+        });
+        row.append(box, el('span', 'ct-sc-beat-title', beat.title), select, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${beat.title}`, () => {
+            const next = getBeats();
+            next.splice(index, 1);
+            saveBeats(next);
+        }));
+        beatList.append(row);
+    });
+    if (!beats.length) beatList.append(el('p', 'ct-sc-empty-line', 'Write where you want the story to go. "Steer toward" moves the story there; "Not yet" holds it back.'));
+    body.append(beatList, addRow('ct-sc-new-beat', 'New beat, e.g. "Bram\'s secret comes out"…', 'Add a beat', (title) => {
+        saveBeats([...getBeats(), { id: Math.random().toString(36).slice(2, 9), title, status: 'planned' }]);
+    }));
+
+    // Secrets
+    const secrets = (Array.isArray(data.secrets) ? data.secrets : []).filter(item => item && str(item.fact).trim());
+    body.append(el('div', 'ct-sc-plot-title', 'Who knows what'));
+    const secretList = el('div', 'ct-sc-rows');
+    for (const secret of secrets) {
+        const box = el('div', 'ct-sc-secret');
+        box.append(el('div', 'ct-sc-goal-name', str(secret.fact).trim()));
+        const knows = listValue(secret.knows);
+        const unaware = listValue(secret.unaware);
+        if (knows.length) {
+            const line = el('div', 'ct-sc-goal-line');
+            line.append(el('span', 'ct-sc-goal-label is-knows', 'Knows'), el('span', '', knows.join(', ')));
+            box.append(line);
+        }
+        if (unaware.length) {
+            const line = el('div', 'ct-sc-goal-line');
+            line.append(el('span', 'ct-sc-goal-label is-unaware', 'Doesn\'t know'), el('span', '', unaware.join(', ')));
+            box.append(line);
+        }
+        secretList.append(box);
+    }
+    if (!secrets.length) secretList.append(el('p', 'ct-sc-empty-line', plot ? 'No secrets noted.' : 'Nothing tracked yet.'));
+    body.append(secretList);
+}
+
+function addRow(id, placeholder, label, onAdd) {
+    const row = el('div', 'ct-sc-add-row');
+    const input = el('input', 'text_pole');
+    input.id = id;
+    input.type = 'text';
+    input.placeholder = placeholder;
+    input.setAttribute('aria-label', label);
+    const add = () => {
+        const value = input.value.trim();
+        if (!value) return;
+        input.value = '';
+        onAdd(value);
+    };
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            add();
+        }
+    });
+    row.append(input, button('menu_button ct-sc-btn', '<i class="fa-solid fa-plus"></i>', label, add));
+    return row;
+}
+
 function itemLabel(item) {
     if (item && typeof item === 'object') {
         const name = str(item.name ?? item.item ?? item.title).trim();
@@ -1607,9 +1853,9 @@ function renderPeek() {
 
 // ───────────────────────── Panel ─────────────────────────
 
-function statusText(world, cast) {
-    if (isPending('world') || isPending('cast')) return 'Updating…';
-    const latest = [world, cast].filter(Boolean).sort((a, b) => b.messageIndex - a.messageIndex)[0];
+function statusText(world, cast, plot = null) {
+    if (isPending('world') || isPending('cast') || isPending('plot')) return 'Updating…';
+    const latest = [world, cast, plot].filter(Boolean).sort((a, b) => b.messageIndex - a.messageIndex)[0];
     if (!latest) return 'Nothing tracked yet';
     return `As of message #${latest.messageIndex}`;
 }
@@ -1644,6 +1890,7 @@ export function render() {
     }
     const world = findResult('world');
     const cast = findResult('cast');
+    const plot = findResult('plot');
     if (!showRail) {
         renderStrip(cast, world);
         return;
@@ -1654,31 +1901,39 @@ export function render() {
     const focusedId = document.activeElement?.id && root.contains(document.activeElement) ? document.activeElement.id : '';
     const caret = focusedId && 'selectionStart' in document.activeElement ? /** @type {HTMLInputElement} */ (document.activeElement).selectionStart : null;
 
-    const parts = [renderHeader(statusText(world, cast))];
+    const parts = [renderHeader(statusText(world, cast, plot))];
     const worldRow = renderWorldStrip(world?.data);
     if (worldRow) parts.push(worldRow);
     const hasCast = Boolean(cast || enabledAgent('cast'));
     const hasWorld = Boolean(world || enabledAgent('world'));
+    // Co-author and Author: the Quests tab becomes Plot (Player gets Plot too when its tracker is on).
+    const authorRole = openRole() !== 'player';
+    const hasPlot = authorRole || Boolean(plot || enabledAgent('plot'));
+    const plotTab = { id: 'plot', label: 'Plot', count: (Array.isArray(plot?.data?.threads) ? plot.data.threads : []).filter(item => item && ['active', 'brewing'].includes(str(item.status || 'active').toLowerCase())).length };
     const tabs = [];
     if (hasCast) tabs.push({ id: 'cast', label: 'Cast', count: characterList(cast?.data).filter(isPresent).length });
+    if (hasPlot && authorRole) tabs.push(plotTab);
     if (hasWorld) {
         const worldPreset = activePreset('world');
-        if (worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
+        if (!authorRole && worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
+        if (hasPlot && !authorRole) tabs.push(plotTab);
         if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
         tabs.push({ id: 'world', label: 'World', count: 0 });
     }
     const st = settings();
-    const active = tabs.some(tab => tab.id === st.tab) ? st.tab : tabs[0]?.id;
+    if (hasPlot && !hasWorld && !authorRole) tabs.push(plotTab);
     const body = el('div', 'ct-sc-body');
-    if (!world && !cast) {
+    const activeTab = tabs.some(tab => tab.id === st.tab) ? st.tab : tabs[0]?.id;
+    if (!world && !cast && !plot && activeTab !== 'plot') {
         renderEmpty(body);
     } else {
-        parts.push(renderTabs(tabs, active));
-        const needs = active === 'cast' ? cast : world;
-        if (!needs) renderEmpty(body);
-        else if (active === 'cast') renderCast(body, cast.data, findResult('cast', { skip: 1 })?.data ?? null);
-        else if (active === 'quests') renderQuests(body, world.data);
-        else if (active === 'items') renderItems(body, world.data);
+        parts.push(renderTabs(tabs, activeTab));
+        const needs = activeTab === 'cast' ? cast : activeTab === 'plot' ? true : world;
+        if (activeTab === 'plot') renderPlot(body, plot?.data ?? null);
+        else if (!needs) renderEmpty(body);
+        else if (activeTab === 'cast') renderCast(body, cast.data, findResult('cast', { skip: 1 })?.data ?? null);
+        else if (activeTab === 'quests') renderQuests(body, world.data);
+        else if (activeTab === 'items') renderItems(body, world.data);
         else renderWorld(body, world.data);
     }
     parts.push(body);
@@ -1710,7 +1965,7 @@ function openSetup() {
 /** Runs the Scene trackers that are on here on the last message. */
 export async function updateNow() {
     const api = agentsApi();
-    const agents = [enabledAgent('world'), enabledAgent('cast')].filter(Boolean);
+    const agents = [enabledAgent('world'), enabledAgent('cast'), enabledAgent('plot')].filter(Boolean);
     if (!api?.runCompanionAgentOnMessage || !agents.length || view.busy) return;
     const index = api.getLatestValidCompanionMessageIndex?.() ?? chat.length - 1;
     if (index < 0) {
@@ -1744,7 +1999,12 @@ function init() {
     });
     eventSource.on(event_types.GENERATION_STARTED, applyPromptForGeneration);
     document.addEventListener(FIELDS_CHANGED_EVENT, refresh);
-    eventSource.on('in_chat_agent_companion_results_updated', refresh);
+    eventSource.on('in_chat_agent_companion_results_updated', () => {
+        syncBeatsDone();
+        refresh();
+    });
+    document.addEventListener('homunculus:group-campaign-changed', refresh);
+    eventSource.on(event_types.APP_READY, registerPlotMacro);
     document.addEventListener('homunculus:group-profile-changed', refresh);
     narrowQuery.addEventListener?.('change', () => queueRender());
     eventSource.on(event_types.APP_READY, () => setTimeout(() => void turnOnLorebooksOnce(), 2000));
@@ -1755,6 +2015,21 @@ function init() {
  * (ages, heights, looks written there). Switch it on once in agents made before that, keeping any
  * prompt edits; later the user can turn it off in the agent editor and it stays off.
  */
+function registerPlotMacro() {
+    const context = globalThis.SillyTavern?.getContext?.();
+    const description = 'The author\'s planned beats of the open chat (Scene panel → Plot).';
+    try {
+        context?.registerMacro?.('scenePlotBeats', () => beatsMacro(), description);
+    } catch {
+        // legacy macro engine missing
+    }
+    try {
+        context?.macros?.register?.('scenePlotBeats', { handler: () => beatsMacro(), description, returns: description, exampleUsage: '{{scenePlotBeats}}' });
+    } catch {
+        // new macro engine missing
+    }
+}
+
 async function turnOnLorebooksOnce() {
     const st = settings();
     if (st.loreFix) return;

@@ -58,9 +58,12 @@ import {
     shouldAsk,
     skipAskOnce,
 } from './classic-group-profile.js';
+import { listVars, normalizeStyle, getStyle, saveStyle, styleText, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
 import {
+    AUTONOMY,
     CAST_STATES,
     DEFAULT_TURN_PROMPT,
+    defaultRolePrompt,
     castMembers,
     createBuiltinNarrator,
     defaultSheet,
@@ -99,6 +102,14 @@ const SCENE_TRACKERS = [
         title: 'Characters',
         text: 'Who is in the scene and what can be seen of them: description, traits, height, weight, face, hair, outfit, mood.',
     },
+    {
+        kind: 'plot',
+        templateId: 'tpl-homunculus-scene-plot',
+        icon: 'fa-diagram-project',
+        title: 'Plot',
+        text: 'Story threads, what each character wants and will do next, secrets, and which of your planned beats happened. Made for the Co-author and Author roles.',
+        presets: false,
+    },
 ];
 
 const HELP = {
@@ -126,6 +137,19 @@ const HELP = {
 <li><b>Existing group</b>: pick one to use it in the open chat of this group.</li>
 </ul>
 <p>Save the scenario of a chat with <b>Save to the Vault</b> in the Scenario card.</p>`,
+    role: `<ul>
+<li><b>Player</b>: you are {{user}}, a character in the story. Your messages are what your character says and does.</li>
+<li><b>Co-author</b>: {{user}} is still a character, but your messages are <b>directions</b>. The AI writes {{user}} like everyone else, in their own voice, spread through the reply.</li>
+<li><b>Author</b>: there is no {{user}} in the story. You stay outside, like a god: give directions for anyone, or press <b>Let them act</b> (on the bar above the chat) and just watch.</li>
+</ul>
+<p>Co-author and Author send role instructions before each reply (below), and work in Ensemble and Narrated groups. In the Scene panel, the Quests tab becomes <b>Plot</b>.</p>`,
+    roleSend: '<p>The role instructions are sent before each reply. If your preset already has them (for example your own &lt;author_vs_protagonist&gt; prompt), turn this off: then only the main character, autonomy and "when I send nothing" lines are sent.</p>',
+    autonomy: `<ul>
+<li><b>Low</b>: the characters wait for your directions.</li>
+<li><b>Medium</b>: they follow your directions and fill the gaps with their own goals.</li>
+<li><b>High</b>: they chase their own goals, even against your plan; you steer by nudging.</li>
+</ul>`,
+    idle: '<p>What happens on a turn without a direction: when you press <b>Let them act</b>, use auto-play, or send an empty message.</p>',
     scenario: `<p>The scenario of the open chat. It replaces the cards' scenarios, so the whole group shares one setup.</p>
 <p>Each chat and branch keeps its own, so you can start a new chat with a different situation.</p>`,
     members: `<p>The characters in this group.</p>
@@ -329,6 +353,7 @@ function emptyDraft() {
         profile: normalizeProfile(null),
         campaign: normalizeCampaign(null),
         behavior: { activation_strategy: 0, generation_mode: 0, allow_self_responses: false },
+        style: normalizeStyle(null),
         /** Vault scenario the first chat starts with (scripts/classic-vault.js). */
         scenarioId: '',
     };
@@ -367,6 +392,7 @@ function target() {
             disabled: Array.isArray(g.disabled_members) ? g.disabled_members : [],
             profile: getProfile(g),
             campaign: getCampaign(g),
+            style: getStyle(g),
             behavior: {
                 activation_strategy: Number(g.activation_strategy ?? 0),
                 generation_mode: Number(g.generation_mode ?? 0),
@@ -431,11 +457,25 @@ async function setCampaign(patch) {
     const g = group();
     if (!g) {
         const current = state.draft.campaign;
-        state.draft.campaign = normalizeCampaign({ ...current, ...patch, narrator: { ...current.narrator, ...(patch.narrator ?? {}) } });
+        state.draft.campaign = normalizeCampaign({ ...current, ...patch, narrator: { ...current.narrator, ...(patch.narrator ?? {}) }, roleText: { ...current.roleText, ...(patch.roleText ?? {}) } });
         render();
         return;
     }
     await saveCampaign(g.id, patch);
+    render();
+}
+
+async function setStyle(patch) {
+    const g = group();
+    if (!g) {
+        const current = state.draft.style;
+        const values = { ...current.values, ...(patch.values ?? {}) };
+        for (const [key, val] of Object.entries(patch.values ?? {})) if (!val) delete values[key];
+        state.draft.style = normalizeStyle({ ...current, ...patch, values });
+        render();
+        return;
+    }
+    await saveStyle(g.id, patch);
     render();
 }
 
@@ -694,7 +734,7 @@ function tabBadge(id, t) {
         const api = agentsApi();
         if (!api?.getAgents) return '';
         const on = SCENE_TRACKERS.filter(tracker => api.getAgents().some(agent => agent.sourceTemplateId === tracker.templateId && agentOnInGroup(t.profile, agent))).length;
-        return on ? `${on}/2` : '';
+        return on ? `${on}/${SCENE_TRACKERS.length}` : '';
     }
     if (id === 'chats') return String(group()?.chats?.length ?? '');
     return '';
@@ -784,7 +824,123 @@ function renderSetup(body, t) {
     body.append(basics);
 
     if (t.campaign.mode === 'narrated') body.append(renderNarratorCard(t));
+    body.append(renderRoleCard(t));
+    body.append(renderStyleCard(t));
     if (!t.isNew) body.append(renderScenarioCard());
+}
+
+const ROLE_TILES = [
+    ['player', 'fa-user', 'Player', 'You are {{user}}, a character inside the story. Your messages are what your character says and does.'],
+    ['coauthor', 'fa-feather', 'Co-author', '{{user}} is a character, but your messages are directions: the AI writes {{user}} like everyone else, in their own voice.'],
+    ['author', 'fa-eye', 'Author', 'There is no {{user}} in the story. You stay outside, like a god: direct anyone, or just watch the characters act.'],
+];
+
+function renderRoleCard(t) {
+    const c = t.campaign;
+    const section = card('Your role in the story', HELP.role);
+    const tiles = el('div', 'ct-gs-tiles ct-gs-tiles-3');
+    tiles.setAttribute('role', 'radiogroup');
+    tiles.setAttribute('aria-label', 'Your role');
+    for (const [role, icon, title, text] of ROLE_TILES) {
+        const isOn = c.role === role;
+        const tile = button(`ct-gs-tile${isOn ? ' is-on' : ''}`, `<i class="fa-solid ${icon}" aria-hidden="true"></i>`, '', () => {
+            if (!isOn) void setCampaign({ role });
+        });
+        tile.setAttribute('role', 'radio');
+        tile.setAttribute('aria-checked', String(isOn));
+        const textWrap = el('span', 'ct-gs-tile-text');
+        textWrap.append(el('span', 'ct-gs-tile-title', title), el('span', 'ct-gs-tile-desc', text));
+        tile.append(textWrap);
+        tiles.append(tile);
+    }
+    section.append(tiles);
+    if (c.role === 'player') return section;
+
+    const box = el('div', 'ct-gs-role-box');
+    const grid = el('div', 'ct-gs-role-grid');
+    if (c.role === 'author') {
+        const main = el('select', 'text_pole');
+        main.id = 'ct-gs-protagonist';
+        main.append(option('', 'None: an ensemble story', !c.protagonist));
+        const narrator = narratorAvatar(c);
+        for (const avatar of t.members.filter(item => item !== narrator)) main.append(option(avatar, `${characterName(avatar)} (written by the AI like everyone else)`, avatar === c.protagonist));
+        main.addEventListener('change', () => void setCampaign({ protagonist: main.value }));
+        grid.append(field('Main character (optional, not you)', '', main));
+    } else {
+        grid.append(field('{{user}} is played by', '', el('div', 'ct-gs-note', 'Your persona: the one picked in the Profile tab, or your current persona. The AI writes them from your directions.')));
+    }
+    const idle = el('select', 'text_pole');
+    idle.id = 'ct-gs-idle';
+    idle.append(option('act', 'The characters act on their own', c.idle === 'act'), option('continue', 'The narrator just continues the scene', c.idle === 'continue'));
+    idle.addEventListener('change', () => void setCampaign({ idle: idle.value }));
+    grid.append(field('When I send nothing', HELP.idle, idle));
+    box.append(grid);
+
+    const autonomyHead = el('div', 'ct-gs-field-head');
+    autonomyHead.append(el('span', 'ct-gs-label', 'Character autonomy'), helpButton('Character autonomy', HELP.autonomy));
+    const autonomyNote = { low: 'Characters wait for your directions.', medium: 'Characters follow your directions and fill the gaps with their own goals.', high: 'Characters chase their own goals, even against your plan. You steer by nudging.' }[c.autonomy];
+    box.append(autonomyHead, segment('Character autonomy', AUTONOMY.map(level => [level, level[0].toUpperCase() + level.slice(1)]), c.autonomy, level => void setCampaign({ autonomy: level }), true), el('div', 'ct-gs-note', autonomyNote));
+
+    box.append(checkRow('Send the role instructions to the AI', c.roleSend, checked => void setCampaign({ roleSend: checked }), HELP.roleSend));
+    if (c.roleSend) {
+        const fallback = defaultRolePrompt(c.role);
+        const area = el('textarea', 'text_pole ct-gs-role-text');
+        area.id = `ct-gs-role-text-${c.role}`;
+        area.rows = 10;
+        area.value = c.roleText[c.role] || fallback;
+        area.addEventListener('change', () => {
+            const value = area.value.trim() === fallback.trim() ? '' : area.value;
+            void setCampaign({ roleText: { [c.role]: value } });
+        });
+        const restore = button('menu_button ct-gs-btn', '<i class="fa-solid fa-rotate-left"></i> Restore the default text', '', () => void setCampaign({ roleText: { [c.role]: '' } }));
+        restore.disabled = !c.roleText[c.role];
+        box.append(field(c.role === 'coauthor' ? 'Co-author instructions' : 'Author instructions', '', area, c.role === 'coauthor' ? 'Your own author_vs_protagonist + input_expansion prompt. Edit freely.' : 'Edit freely. {{user}} is replaced by your persona\'s name.'), restore);
+    } else {
+        box.append(el('p', 'ct-gs-note', 'Only the main character, autonomy and "when I send nothing" lines are sent. Your preset carries the rest.'));
+    }
+    const plotNote = el('div', 'ct-gs-inline-note');
+    plotNote.append(el('span', 'ct-gs-note', 'Turn on Scene: Plot to keep threads, what each character wants, your planned beats and secrets in the Scene panel.'));
+    plotNote.append(button('menu_button ct-gs-btn', '<i class="fa-solid fa-diagram-project"></i> Scene tab', '', () => {
+        state.tab = 'scene';
+        render();
+    }));
+    box.append(plotNote);
+    section.append(box);
+    return section;
+}
+
+function renderStyleCard(t) {
+    const style = t.style;
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-sliders"></i><span>Edit variables</span>', 'Change the options or add your own variables', async () => {
+        if (await openVarsEditor()) render();
+    });
+    const section = card('Story style', STYLE_HELP, { aside });
+    for (const variable of listVars()) {
+        const row = el('div', 'ct-gs-style-row');
+        const label = el('div', 'ct-gs-style-label');
+        label.append(el('span', 'ct-gs-label', variable.label), el('code', 'ct-gs-style-macro', `{{${variable.key}}}`));
+        const chips = el('div', 'ct-gs-style-options');
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', variable.label);
+        for (const item of variable.options) {
+            const isOn = style.values[variable.id] === item.id;
+            const chipButton = button(`ct-gs-style-chip${isOn ? ' is-on' : ''}`, '', item.text, () => void setStyle({ values: { [variable.id]: isOn ? '' : item.id } }));
+            chipButton.textContent = item.label;
+            chipButton.setAttribute('aria-pressed', String(isOn));
+            chips.append(chipButton);
+        }
+        row.append(label, chips);
+        section.append(row);
+    }
+    section.append(checkRow('Send the story style to the AI before each reply', style.inject, checked => void setStyle({ inject: checked })));
+    const preview = el('div', 'ct-gs-style-preview');
+    preview.append(el('div', 'ct-gs-label', 'What the AI receives'));
+    const text = styleText(style);
+    const lines = [style.inject ? (text || 'Nothing picked yet.') : 'Nothing is sent by itself: use the macros in your preset.'];
+    if (t.campaign.role !== 'player') lines.push(`+ the ${t.campaign.role === 'author' ? 'Author' : 'Co-author'} lines from "Your role in the story".`);
+    preview.append(el('pre', 'ct-gs-style-text', lines.join('\n')));
+    section.append(preview);
+    return section;
 }
 
 function renderNarratorCard(t) {
@@ -1088,7 +1244,9 @@ function renderTrackerCard(tracker, t, isOpenChat) {
 
     const g = group();
     const fieldKind = tracker.kind === 'cast' ? 'cast' : 'world';
-    if (g) {
+    if (tracker.presets === false) {
+        // no field presets for this tracker
+    } else if (g) {
         const presetSelect = el('select', 'text_pole');
         presetSelect.id = `ct-gs-tracker-preset-${tracker.kind}`;
         const chosen = chosenPresetId(fieldKind, g.id);
@@ -1474,6 +1632,7 @@ async function createGroupNow() {
             disabled_members: t.disabled,
         });
         await attachSettings(data.id, t.profile, t.campaign);
+        if (Object.keys(t.style.values).length || !t.style.inject) await saveStyle(data.id, t.style);
         skipAskOnce(data.id);
         state.draft = emptyDraft();
         state.mode = 'edit';
@@ -1701,6 +1860,7 @@ function init() {
     document.addEventListener(PROFILE_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:group-campaign-changed', rerender);
     document.addEventListener(FIELDS_CHANGED_EVENT, rerender);
+    document.addEventListener(STYLE_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:vault-changed', () => {
         state.vaultScenarios = null;
         rerender();

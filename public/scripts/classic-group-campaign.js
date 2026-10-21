@@ -36,6 +36,64 @@ const CAST_PROMPT_KEY = 'homunculus_cast';
 
 export const CAST_STATES = Object.freeze({ SCENE: 'scene', OFFSCREEN: 'offscreen', OFF: 'off' });
 
+export const ROLES = Object.freeze(['player', 'coauthor', 'author']);
+export const AUTONOMY = Object.freeze(['low', 'medium', 'high']);
+const ROLE_PROMPT_KEY = 'homunculus_role';
+
+/** Co-author: Daniel's own prompt, written for SillyTavern role-play (directions for {{user}}, spread over the reply). */
+export const DEFAULT_COAUTHOR_PROMPT = `<author_vs_protagonist>
+The author directs; {{user}} is a character you write.
+- {{user}}'s messages are authorial directions, not literal dialogue or actions. Treat every message from {{user}} as an instruction describing what {{user}}'s character does, says, or intends — not as text to be repeated verbatim.
+When a direction is given, you must always incorporate it into your reply by writing {{user}}'s character performing it — translated into their own voice, personality, speech patterns, and mannerisms, complete with narration (tone, expression, body language, pacing) as if you were novelizing the moment.
+Example: if the author writes "How are you?" as a direction, do not output that line as-is. Instead, write {{user}}'s character asking that question in a way that reflects who they are — their manner of speaking, their current emotional state, their body language — folded into full narrative prose, not just a plain dialogue tag.
+Never skip, compress, or ignore a direction. Every direction given must appear, transformed, in your response.
+- {{user}} is a fictional character with their own personality, not a stand-in for the author
+- The author may give instructions like "have them argue" or "she discovers the truth"—execute these as narrative
+- Continue directly from the previous beat—no recaps or preamble
+- Add sensory detail and subtext to bring directions to life
+- You control ALL characters equally, including {{user}} write their actions, dialogue, thoughts, and decisions
+- Don't dump User's ({{user}}) dialogue's / directions all at once in your turn, spread the dialogues and my actions in a natural order throughout the reply. You are free do add more dialogue lines for {{user}} that fit the scene.
+Spread {{user}}'s directions across the reply instead of front-loading them.
+- Break each direction into beats and interleave them with NPC reactions, narration, and the environment, so the NPC reacts to each beat as it happens, not to everything at once.
+- Don't open with all of {{user}}'s dialogue or actions in one block.
+- You may add small in-character lines or gestures for {{user}} that fit the scene.
+- Natural pacing: Weave {{user}}'s actions and dialogue throughout the reply in chronological order. Don't dump the entire input before NPCs react; let interactions unfold beat by beat, with NPCs responding naturally to each action or line before the next. You may add fitting dialogue for {{user}} to maintain a natural flow. 
+- Multi-part inputs: When a direction contains multiple actions or dialogue lines, unfold them naturally in sequence, interweaving NPC reactions and responses between beats. Preserve the intended order without dumping the entire input before others can react.
+</author_vs_protagonist>
+
+
+<input_expansion>
+Treat every author input, even a single line of dialogue or one simple direction, as the starting point of an ongoing scene, never as a self-contained one-shot to execute and conclude. Novelize and expand upon it, bringing {{user}}'s character to life through natural dialogue, actions, reactions, and interactions with the environment and other characters.
+
+Let the scene develop organically beyond the initial input. {{user}}'s character may be interrupted, interrupt others, answer questions, initiate conversations, react to unexpected events, or speak again when the situation calls for it. Weave their behavior into the unfolding scene rather than treating their input as the entirety of their contribution.
+
+Preserve the author's intent while allowing natural improvisation. The input establishes what happens or what the character intends to communicate; it does not limit the scene to that single beat. Continue the interaction naturally, with realistic pacing, character-driven dialogue, and NPC responses that create opportunities for further exchanges.
+</input_expansion>`;
+
+/** Author: there is no {{user}} in the story. Adapted from the "creative-writing" prompt of Aventuras (AGPL-3.0, see CREDITS.md). */
+export const DEFAULT_AUTHOR_PROMPT = `<author_mode>
+The person writing to you is the AUTHOR of this story, not a character in it. The author is outside the story, like a god: there is no {{user}} character in the scene. Never write {{user}} as a person in the story, never address the author as "you" inside the narration, and never let characters notice or talk to the author.
+- The author's messages are directions, not story text: "have them argue", "Mira finds the letter", "skip to the next morning". Turn every direction into full narrative prose without repeating it word for word, and never skip or water down a direction.
+- When the author writes a line in quotes or as a character ("Mira: ..."), write that character saying or doing it in their own voice, folded into the scene.
+- You control every character equally. Each one has their own goals, fears, knowledge and habits, and acts on them. They do not know what the author knows, and they do not wait for permission.
+- Continue directly from the previous beat. No recaps, no questions to the author, no meta commentary.
+- Treat every direction as the start of a scene that keeps developing, not as a one-shot to execute and wrap up.
+</author_mode>`;
+
+const AUTONOMY_TEXT = {
+    low: 'Character autonomy: LOW. The characters wait for the author\'s directions and do not start big moves on their own.',
+    medium: 'Character autonomy: MEDIUM. The characters follow the author\'s directions and fill the gaps with their own goals and choices.',
+    high: 'Character autonomy: HIGH. The characters chase their own goals, even against what the author seems to want. The author steers by nudging, not by commanding.',
+};
+const IDLE_TEXT = {
+    act: 'When the latest message is not a new direction (the author sent nothing), the characters act on their own: each one pursues their goals and the scene moves forward.',
+    continue: 'When the latest message is not a new direction (the author sent nothing), simply continue the scene from where it stopped.',
+};
+const ROLE_NUDGES = {
+    coauthor: '[Write the next reply as {{char}}. The user\'s messages are directions: you also write {{user}}\'s actions and words as the latest direction describes, in {{user}}\'s own voice. Do not write for the other members of the group.]',
+    author: '[Write the next reply as {{char}}. The user is the author, outside the story: follow the latest direction and never write the author as a character. Do not write for the other members of the group.]',
+};
+
 export const DEFAULT_TURN_PROMPT = '[Narrated group: write the next reply as {{char}}, the narrator. Narrate the scene and voice every character and NPC of the cast as the story needs (dialogue, actions, thoughts). The cast are not separate speakers and never reply on their own. Do not start the reply with a name prefix.]';
 
 // ───────────────────────── Data ─────────────────────────
@@ -69,6 +127,16 @@ export function normalizeCampaign(value) {
         },
         cast,
         castPlacement: raw.castPlacement === 'macro' ? 'macro' : 'prompt',
+        role: ROLES.includes(raw.role) ? raw.role : 'player',
+        roleText: {
+            coauthor: str(raw.roleText?.coauthor),
+            author: str(raw.roleText?.author),
+        },
+        // false: the role prompt is already in the user's preset, so only the extra lines are sent.
+        roleSend: raw.roleSend !== false,
+        protagonist: str(raw.protagonist),
+        idle: raw.idle === 'continue' ? 'continue' : 'act',
+        autonomy: AUTONOMY.includes(raw.autonomy) ? raw.autonomy : 'medium',
         previousGenerationMode: Number.isInteger(raw.previousGenerationMode) ? raw.previousGenerationMode : null,
     };
 }
@@ -95,6 +163,7 @@ export async function saveCampaign(groupId, patch) {
         ...current,
         ...patch,
         narrator: { ...current.narrator, ...(patch.narrator ?? {}) },
+        roleText: { ...current.roleText, ...(patch.roleText ?? {}) },
     });
     group[CAMPAIGN_KEY] = next;
     await editGroup(group.id, true, false);
@@ -153,13 +222,92 @@ export function getNarratorChid(group, { type = '', forced = false } = {}) {
     return characters.findIndex(character => character.avatar === avatar);
 }
 
-/** The turn instruction that replaces the prompt's group nudge while a Narrated group's chat is open. */
+/**
+ * The turn instruction that replaces the prompt's group nudge ("write only as {{char}}") while a group's
+ * chat is open: the narrator's in a Narrated group; in an Ensemble group with the Co-author or Author
+ * role, a version that lets {{char}} follow directions (and write {{user}} for a Co-author).
+ */
 export function getGroupNudge() {
     const group = openGroup();
     if (!group) return '';
     const campaign = getCampaign(group);
-    if (campaign.mode !== 'narrated' || !narratorAvatar(campaign)) return '';
-    return campaign.narrator.turnPrompt.trim() || DEFAULT_TURN_PROMPT;
+    if (campaign.mode === 'narrated' && narratorAvatar(campaign)) return campaign.narrator.turnPrompt.trim() || DEFAULT_TURN_PROMPT;
+    return ROLE_NUDGES[campaign.role] ?? '';
+}
+
+// ───────────────────────── Roles (Player / Co-author / Author) ─────────────────────────
+
+export function defaultRolePrompt(role) {
+    return role === 'coauthor' ? DEFAULT_COAUTHOR_PROMPT : role === 'author' ? DEFAULT_AUTHOR_PROMPT : '';
+}
+
+/** The role instructions sent before each reply in a group's chat (empty for Player). */
+export function roleText(group = openGroup()) {
+    if (!group) return '';
+    const campaign = getCampaign(group);
+    if (campaign.role === 'player') return '';
+    const lines = [campaign.roleSend ? (campaign.roleText[campaign.role].trim() || defaultRolePrompt(campaign.role)) : ''];
+    if (campaign.role === 'author' && campaign.protagonist) {
+        const name = characterName(campaign.protagonist);
+        if (name) lines.push(`Main character: ${name}. A character like any other, written by you; not the author.`);
+    }
+    lines.push(AUTONOMY_TEXT[campaign.autonomy], IDLE_TEXT[campaign.idle]);
+    return lines.filter(Boolean).join('\n');
+}
+
+/** 'player' | 'coauthor' | 'author' for the open group chat ('player' outside groups). */
+export function openRole() {
+    const group = openGroup();
+    return group ? getCampaign(group).role : 'player';
+}
+
+// ───────────────────────── Let them act / auto-play ─────────────────────────
+
+const autoplay = { running: false, stop: false, left: 0 };
+
+export function autoplayState() {
+    return { running: autoplay.running, left: autoplay.left };
+}
+
+/**
+ * Lets the characters act without a direction, for a number of turns (the role instructions say what
+ * an empty turn means). Stops on stopAutoplay(), a chat change or a failed reply.
+ * @param {number} turns
+ */
+export async function letThemAct(turns = 1) {
+    if (autoplay.running) return;
+    const box = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('send_textarea'));
+    if (box && box.value.trim()) {
+        toastr.info('Send or clear your message first: "Let them act" runs a turn without a direction.');
+        return;
+    }
+    const context = globalThis.SillyTavern?.getContext?.();
+    if (!context?.executeSlashCommandsWithOptions) return;
+    const chatId = context.getCurrentChatId?.();
+    autoplay.running = true;
+    autoplay.stop = false;
+    autoplay.left = Math.max(1, Number(turns) || 1);
+    notify();
+    try {
+        while (autoplay.left > 0 && !autoplay.stop) {
+            const before = context.chat?.length ?? 0;
+            await context.executeSlashCommandsWithOptions('/trigger await=true', { handleExecutionErrors: true });
+            autoplay.left--;
+            notify();
+            if (context.getCurrentChatId?.() !== chatId || (context.chat?.length ?? 0) <= before) break;
+            if (autoplay.left > 0 && !autoplay.stop) await new Promise(resolve => setTimeout(resolve, 600));
+        }
+    } finally {
+        autoplay.running = false;
+        autoplay.left = 0;
+        notify();
+    }
+}
+
+export function stopAutoplay() {
+    if (!autoplay.running) return;
+    autoplay.stop = true;
+    globalThis.SillyTavern?.getContext?.()?.stopGeneration?.();
 }
 
 function builtinDescription(style) {
@@ -392,6 +540,10 @@ function applyPrompts() {
     const campaign = group ? getCampaign(group) : null;
     const cast = campaign && campaign.castPlacement === 'prompt' ? castText(group) : '';
     setExtensionPrompt(CAST_PROMPT_KEY, cast, extension_prompt_types.IN_PROMPT, 0, false);
+    setExtensionPrompt(ROLE_PROMPT_KEY, roleText(group), extension_prompt_types.IN_PROMPT, 0, false);
+    const role = campaign?.role ?? 'player';
+    document.body.classList.toggle('ct-role-coauthor', role === 'coauthor');
+    document.body.classList.toggle('ct-role-author', role === 'author');
 }
 
 function registerMacros() {
@@ -427,6 +579,9 @@ function init() {
     }
     eventSource.on(event_types.APP_READY, registerMacros);
     document.addEventListener(CAMPAIGN_CHANGED_EVENT, applyPrompts);
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        if (autoplay.running) stopAutoplay();
+    });
 }
 
 init();
@@ -438,4 +593,9 @@ globalThis.HomunculusGroupCampaign = {
     getGroupNudge,
     castText,
     hasCampaignTools,
+    roleText,
+    openRole,
+    letThemAct,
+    stopAutoplay,
+    autoplayState,
 };

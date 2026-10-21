@@ -2500,3 +2500,66 @@ button.ct-ga-fold:hover { color: var(--cf-text); }
 .ct-gs-vault-item.is-on { border-color: var(--cf-accent); background: color-mix(in srgb, var(--cf-accent) 10%, transparent); }
 .ct-gs-vault-item b { font-weight: 600; }
 .ct-gs-vault-item span { color: var(--cf-muted); font-size: .85em; }
+
+/* Roles (Player / Co-author / Author) and Story style in the Group Studio Setup */
+.ct-gs-tiles-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.ct-gs-role-box { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--cf-accent) 30%, var(--cf-line)); background: color-mix(in srgb, var(--cf-accent) 5%, transparent); }
+.ct-gs-role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 18px; }
+.ct-gs-role-text.text_pole { min-height: 160px; font-family: var(--monoFontFamily, monospace); font-size: .85em; }
+.ct-gs-style-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 4px 0; }
+.ct-gs-style-label { flex: 0 0 170px; display: flex; flex-direction: column; }
+.ct-gs-style-macro { font-size: .78em; color: var(--cf-muted); background: none; padding: 0; }
+.ct-gs-style-options { flex: 1 1 360px; display: flex; flex-wrap: wrap; gap: 6px; }
+.ct-gs-style-chip { margin: 0; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--cf-line); background: var(--cf-surface); color: var(--cf-text); font: inherit; font-size: .88em; cursor: pointer; }
+.ct-gs-style-chip:hover { border-color: color-mix(in srgb, var(--cf-accent) 55%, transparent); }
+.ct-gs-style-chip.is-on { background: var(--cf-accent); border-color: var(--cf-accent); color: color-mix(in srgb, var(--cf-accent) 12%, #0b0b0d); }
+.ct-gs-style-preview { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--cf-surface); border: 1px solid var(--cf-line); }
+.ct-gs-style-text { margin: 0; white-space: pre-wrap; font-family: inherit; font-size: .9em; }
+.ct-sty-editor { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.ct-sty-head { display: flex; align-items: center; gap: 8px; }
+.ct-sty-head h3 { margin: 0; }
+.ct-sty-list { display: flex; flex-direction: column; gap: 10px; }
+.ct-sty-var { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--cf-line); background: var(--cf-surface); }
+.ct-sty-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ct-sty-row > .text_pole { flex: 1 1 200px; margin: 0; }
+.ct-sty-row > .ct-sty-key.text_pole { flex: 0 1 140px; font-family: var(--monoFontFamily, monospace); }
+.ct-sty-brace { color: var(--cf-muted); font-family: var(--monoFontFamily, monospace); }
+.ct-sty-option { display: grid; grid-template-columns: minmax(120px, 200px) 1fr auto; gap: 6px; align-items: start; }
+.ct-sty-option .text_pole { margin: 0; }
+.ct-sty-btn { width: auto; margin: 0; padding: 4px 10px; white-space: nowrap; }
+
+/* Group bar: role chip and Let them act / Auto-play */
+.ct-gm-role { border-color: rgb(143 179 217 / 60%); color: rgb(143 179 217); }
+.ct-gm-auto { display: inline-flex; align-items: center; gap: 2px; }
+.ct-gm-auto-count.text_pole { width: auto; margin: 0; padding: 2px 4px; font-size: .9em; }
+.ct-gm-stop { border-color: rgb(240 120 110 / 55%); color: rgb(240 140 130); }
+
+/* Co-author / Author: your messages are directions */
+body:is(.ct-role-coauthor, .ct-role-author) #chat .mes[is_user="true"] .mes_text { padding: 6px 10px; border-left: 3px dashed rgb(143 179 217 / 70%); border-radius: 6px; background: rgb(143 179 217 / 7%); font-style: italic; }
+body:is(.ct-role-coauthor, .ct-role-author) #chat .mes[is_user="true"] .name_text::after { content: " · direction"; color: rgb(143 179 217); font-size: .8em; font-weight: 600; }
+
+/* Scene panel: Plot tab */
+.ct-sc-plot-title { margin-top: 10px; font-size: .74em; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--cf-muted); }
+.ct-sc-plot-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border-radius: 10px; background: var(--cf-surface); font-size: .88em; color: var(--cf-muted); }
+.ct-sc-thread, .ct-sc-beat { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; border: 1px solid var(--cf-line); background: var(--cf-surface); }
+.ct-sc-thread-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+button.ct-sc-thread-pill { margin: 0; background: none; font: inherit; font-size: .72em; text-transform: uppercase; cursor: pointer; }
+.ct-sc-pill.is-brewing { border-color: rgb(224 180 108 / 60%); color: rgb(224 180 108); }
+.ct-sc-pill.is-done { border-color: rgb(110 200 140 / 55%); color: rgb(140 215 165); }
+.ct-sc-thread.is-done, .ct-sc-thread.is-failed, .ct-sc-beat.is-done { opacity: .65; }
+.ct-sc-beat-title { flex: 1 1 auto; min-width: 0; }
+.ct-sc-beat.is-done .ct-sc-beat-title { text-decoration: line-through; }
+.ct-sc-beat.is-steer { border-color: rgb(143 199 232 / 55%); }
+.ct-sc-beat.is-hold { border-color: rgb(224 180 108 / 55%); }
+.ct-sc-beat-status.text_pole { width: auto; margin: 0; padding: 2px 4px; font-size: .82em; }
+.ct-sc-goal, .ct-sc-secret { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--cf-line); background: var(--cf-surface); }
+.ct-sc-goal-name { font-weight: 600; }
+.ct-sc-goal-line { display: flex; gap: 6px; font-size: .9em; }
+.ct-sc-goal-label { flex: none; font-weight: 600; }
+.ct-sc-goal-label.is-want { color: rgb(224 180 108); }
+.ct-sc-goal-label.is-next { color: rgb(143 199 232); }
+.ct-sc-goal-label.is-knows { color: rgb(140 215 165); }
+.ct-sc-goal-label.is-unaware { color: rgb(240 140 130); }
+.ct-sc-add-row { display: flex; gap: 6px; margin-top: 4px; }
+.ct-sc-add-row .text_pole { flex: 1 1 auto; margin: 0; }
+.ct-sc-add-row .menu_button { width: auto; margin: 0; }

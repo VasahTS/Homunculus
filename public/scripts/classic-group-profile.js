@@ -488,6 +488,15 @@ function renderBar() {
             if (action === 'enter') void enterHere();
             if (action === 'scene') globalThis.HomunculusScene?.toggle?.();
             if (action === 'agents') globalThis.HomunculusGroupAgents?.toggle?.();
+            if (action === 'act') void globalThis.HomunculusGroupCampaign?.letThemAct?.(1);
+            if (action === 'auto') void globalThis.HomunculusGroupCampaign?.letThemAct?.(autoTurns());
+            if (action === 'stop') globalThis.HomunculusGroupCampaign?.stopAutoplay?.();
+        });
+        bar.addEventListener('change', (event) => {
+            const select = /** @type {HTMLSelectElement} */ (event.target);
+            if (!select?.matches?.('[data-gm-auto]')) return;
+            settings().autoTurns = Number(select.value) || 3;
+            saveSettingsDebounced();
         });
     }
     const active = hasProfile && isActive(group.id);
@@ -498,8 +507,17 @@ function renderBar() {
     const agentsButton = counts
         ? `<button type="button" class="menu_button ct-gm-toggle ct-gm-agents${agentsMenu.isOpen() ? ' is-on' : ''}" data-gm-action="agents" aria-haspopup="dialog" aria-expanded="${agentsMenu.isOpen()}" title="Agents in this group"><i class="fa-solid fa-robot"></i> Agents <b>${counts.on}</b>${counts.running ? `<span class="ct-gm-running"><span class="ct-gm-running-dot"></span>${counts.running} running</span>` : ''}</button>`
         : '';
+    const role = campaign?.role ?? 'player';
+    const auto = campaignApi?.autoplayState?.() ?? { running: false, left: 0 };
+    const turns = autoTurns();
+    const roleButtons = role === 'player' ? '' : auto.running
+        ? `<button type="button" class="menu_button ct-gm-toggle ct-gm-stop" data-gm-action="stop" title="Stop the characters acting on their own"><i class="fa-solid fa-stop"></i> Stop${auto.left > 1 ? ` (${auto.left} left)` : ''}</button>`
+        : `<button type="button" class="menu_button ct-gm-toggle" data-gm-action="act" title="One turn without a direction: the characters act on their own"><i class="fa-solid fa-play"></i> Let them act</button>
+           <span class="ct-gm-auto"><button type="button" class="menu_button ct-gm-toggle" data-gm-action="auto" title="Several turns in a row without directions (Stop ends it)"><i class="fa-solid fa-forward"></i> Auto-play</button><select class="text_pole ct-gm-auto-count" data-gm-auto aria-label="Auto-play turns">${[3, 5, 10].map(n => `<option value="${n}"${n === turns ? ' selected' : ''}>×${n}</option>`).join('')}</select></span>`;
     const campaignButtons = [
+        role !== 'player' ? `<span class="ct-gm-chip ct-gm-role" title="Your role in this group (Group Studio → Setup)">${role === 'author' ? 'AUTHOR' : 'CO-AUTHOR'}</span>` : '',
         hasCampaign ? '<span class="ct-gm-chip" title="Only the narrator replies on its own">NARRATED</span>' : '',
+        roleButtons,
         agentsButton,
         sceneApi?.isAvailable?.() ? `<button type="button" class="menu_button ct-gm-toggle${sceneApi.isOpen() ? ' is-on' : ''}" data-gm-action="scene" title="Show or hide the Scene panel"><i class="fa-solid fa-masks-theater"></i> Scene</button>` : '',
     ].join('');
@@ -512,6 +530,11 @@ function renderBar() {
         ${hasProfile ? `<button type="button" class="menu_button ct-gm-toggle" data-gm-action="${active ? 'leave' : 'enter'}">${active ? 'Leave group mode' : 'Enter group mode'}</button>` : ''}`;
     bar.querySelector('.ct-gm-name').textContent = group.name;
     bar.querySelector('.ct-gm-summary').textContent = !hasProfile ? '' : active ? summary(group) : 'Your own settings are in use in this chat.';
+}
+
+function autoTurns() {
+    const value = Number(settings().autoTurns);
+    return [3, 5, 10].includes(value) ? value : 3;
 }
 
 // ───────────────────────── Start ─────────────────────────
