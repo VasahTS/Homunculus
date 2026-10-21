@@ -22,13 +22,12 @@ import {
     getThumbnailUrl,
     getCurrentChatId,
     saveSettingsDebounced,
-    setExtensionPrompt,
-    extension_prompt_types,
 } from '../script.js';
 import { extension_settings, saveMetadataDebounced } from './extensions.js';
 import { groups, selected_group } from './group-chats.js';
 import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
+import { set as setPromptBlock } from './classic-prompt-blocks.js';
 import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
@@ -38,10 +37,8 @@ export const SCENE_TEMPLATES = Object.freeze({
 });
 const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST', plot: 'PLOT' });
 const BEATS_KEY = 'homunculus_beats';
-const BEATS_PROMPT_KEY = 'homunculus_beats';
 const THREAD_STATES = Object.freeze(['brewing', 'active', 'done', 'failed']);
 const BEAT_STATES = Object.freeze([['planned', 'Planned'], ['steer', 'Steer toward'], ['hold', 'Not yet']]);
-const PROMPT_KEY = 'homunculus_scene';
 const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
@@ -234,7 +231,7 @@ function beatsPrompt() {
     const parts = [];
     if (steer.length) parts.push(`Steer the story toward these beats, naturally and without rushing: ${steer.join('; ')}.`);
     if (hold.length) parts.push(`Do not let these happen yet: ${hold.join('; ')}.`);
-    return parts.length ? `[The author's plan]\n${parts.join('\n')}` : '';
+    return parts.join('\n');
 }
 
 /** Ticks the beats the Plot tracker says the story reached. */
@@ -357,12 +354,12 @@ export function scenePrompt({ before = chat.length } = {}) {
         const text = plotPrompt(findResult('plot', { before })?.data ?? {});
         if (text) parts.push(text);
     }
-    return parts.length ? `[Current scene, for continuity. Do not repeat it back.]\n${parts.join('\n')}` : '';
+    return parts.length ? `For continuity. Do not repeat it back.\n${parts.join('\n')}` : '';
 }
 
 function applyPrompt() {
-    setExtensionPrompt(PROMPT_KEY, scenePrompt(), extension_prompt_types.IN_PROMPT, 0, false);
-    setExtensionPrompt(BEATS_PROMPT_KEY, getCurrentChatId?.() ? beatsPrompt() : '', extension_prompt_types.IN_PROMPT, 0, false);
+    setPromptBlock('scene', scenePrompt());
+    setPromptBlock('beats', getCurrentChatId?.() ? beatsPrompt() : '');
 }
 
 /**
@@ -372,7 +369,7 @@ function applyPrompt() {
 function applyPromptForGeneration(type) {
     const last = chat[chat.length - 1];
     const replacing = ['swipe', 'regenerate'].includes(String(type)) && last && !last.is_user;
-    setExtensionPrompt(PROMPT_KEY, scenePrompt(replacing ? { before: chat.length - 1 } : {}), extension_prompt_types.IN_PROMPT, 0, false);
+    setPromptBlock('scene', scenePrompt(replacing ? { before: chat.length - 1 } : {}));
 }
 
 // ───────────────────────── Writing edits back ─────────────────────────

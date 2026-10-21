@@ -23,22 +23,19 @@ import {
     characters,
     getCharacters,
     getRequestHeaders,
-    setExtensionPrompt,
-    extension_prompt_types,
 } from '../script.js';
 import { extension_settings } from './extensions.js';
 import { groups, selected_group, editGroup } from './group-chats.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
+import { set as setPromptBlock, presetContains } from './classic-prompt-blocks.js';
 
 const CAMPAIGN_KEY = 'homunculus_campaign';
 export const CAMPAIGN_CHANGED_EVENT = 'homunculus:group-campaign-changed';
-const CAST_PROMPT_KEY = 'homunculus_cast';
 
 export const CAST_STATES = Object.freeze({ SCENE: 'scene', OFFSCREEN: 'offscreen', OFF: 'off' });
 
 export const ROLES = Object.freeze(['player', 'coauthor', 'author']);
 export const AUTONOMY = Object.freeze(['low', 'medium', 'high']);
-const ROLE_PROMPT_KEY = 'homunculus_role';
 
 /** Co-author: Daniel's own prompt, written for SillyTavern role-play (directions for {{user}}, spread over the reply). */
 export const DEFAULT_COAUTHOR_PROMPT = `<author_vs_protagonist>
@@ -242,11 +239,19 @@ export function defaultRolePrompt(role) {
 }
 
 /** The role instructions sent before each reply in a group's chat (empty for Player). */
+/** True when the active preset already has the role prompt (its <author_vs_protagonist> or <author_mode> tag), so it is not sent twice. */
+export function roleInPreset(group = openGroup()) {
+    if (!group) return false;
+    const role = getCampaign(group).role;
+    if (role === 'player') return false;
+    return presetContains(role === 'coauthor' ? '<author_vs_protagonist' : '<author_mode');
+}
+
 export function roleText(group = openGroup()) {
     if (!group) return '';
     const campaign = getCampaign(group);
     if (campaign.role === 'player') return '';
-    const lines = [campaign.roleSend ? (campaign.roleText[campaign.role].trim() || defaultRolePrompt(campaign.role)) : ''];
+    const lines = [campaign.roleSend && !roleInPreset(group) ? (campaign.roleText[campaign.role].trim() || defaultRolePrompt(campaign.role)) : ''];
     if (campaign.role === 'author' && campaign.protagonist) {
         const name = characterName(campaign.protagonist);
         if (name) lines.push(`Main character: ${name}. A character like any other, written by you; not the author.`);
@@ -539,8 +544,8 @@ function applyPrompts() {
     const group = openGroup();
     const campaign = group ? getCampaign(group) : null;
     const cast = campaign && campaign.castPlacement === 'prompt' ? castText(group) : '';
-    setExtensionPrompt(CAST_PROMPT_KEY, cast, extension_prompt_types.IN_PROMPT, 0, false);
-    setExtensionPrompt(ROLE_PROMPT_KEY, roleText(group), extension_prompt_types.IN_PROMPT, 0, false);
+    setPromptBlock('cast', cast);
+    setPromptBlock('role', roleText(group));
     const role = campaign?.role ?? 'player';
     document.body.classList.toggle('ct-role-coauthor', role === 'coauthor');
     document.body.classList.toggle('ct-role-author', role === 'author');

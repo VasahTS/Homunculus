@@ -2563,3 +2563,18 @@ button.ct-sc-thread-pill { margin: 0; background: none; font: inherit; font-size
 .ct-sc-add-row { display: flex; gap: 6px; margin-top: 4px; }
 .ct-sc-add-row .text_pole { flex: 1 1 auto; margin: 0; }
 .ct-sc-add-row .menu_button { width: auto; margin: 0; }
+
+/* Group Studio: Prompts tab */
+.ct-gs-prompt-block.is-off > :not(.ct-gs-card-head) { opacity: .55; }
+.ct-gs-prompt-tag { font-size: .8em; opacity: .7; }
+.ct-gs-prompt-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.ct-gs-prompt-row > .ct-gs-field { flex: 1 1 140px; min-width: 0; }
+.ct-gs-prompt-row > .ct-gs-field:first-child { flex: 2 1 240px; }
+.ct-gs-prompt-info { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9em; }
+.ct-gs-prompt-status { flex: 1 1 220px; }
+.ct-gs-prompt-status.is-sent { color: rgb(110 200 140); }
+.ct-gs-prompt-status.is-preset-macro, .ct-gs-prompt-status.is-macro { color: rgb(120 170 240); }
+.ct-gs-prompt-status.is-off, .ct-gs-prompt-status.is-empty { opacity: .7; }
+.ct-gs-prompt-macro { cursor: pointer; padding: 1px 6px; border-radius: 6px; background: rgb(255 255 255 / 8%); }
+.ct-gs-prompt-preview > summary { cursor: pointer; font-size: .9em; opacity: .85; }
+.ct-gs-prompt-preview > pre { margin-top: 6px; padding: 8px; border-radius: 8px; background: rgb(0 0 0 / 20%); max-height: 260px; overflow: auto; }

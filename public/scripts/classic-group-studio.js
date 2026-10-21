@@ -58,7 +58,8 @@ import {
     shouldAsk,
     skipAskOnce,
 } from './classic-group-profile.js';
-import { listVars, normalizeStyle, getStyle, saveStyle, styleText, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
+import { listVars, normalizeStyle, getStyle, saveStyle, styleText, conflicts as styleConflicts, openVarsEditor, STYLE_HELP, STYLE_CHANGED_EVENT } from './classic-story-style.js';
+import { BLOCKS as PROMPT_BLOCKS, getPlacement, setPlacement, resetPlacement, status as blockStatus, preview as blockPreview, wrap, PROMPTS_CHANGED_EVENT } from './classic-prompt-blocks.js';
 import {
     AUTONOMY,
     CAST_STATES,
@@ -71,6 +72,7 @@ import {
     getCampaign,
     narratorAvatar,
     normalizeCampaign,
+    roleInPreset,
     saveCampaign,
     updateBuiltinNarrator,
 } from './classic-group-campaign.js';
@@ -85,6 +87,7 @@ const TABS = [
     { id: 'profile', label: 'Profile', icon: 'fa-id-card' },
     { id: 'agents', label: 'Agents', icon: 'fa-robot' },
     { id: 'behavior', label: 'Behavior', icon: 'fa-sliders' },
+    { id: 'prompts', label: 'Prompts', icon: 'fa-layer-group' },
 ];
 
 const SCENE_TRACKERS = [
@@ -113,6 +116,16 @@ const SCENE_TRACKERS = [
 ];
 
 const HELP = {
+    prompts: `<p>Everything Homunculus adds to the prompt, and where it goes.</p>
+<p><b>End of the Main Prompt</b>: added after your preset's Main Prompt, like a system rule.</p>
+<p><b>In the chat, near the end</b>: added between the last messages. <b>Depth 0</b> is after the last message, <b>1</b> is just before it, and so on. Close to the end, the AI follows it more, and it does not fight with your preset's own rules.</p>
+<p><b>Only where I put the macro</b>: nothing is added by itself. Write the macro (for example <code>{{storyStyle}}</code>) in a prompt of your preset, where you want it.</p>
+<p>If your preset already has the macro, the block is not added a second time.</p>
+<p>Each block is sent inside a tag, like <code>&lt;story_style&gt;…&lt;/story_style&gt;</code>, so the AI knows where it starts and ends.</p>
+<p>These settings are the same for every group.</p>`,
+    promptWhere: '<p>Where this block goes in the prompt. See the "?" at the top of this tab.</p>',
+    promptDepth: '<p>How many messages from the end. 0 = after the last message, 1 = just before the last message.</p>',
+    promptRole: '<p>Who "says" the block in the chat. <b>System</b> works for most models.</p>',
     page: `<p>Make and set up your groups here.</p>
 <p>Pick a group on the left, or press <b>New group</b>. Changes to an existing group are saved right away.</p>
 <p>The <b>Profile</b> and <b>Agents</b> tabs are applied when you open one of the group's chats ("group mode"), and your own settings come back when you leave.</p>`,
@@ -935,11 +948,13 @@ function renderStyleCard(t) {
     section.append(checkRow('Send the story style to the AI before each reply', style.inject, checked => void setStyle({ inject: checked })));
     const preview = el('div', 'ct-gs-style-preview');
     preview.append(el('div', 'ct-gs-label', 'What the AI receives'));
-    const text = styleText(style);
+    const text = wrap('style', styleText(style));
     const lines = [style.inject ? (text || 'Nothing picked yet.') : 'Nothing is sent by itself: use the macros in your preset.'];
     if (t.campaign.role !== 'player') lines.push(`+ the ${t.campaign.role === 'author' ? 'Author' : 'Co-author'} lines from "Your role in the story".`);
     preview.append(el('pre', 'ct-gs-style-text', lines.join('\n')));
     section.append(preview);
+    for (const warning of styleConflicts(style)) section.append(el('p', 'ct-gs-warn', warning));
+    section.append(el('p', 'ct-gs-note', 'Where it goes in the prompt: Prompts tab.'));
     return section;
 }
 
@@ -1506,6 +1521,99 @@ function renderAgentsTab(body, t) {
 
 // ───────────────────────── Behavior tab ─────────────────────────
 
+// ───────────────────────── Prompts tab ─────────────────────────
+
+const PLACEMENTS = [['main', 'End of the Main Prompt'], ['chat', 'In the chat, near the end'], ['macro', 'Only where I put the macro']];
+const STATUS_TEXT = {
+    sent: 'Sent before each reply.',
+    empty: 'Nothing to send in the open chat right now.',
+    off: 'Off: never sent.',
+    macro: 'Sent only where your preset has the macro.',
+    'preset-macro': 'Your preset already has the macro, so it is not added again.',
+};
+
+function openLastPromptItemization() {
+    const buttons = [...document.querySelectorAll('#chat .mes .mes_prompt')];
+    const last = buttons[buttons.length - 1];
+    if (!last) {
+        toastr.info('Generate a reply first. Then this shows exactly what was sent.');
+        return;
+    }
+    close();
+    last.click();
+}
+
+function renderPromptBlock(block, t) {
+    const placement = getPlacement(block.id);
+    const current = blockStatus(block.id);
+    const section = el('section', `ct-gs-card ct-gs-prompt-block${placement.enabled ? '' : ' is-off'}`);
+    section.dataset.block = block.id;
+    const head = el('div', 'ct-gs-card-head');
+    const titleRow = el('div', 'ct-gs-title-row');
+    titleRow.append(el('h3', 'ct-gs-title', block.label), el('code', 'ct-gs-prompt-tag', `<${block.tag}>`));
+    head.append(titleRow, toggleSwitch('Send', placement.enabled, enabled => setPlacement(block.id, { enabled })));
+    section.append(head, el('p', 'ct-gs-intro', block.about));
+
+    const row = el('div', 'ct-gs-prompt-row');
+    const where = el('select', 'text_pole');
+    where.id = `ct-gs-prompt-where-${block.id}`;
+    for (const [value, label] of PLACEMENTS) where.append(option(value, label, placement.mode === value));
+    where.addEventListener('change', () => setPlacement(block.id, { mode: where.value }));
+    row.append(field('Where', HELP.promptWhere, where));
+    if (placement.mode === 'chat') {
+        const depth = el('input', 'text_pole');
+        depth.type = 'number';
+        depth.min = '0';
+        depth.max = '50';
+        depth.value = String(placement.depth);
+        depth.id = `ct-gs-prompt-depth-${block.id}`;
+        depth.addEventListener('change', () => {
+            const value = Math.min(50, Math.max(0, Number.parseInt(depth.value, 10) || 0));
+            setPlacement(block.id, { depth: value });
+        });
+        row.append(field('Depth', HELP.promptDepth, depth));
+        const role = el('select', 'text_pole');
+        role.id = `ct-gs-prompt-role-${block.id}`;
+        for (const [value, label] of [['system', 'System'], ['user', 'User'], ['assistant', 'AI']]) role.append(option(value, label, placement.role === value));
+        role.addEventListener('change', () => setPlacement(block.id, { role: role.value }));
+        row.append(field('As', HELP.promptRole, role));
+    }
+    section.append(row);
+
+    const info = el('div', 'ct-gs-prompt-info');
+    info.append(el('span', `ct-gs-prompt-status is-${current}`, STATUS_TEXT[current]));
+    const macro = el('code', 'ct-gs-prompt-macro', `{{${block.macro}}}`);
+    macro.title = 'Click to copy';
+    macro.addEventListener('click', () => {
+        navigator.clipboard?.writeText(`{{${block.macro}}}`).then(() => toastr.success('Macro copied.')).catch(() => {});
+    });
+    info.append(el('span', 'ct-gs-note', 'Macro:'), macro);
+    info.append(button('ct-cb-btn ct-gs-prompt-reset', '<i class="fa-solid fa-rotate-left"></i><span>Default</span>', 'Back to the default place', () => resetPlacement(block.id)));
+    section.append(info);
+
+    if (block.id === 'role' && roleInPreset(group())) {
+        section.append(el('p', 'ct-gs-note', `Your preset already has the ${t.campaign.role === 'author' ? 'Author' : 'Co-author'} prompt, so only the extra lines (main character, autonomy, empty turns) are sent.`));
+    }
+    if (block.id === 'style') {
+        for (const warning of styleConflicts(t.style)) section.append(el('p', 'ct-gs-warn', warning));
+    }
+
+    const text = blockPreview(block.id);
+    const details = el('details', 'ct-gs-prompt-preview');
+    details.append(el('summary', '', 'What the AI receives'), el('pre', 'ct-gs-style-text', text || '(empty in the open chat)'));
+    section.append(details);
+    return section;
+}
+
+function renderPromptsTab(body, t) {
+    const aside = button('ct-cb-btn', '<i class="fa-solid fa-magnifying-glass"></i><span>See the last prompt</span>', 'Opens SillyTavern\'s view of exactly what was sent for the last reply', openLastPromptItemization);
+    const intro = card('Where Homunculus prompts go', HELP.prompts, { aside, intro: 'Pick where each block is added. "What the AI receives" shows the open chat.' });
+    const g = group();
+    if (g && String(selected_group) !== String(g.id)) intro.append(el('p', 'ct-gs-warn', 'This group is not the open chat, so the previews show the open chat.'));
+    body.append(intro);
+    for (const block of PROMPT_BLOCKS) body.append(renderPromptBlock(block, t));
+}
+
 function renderBehaviorTab(body, t) {
     const section = card('Behavior', HELP.behavior);
     if (t.campaign.mode === 'narrated') {
@@ -1569,6 +1677,7 @@ function render() {
         profile: renderProfileTab,
         agents: renderAgentsTab,
         behavior: renderBehaviorTab,
+        prompts: renderPromptsTab,
     })[state.tab](page, t);
     body.append(page);
     renderFooter(t);
@@ -1861,6 +1970,7 @@ function init() {
     document.addEventListener('homunculus:group-campaign-changed', rerender);
     document.addEventListener(FIELDS_CHANGED_EVENT, rerender);
     document.addEventListener(STYLE_CHANGED_EVENT, rerender);
+    document.addEventListener(PROMPTS_CHANGED_EVENT, rerender);
     document.addEventListener('homunculus:vault-changed', () => {
         state.vaultScenarios = null;
         rerender();

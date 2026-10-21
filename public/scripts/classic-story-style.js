@@ -8,14 +8,14 @@
 // Definitions are shared by every group: extension_settings.homunculusStoryStyle.vars.
 // Choices are saved in the group: group.homunculus_style = { values: { [varId]: optionId }, inject }.
 
-import { eventSource, event_types, saveSettingsDebounced, setExtensionPrompt, extension_prompt_types } from '../script.js';
+import { eventSource, event_types, saveSettingsDebounced } from '../script.js';
 import { extension_settings } from './extensions.js';
 import { groups, selected_group, editGroup } from './group-chats.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { helpButton } from './classic-help.js';
+import { set as setPromptBlock, presetText, wrap } from './classic-prompt-blocks.js';
 
 const GROUP_KEY = 'homunculus_style';
-const PROMPT_KEY = 'homunculus_style';
 export const STYLE_CHANGED_EVENT = 'homunculus:story-style-changed';
 
 const opt = (id, label, text) => ({ id, label, text });
@@ -123,10 +123,10 @@ export function chosen(style) {
     return picks;
 }
 
-/** The "Story style" block for a style (empty when nothing is picked). */
+/** The lines of the Story style block (empty when nothing is picked). */
 export function styleText(style) {
     const lines = chosen(style).map(({ option }) => str(option.text).trim()).filter(Boolean);
-    return lines.length ? `[Story style]\n${lines.map(line => `- ${line}`).join('\n')}` : '';
+    return lines.map(line => `- ${line}`).join('\n');
 }
 
 function openStyle() {
@@ -145,8 +145,31 @@ function macroValue(variableKey) {
 
 function applyPrompt() {
     const style = openStyle();
-    const text = style && style.inject ? styleText(style) : '';
-    setExtensionPrompt(PROMPT_KEY, text, extension_prompt_types.IN_PROMPT, 0, false);
+    setPromptBlock('style', style && style.inject ? styleText(style) : '');
+}
+
+const CONFLICT_RULES = {
+    pov: {
+        first: [['second person', /second[- ]person/i], ['third person', /third[- ]person/i]],
+        second: [['first person', /first[- ]person/i], ['third person', /third[- ]person/i]],
+        third: [['first person', /first[- ]person/i], ['second person', /second[- ]person/i]],
+    },
+    tense: {
+        past: [['present tense', /present tense/i]],
+        present: [['past tense', /past tense/i]],
+    },
+};
+
+/** Warnings when the active preset seems to ask for something else than the picked style. */
+export function conflicts(style) {
+    const text = presetText();
+    const found = [];
+    for (const { variable, option } of chosen(style)) {
+        for (const [word, pattern] of CONFLICT_RULES[variable.id]?.[option.id] ?? []) {
+            if (pattern.test(text)) found.push(`Your preset mentions "${word}", and Story style picks "${option.label}". If both are sent, the AI may mix them: change one of them.`);
+        }
+    }
+    return found;
 }
 
 const registered = new Set();
@@ -169,7 +192,7 @@ function registerMacro(name, handler, description) {
 function registerMacros() {
     registerMacro('storyStyle', () => {
         const style = openStyle();
-        return style ? styleText(style) : '';
+        return style ? wrap('style', styleText(style)) : '';
     }, 'Every Story style choice of the open group (Group Studio → Setup).');
     for (const variable of listVars()) {
         registerMacro(variable.key, () => macroValue(variable.key), `Story style: the "${variable.label}" choice of the open group.`);
@@ -311,4 +334,4 @@ function init() {
 
 init();
 
-globalThis.HomunculusStoryStyle = { listVars, getStyle, saveStyle, styleText, chosen, openVarsEditor, normalizeStyle, STYLE_CHANGED_EVENT };
+globalThis.HomunculusStoryStyle = { listVars, getStyle, saveStyle, styleText, chosen, conflicts, openVarsEditor, normalizeStyle, STYLE_CHANGED_EVENT };
