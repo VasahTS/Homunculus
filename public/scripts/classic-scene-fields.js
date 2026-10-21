@@ -159,16 +159,23 @@ function settings() {
 const str = value => (value === null || value === undefined ? '' : String(value));
 export const cleanKey = value => str(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
 
+// Field types also by their on-screen names ("Short value"), as written in guides and by AIs.
+const typeOf = value => {
+    const text = str(value).trim().toLowerCase();
+    const match = FIELD_TYPES.find(([id, label]) => id === text || label.toLowerCase() === text);
+    return match ? match[0] : 'text';
+};
+const yes = value => (typeof value === 'string' ? ['yes', 'true', 'required', 'y', '1'].includes(value.trim().toLowerCase()) : Boolean(value));
+
 function normalizeField(raw) {
     const key = cleanKey(raw?.key || raw?.label);
     if (!key) return null;
-    const type = FIELD_TYPES.some(([id]) => id === raw?.type) ? raw.type : 'text';
     return {
         key,
         label: str(raw?.label).trim() || key,
-        type,
-        hint: str(raw?.hint).trim(),
-        required: Boolean(raw?.required),
+        type: typeOf(raw?.type),
+        hint: str(raw?.hint ?? raw?.instruction).trim(),
+        required: yes(raw?.required),
         ...(str(raw?.icon).trim() ? { icon: str(raw.icon).trim() } : {}),
     };
 }
@@ -183,7 +190,10 @@ export function normalizePreset(kind, raw) {
     };
     if (kind === 'world') {
         const modules = {};
-        for (const [key] of WORLD_MODULES) modules[key] = raw?.modules ? raw.modules[key] !== false : true;
+        for (const [key, label] of WORLD_MODULES) {
+            const value = raw?.modules ? (raw.modules[key] ?? raw.modules[label] ?? raw.modules[label.toLowerCase()]) : true;
+            modules[key] = typeof value === 'string' ? !['off', 'false', 'no', '0'].includes(value.trim().toLowerCase()) : value !== false;
+        }
         const seen = new Set(WORLD_MODULES.map(([key]) => key));
         const fields = [];
         for (const field of (Array.isArray(raw?.fields) ? raw.fields : []).map(normalizeField)) {
@@ -455,6 +465,111 @@ function move(list, index, step) {
     [list[index], list[target]] = [list[target], list[index]];
 }
 
+// ───────────────────────── Import / export ─────────────────────────
+
+export const EXPORT_FORMAT = 'homunculus-scene-fields';
+const KIND_LABEL = { cast: 'Scene: Characters', world: 'Scene: World' };
+
+/** A preset as it goes into a file: no id, no built-in flag. */
+function portablePreset(kind, preset) {
+    const clean = normalizePreset(kind, preset);
+    delete clean.id;
+    delete clean.builtin;
+    return clean;
+}
+
+/** Which tracker a preset from a file belongs to, from its "kind" or its shape. */
+function kindOf(raw, fallback = '') {
+    const named = str(raw?.kind).toLowerCase();
+    if (['cast', 'characters', 'scene: characters'].includes(named)) return 'cast';
+    if (['world', 'scene: world'].includes(named)) return 'world';
+    if (Array.isArray(raw?.sections)) return 'cast';
+    if (raw?.modules && typeof raw.modules === 'object') return 'world';
+    return fallback;
+}
+
+/**
+ * Reads presets from exported JSON. Accepts one exported preset ({ format, kind, preset }),
+ * a bundle ({ format, presets: [{ kind, preset }…] }), a bare preset object, or a list of them.
+ * A ```json fence around it (as AIs often write) is ignored.
+ * @returns {{ kind: 'cast'|'world', preset: object }[]}
+ */
+export function parsePresetFile(text, fallbackKind = '') {
+    let data;
+    try {
+        data = JSON.parse(String(text ?? '').trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    } catch {
+        throw new Error('This is not valid JSON.');
+    }
+    const entries = Array.isArray(data) ? data : Array.isArray(data?.presets) ? data.presets : [data];
+    const found = [];
+    for (const entry of entries) {
+        if (!entry || typeof entry !== 'object') continue;
+        const wrapped = entry.preset && typeof entry.preset === 'object';
+        const raw = wrapped ? entry.preset : entry;
+        const kind = kindOf(wrapped ? { ...raw, kind: entry.kind ?? raw.kind } : raw, fallbackKind);
+        if (kind) found.push({ kind, preset: raw });
+    }
+    if (!found.length) throw new Error('No Scene field preset found in it.');
+    return found;
+}
+
+/** Saves imported presets as new custom presets (a name that already exists gets a number). */
+export function importPresets(entries) {
+    const added = [];
+    for (const { kind, preset } of entries) {
+        const taken = new Set(listPresets(kind).map(item => item.name.toLowerCase()));
+        const base = str(preset.name).trim() || 'Imported preset';
+        let name = base;
+        for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} (${n})`;
+        const clean = normalizePreset(kind, { ...preset, id: '', name, builtin: false });
+        if (kind === 'cast' && !clean.sections.some(section => section.fields.length)) continue;
+        clean.id = `custom-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        added.push({ kind, preset: saveCustom(kind, clean) });
+    }
+    return added;
+}
+
+function download(filename, text) {
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename.replace(/[\\/:*?"<>|]+/g, '-');
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportPreset(kind, preset) {
+    const file = { format: EXPORT_FORMAT, version: 1, kind, preset: portablePreset(kind, preset) };
+    download(`Scene ${kind === 'cast' ? 'Characters' : 'World'} - ${preset.name || 'preset'}.json`, `${JSON.stringify(file, null, 4)}\n`);
+}
+
+/** Popup to paste JSON or pick a file. Resolves with the text, or '' when cancelled. */
+async function askForPresetText(kind) {
+    const box = el('div', 'ct-sf-import');
+    const intro = el('p', 'ct-sf-note');
+    intro.innerHTML = `Paste a preset exported from Homunculus (or written by an AI in the same format), or choose a <b>.json</b> file. A file with both a ${KIND_LABEL.world} and a ${KIND_LABEL.cast} preset adds both.`;
+    const area = el('textarea', 'text_pole ct-sf-import-text');
+    area.rows = 12;
+    area.placeholder = `{ "format": "${EXPORT_FORMAT}", "kind": "${kind}", "preset": { … } }`;
+    const file = el('input');
+    file.type = 'file';
+    file.accept = '.json,application/json,text/plain';
+    file.hidden = true;
+    file.addEventListener('change', async () => {
+        const picked = file.files?.[0];
+        if (picked) area.value = await picked.text();
+    });
+    const row = el('div', 'ct-sf-pick');
+    row.append(textButton('<i class="fa-solid fa-folder-open"></i> Choose file', () => file.click()));
+    box.append(intro, area, row, file);
+    const popup = new Popup(box, POPUP_TYPE.TEXT, '', { okButton: 'Import', cancelButton: 'Cancel', wide: true, leftAlign: true });
+    const result = await popup.show();
+    return result === POPUP_RESULT.AFFIRMATIVE ? area.value : '';
+}
+
 /**
  * The field preset editor (a popup). Built-in presets are shown read-only with a Duplicate button.
  * @param {'cast'|'world'} kind
@@ -538,6 +653,37 @@ export async function openFieldsEditor(kind, { groupId = null, presetId = '' } =
                 paint();
             }, 'menu_button ct-sf-btn is-danger'));
         }
+        pickRow.append(textButton('<i class="fa-solid fa-file-export"></i> Export', () => {
+            if (!commit()) return;
+            exportPreset(kind, draft);
+        }));
+        pickRow.append(textButton('<i class="fa-solid fa-file-import"></i> Import', async () => {
+            if (!commit()) return;
+            const text = await askForPresetText(kind);
+            if (!text.trim()) return;
+            let added;
+            try {
+                added = importPresets(parsePresetFile(text, kind));
+            } catch (error) {
+                toastr.error(error.message, 'Import failed');
+                return;
+            }
+            if (!added.length) {
+                toastr.warning('The preset has no fields to import.');
+                return;
+            }
+            for (const item of added.filter(entry => entry.kind !== kind)) {
+                toastr.info(`"${item.preset.name}" was added to the ${KIND_LABEL[item.kind]} presets.`);
+            }
+            const here = added.find(item => item.kind === kind);
+            if (here) {
+                current = here.preset;
+                draft = structuredClone(current);
+                dirty = false;
+                toastr.success(`Imported "${here.preset.name}".`);
+            }
+            paint();
+        }));
         head.append(pickRow);
         wrap.append(head);
 

@@ -2818,3 +2818,5 @@ button.ct-sc-status-pill:hover, button.ct-sc-status-pill[aria-expanded="true"] {
 .ct-sc-status-choice { border-color: var(--cf-line); }
 .ct-sc-status-choice:hover { border-color: color-mix(in srgb, var(--cf-accent) 40%, var(--cf-line)); }
 .ct-sc-status-choice.is-on { border-color: var(--cf-accent); background: color-mix(in srgb, var(--cf-accent) 10%, transparent); }
+.ct-sf-import { display: flex; flex-direction: column; gap: 8px; }
+.ct-sf-import-text { width: 100%; min-height: 220px; font-family: var(--monoFontFamily, monospace); font-size: 0.85em; }
