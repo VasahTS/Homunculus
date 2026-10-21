@@ -69,9 +69,6 @@ The interface is in English. Most screens have small **?** buttons that explain 
 
 ## Install and run
 
-> [!NOTE]
-> This repository is private. You need to be added as a collaborator to clone or download it.
-
 ### Windows
 
 1. Install [Git](https://git-scm.com/downloads) if you don't have it.
