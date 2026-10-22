@@ -2012,25 +2012,26 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 
 /* Where and when: date and time with the sun or moon on an arc, the place, the weather. Text wraps, never cut. */
 .ct-sc-where { padding: 2px 16px 14px; }
-.ct-sc-when-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.ct-sc-when { min-width: 0; padding-bottom: 3px; font-size: .9em; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-sc-when-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ct-sc-when { min-width: 0; font-size: .9em; line-height: 1.35; overflow-wrap: anywhere; }
 .ct-sc-when-date { font-weight: 700; }
 .ct-sc-when-rest { color: var(--cf-muted); font-variant-numeric: tabular-nums; }
 .ct-sc-when-plain { font-weight: 600; }
-.ct-sc-sky { flex: none; display: block; width: 80px; height: 34px; }
-.ct-sc-sky svg { display: block; overflow: visible; }
-.ct-sc-sky-line { stroke: color-mix(in srgb, var(--cf-text) 22%, transparent); stroke-width: 1; }
-.ct-sc-sky-arc { fill: none; stroke: color-mix(in srgb, var(--cf-text) 28%, transparent); stroke-width: 1; stroke-dasharray: 2 3.5; }
-.ct-sc-sky { --ct-sc-orb: #f2d36b; }
-.ct-sc-sky.is-dawn { --ct-sc-orb: #f2a98a; }
-.ct-sc-sky.is-dusk { --ct-sc-orb: #e9a050; }
-.ct-sc-sky.is-moon { --ct-sc-orb: #d9dbe6; }
-.ct-sc-sky-orb { fill: var(--ct-sc-orb); }
-.ct-sc-sky-glow { fill: var(--ct-sc-orb); opacity: .16; }
-.ct-sc-sky.is-moon .ct-sc-sky-glow { opacity: .12; }
-.ct-sc-sky-cut { fill: var(--cf-solid); }
+.ct-sc-dial { flex: none; display: block; width: 52px; height: 52px; }
+.ct-sc-dial svg { display: block; overflow: visible; }
+.ct-sc-dial-horizon { stroke: color-mix(in srgb, var(--cf-text) 18%, transparent); stroke-width: 1; stroke-dasharray: 2 3; }
+.ct-sc-dial-ring { fill: none; stroke: color-mix(in srgb, var(--cf-text) 32%, transparent); stroke-width: 1.4; }
+.ct-sc-dial-sun { fill: #f08a3c; }
+.ct-sc-dial-sun-glow { fill: #f08a3c; opacity: .2; }
+.ct-sc-dial-moon { fill: #9fd6ea; }
+.ct-sc-dial-moon-glow { fill: #9fd6ea; opacity: .14; }
+.ct-sc-dial-star { fill: #f5e7a8; animation: ct-sc-twinkle 3.2s ease-in-out infinite; }
+.ct-sc-dial-star.is-2 { animation-delay: -1.1s; }
+.ct-sc-dial-star.is-3 { animation-delay: -2.2s; }
+@keyframes ct-sc-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ct-sc-dial-star { animation: none; } }
 .ct-sc-where-place, .ct-sc-where-weather { display: flex; align-items: flex-start; gap: 8px; }
-.ct-sc-where-place { margin-top: 9px; font-size: 1.04em; font-weight: 600; line-height: 1.35; }
+.ct-sc-where-place { margin-top: 6px; font-size: 1.04em; font-weight: 600; line-height: 1.35; }
 .ct-sc-where-place i { margin-top: 3px; color: var(--cf-accent); font-size: .9em; }
 .ct-sc-where-weather { margin-top: 6px; color: var(--cf-muted); font-size: .9em; line-height: 1.4; }
 .ct-sc-where-weather i { margin-top: 3px; width: 14px; text-align: center; font-size: .92em; }

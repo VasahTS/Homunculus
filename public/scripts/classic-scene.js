@@ -786,18 +786,30 @@ function renderHeader(status) {
     return head;
 }
 
-/** Sun or moon on a small arc, placed by the time of day (null when the time is unknown). */
-function skyArc(world) {
-    const pos = skyPosition(world);
-    if (!pos) return null;
-    const angle = Math.PI * (1 - pos.t);
-    const x = 40 + 26 * Math.cos(angle);
-    const y = 30 - 26 * Math.sin(angle);
-    const tone = pos.body === 'moon' ? 'moon' : pos.t < 0.15 ? 'dawn' : pos.t > 0.78 ? 'dusk' : 'day';
-    const wrap = el('span', `ct-sc-sky is-${tone}`);
+/** How dark the sky is (0 day, 1 night), fading in 17:00-19:00 and out 05:00-07:00: shows the stars. */
+function darkness(minutes) {
+    const h = minutes / 60;
+    if (h >= 7 && h < 17) return 0;
+    if (h >= 19 || h < 5) return 1;
+    return h < 7 ? (7 - h) / 2 : (h - 17) / 2;
+}
+
+const DIAL_STARS = [[17, 14, 0.9, 1], [29, 11, 0.7, 2], [23, 19, 0.6, 3], [33, 18, 0.8, 1], [13, 20, 0.6, 2], [3, 7, 0.8, 3], [45, 5, 0.7, 1], [41, 14, 0.6, 2]];
+
+/**
+ * A day dial: sun and moon on opposite sides of a circle that turns with the clock (sun on top at
+ * noon, moon on top at midnight); the dashed line is the horizon. The stars stay put and show when it
+ * gets dark. Results with only words ("late afternoon") use a guessed clock; null when the time is unknown.
+ */
+function skyDial(world) {
+    let minutes = parseClock(world?.clock);
+    if (minutes === null && skyPosition(world)) minutes = guessMinutes(world);
+    if (minutes === null) return null;
+    const turn = (((minutes - 720) / 1440) * 360).toFixed(1);
+    const stars = DIAL_STARS.map(([x, y, r, n]) => `<circle class="ct-sc-dial-star is-${n}" cx="${x}" cy="${y}" r="${r}"/>`).join('');
+    const wrap = el('span', 'ct-sc-dial');
     wrap.setAttribute('aria-hidden', 'true');
-    const cut = tone === 'moon' ? `<circle class="ct-sc-sky-cut" cx="${(x + 1.8).toFixed(1)}" cy="${(y - 1.3).toFixed(1)}" r="3.4"/>` : '';
-    wrap.innerHTML = `<svg viewBox="0 0 80 34" width="80" height="34"><path class="ct-sc-sky-line" d="M6 30H74"/><path class="ct-sc-sky-arc" d="M14 30A26 26 0 0 1 66 30"/><circle class="ct-sc-sky-glow" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7"/><circle class="ct-sc-sky-orb" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>${cut}</svg>`;
+    wrap.innerHTML = `<svg viewBox="-6 -6 60 60" width="52" height="52"><path class="ct-sc-dial-horizon" d="M0 24H48"/><circle class="ct-sc-dial-ring" cx="24" cy="24" r="17"/><g class="ct-sc-dial-stars" opacity="${darkness(minutes).toFixed(2)}">${stars}</g><g transform="rotate(${turn} 24 24)"><circle class="ct-sc-dial-moon-glow" cx="24" cy="41" r="7"/><circle class="ct-sc-dial-moon" cx="24" cy="41" r="4.5"/><circle class="ct-sc-dial-sun-glow" cx="24" cy="7" r="8.5"/><circle class="ct-sc-dial-sun" cx="24" cy="7" r="5"/></g></svg>`;
     return wrap;
 }
 
@@ -841,7 +853,7 @@ function renderWhereWhen(world) {
         }
         if (rest.length) when.append(el('span', lead ? 'ct-sc-when-rest' : 'ct-sc-when-plain', `${lead ? ' · ' : ''}${rest.join(' · ')}`));
         row.append(when);
-        const sky = skyArc(world);
+        const sky = skyDial(world);
         if (sky) row.append(sky);
         box.append(row);
     }
