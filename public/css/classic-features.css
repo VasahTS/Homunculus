@@ -2021,7 +2021,9 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-when-plain { font-weight: 600; }
 .ct-sc-dial { flex: none; display: block; width: 52px; height: 52px; }
 .ct-sc-dial svg { display: block; overflow: visible; }
-.ct-sc-dial-horizon { stroke: color-mix(in srgb, var(--cf-text) 18%, transparent); stroke-width: 1; stroke-dasharray: 2 3; }
+.ct-sc-dial-horizon { stroke: color-mix(in srgb, var(--cf-text) 40%, transparent); stroke-width: 1; }
+.ct-sc-dial-tick { stroke: color-mix(in srgb, var(--cf-text) 38%, transparent); stroke-width: 1.2; stroke-linecap: round; }
+.ct-sc-dial-set { opacity: .22; }
 .ct-sc-dial-ring { fill: none; stroke: color-mix(in srgb, var(--cf-text) 32%, transparent); stroke-width: 1.4; }
 .ct-sc-dial-sun { fill: #f08a3c; }
 .ct-sc-dial-sun-glow { fill: #f08a3c; opacity: .2; }
@@ -2251,6 +2253,9 @@ body.ct-layout-lanterna:not([data-ct-view="chat"]) :is(#ct-scene, #ct-scene-stri
 .ct-sc-look-label { display: flex; align-items: center; gap: 7px; color: var(--ct-tone); font-size: .8em; font-weight: 700; letter-spacing: .02em; }
 .ct-sc-look-label > i { width: 1.1em; text-align: center; font-size: .92em; }
 .ct-sc-look-text { margin-top: 2px; color: var(--cf-text); line-height: 1.45; overflow-wrap: anywhere; }
+.ct-sc-look-list { display: flex; flex-direction: column; gap: 3px; margin: 3px 0 0; padding: 0; list-style: none; }
+.ct-sc-look-list li { position: relative; padding-left: 13px; color: var(--cf-text); line-height: 1.45; overflow-wrap: anywhere; }
+.ct-sc-look-list li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--ct-tone); opacity: .85; }
 .ct-sc-new { margin-left: auto; padding: 0 7px; border-radius: 999px; background: color-mix(in srgb, var(--cf-accent) 18%, transparent); color: var(--cf-accent); font-size: .78em; font-style: normal; font-weight: 700; letter-spacing: .03em; }
 .ct-sc-notes { margin: 0; padding: 7px 11px; border-left: 2px solid color-mix(in srgb, var(--cf-accent) 45%, var(--cf-line)); border-radius: 0 8px 8px 0; background: color-mix(in srgb, var(--cf-text) 3%, transparent); color: var(--cf-text); font-style: italic; line-height: 1.45; }
 .ct-sc-notes.is-changed { border-left-color: var(--cf-accent); }
@@ -3254,3 +3259,16 @@ body.ct-wm-open :is(#ct-scene, #ct-scene-strip) { visibility: hidden; }
 .ct-wm-btn { display: inline-flex; align-items: center; gap: 6px; }
 /* Blocks in the panel body keep their height; the body scrolls instead of squeezing them. */
 .ct-sc-body > * { flex-shrink: 0; }
+
+/* Scene panel: long texts clamped to two lines with a chevron to open them; Who is where folds */
+.ct-sc-row-sub.ct-sc-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
+.is-expanded .ct-sc-row-sub.ct-sc-clamp { display: block; -webkit-line-clamp: unset; line-clamp: none; }
+button.ct-sc-clamp-toggle { flex: none; align-self: flex-start; margin: 0; padding: 2px 4px; border: 0; background: none; color: var(--cf-muted); cursor: pointer; }
+button.ct-sc-clamp-toggle[hidden] { display: none; }
+button.ct-sc-clamp-toggle:hover { color: var(--cf-text); }
+button.ct-sc-clamp-toggle i { transition: transform 140ms ease; }
+button.ct-sc-clamp-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+.ct-sc-thread:has(.ct-sc-clamp) { align-items: flex-start; }
+.ct-sc-where-head { gap: 4px; }
+.ct-sc-where-head .ct-sc-where-toggle { flex: 1 1 auto; min-width: 0; }
+.ct-sc-where-toggle .ct-sc-group-count { font-weight: 600; text-transform: none; }

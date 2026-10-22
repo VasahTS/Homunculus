@@ -22,6 +22,7 @@ import {
     getThumbnailUrl,
     getCurrentChatId,
     saveSettingsDebounced,
+    this_chid,
 } from '../script.js';
 import { extension_settings, saveMetadataDebounced } from './extensions.js';
 import { groups, selected_group } from './group-chats.js';
@@ -556,13 +557,32 @@ function hue(text) {
     return hash;
 }
 
+/**
+ * The card of a character who is really in this chat (a group member, or the 1:1 character).
+ * Matching the whole library by name gave new NPCs the picture of an unrelated saved card
+ * that happened to share the name.
+ */
+function chatCardFor(name) {
+    const key = keyOf(name);
+    if (!key) return null;
+    let cards = [];
+    if (selected_group) {
+        const group = groups.find(item => String(item.id) === String(selected_group));
+        const members = Array.isArray(group?.members) ? group.members : [];
+        cards = members.map(avatar => characters.find(c => c?.avatar === avatar)).filter(Boolean);
+    } else if (this_chid !== undefined && characters[this_chid]) {
+        cards = [characters[this_chid]];
+    }
+    return cards.find(c => keyOf(c?.name) === key) ?? null;
+}
+
 function avatarFor(character, className = 'ct-sc-avatar') {
     const name = str(character?.name).trim();
     let src = '';
     if (character && isPlayer(character) && user_avatar) {
         src = getThumbnailUrl('persona', user_avatar);
     } else if (name) {
-        const card = characters.find(c => keyOf(c?.name) === keyOf(name));
+        const card = chatCardFor(name);
         if (card?.avatar) src = getThumbnailUrl('avatar', card.avatar);
     }
     if (src) {
@@ -588,7 +608,7 @@ function portraitFor(character) {
     if (character && isPlayer(character) && user_avatar) {
         full = getUserAvatar(user_avatar);
     } else if (name) {
-        const card = characters.find(c => keyOf(c?.name) === keyOf(name));
+        const card = chatCardFor(name);
         if (card?.avatar) full = `characters/${encodeURIComponent(card.avatar)}`;
     }
     if (!full) return avatarFor(character, 'ct-sc-portrait');
@@ -597,6 +617,35 @@ function portraitFor(character) {
     img.src = full;
     img.addEventListener('error', () => img.replaceWith(avatarFor(character, 'ct-sc-portrait')), { once: true });
     return img;
+}
+
+/** Long texts that start clamped to two lines; the keys of the ones opened by hand (this session). */
+const expandedTexts = new Set();
+
+/**
+ * A chevron that opens or folds a clamped text inside `row` (row gets .is-expanded). It hides itself
+ * when the text already fits.
+ */
+function clampToggle(row, textNode, key) {
+    const fold = button('ct-sc-clamp-toggle', '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>', '', () => {
+        const open = !row.classList.contains('is-expanded');
+        row.classList.toggle('is-expanded', open);
+        if (open) expandedTexts.add(key);
+        else expandedTexts.delete(key);
+        sync();
+    });
+    function sync() {
+        const open = row.classList.contains('is-expanded');
+        fold.title = open ? 'Show less' : 'Show the whole text';
+        fold.setAttribute('aria-label', fold.title);
+        fold.setAttribute('aria-expanded', String(open));
+    }
+    sync();
+    requestAnimationFrame(() => {
+        if (!textNode.isConnected || row.classList.contains('is-expanded')) return;
+        if (textNode.scrollHeight <= textNode.clientHeight + 1) fold.hidden = true;
+    });
+    return fold;
 }
 
 function chip(label, count, isOn, onClick) {
@@ -794,11 +843,12 @@ function darkness(minutes) {
     return h < 7 ? (7 - h) / 2 : (h - 17) / 2;
 }
 
+let dialCount = 0;
 const DIAL_STARS = [[17, 14, 0.9, 1], [29, 11, 0.7, 2], [23, 19, 0.6, 3], [33, 18, 0.8, 1], [13, 20, 0.6, 2], [3, 7, 0.8, 3], [45, 5, 0.7, 1], [41, 14, 0.6, 2]];
 
 /**
  * A day dial: sun and moon on opposite sides of a circle that turns with the clock (sun on top at
- * noon, moon on top at midnight); the dashed line is the horizon. The stars stay put and show when it
+ * noon, moon on top at midnight); the line is the horizon and what is under it is drawn faded. The stars stay put and show when it
  * gets dark. Results with only words ("late afternoon") use a guessed clock; null when the time is unknown.
  */
 function skyDial(world) {
@@ -807,9 +857,14 @@ function skyDial(world) {
     if (minutes === null) return null;
     const turn = (((minutes - 720) / 1440) * 360).toFixed(1);
     const stars = DIAL_STARS.map(([x, y, r, n]) => `<circle class="ct-sc-dial-star is-${n}" cx="${x}" cy="${y}" r="${r}"/>`).join('');
+    // Above the horizon the sun/moon is in the sky; below it, it has set and is drawn faded, so a
+    // 15:00 dial reads as a high afternoon sun and not as a sun next to a rising moon.
+    const id = `ct-sc-dial-${++dialCount}`;
+    const bodies = `<g transform="rotate(${turn} 24 24)"><circle class="ct-sc-dial-moon-glow" cx="24" cy="41" r="7"/><circle class="ct-sc-dial-moon" cx="24" cy="41" r="4.5"/><circle class="ct-sc-dial-sun-glow" cx="24" cy="7" r="8.5"/><circle class="ct-sc-dial-sun" cx="24" cy="7" r="5"/></g>`;
     const wrap = el('span', 'ct-sc-dial');
     wrap.setAttribute('aria-hidden', 'true');
-    wrap.innerHTML = `<svg viewBox="-6 -6 60 60" width="52" height="52"><path class="ct-sc-dial-horizon" d="M0 24H48"/><circle class="ct-sc-dial-ring" cx="24" cy="24" r="17"/><g class="ct-sc-dial-stars" opacity="${darkness(minutes).toFixed(2)}">${stars}</g><g transform="rotate(${turn} 24 24)"><circle class="ct-sc-dial-moon-glow" cx="24" cy="41" r="7"/><circle class="ct-sc-dial-moon" cx="24" cy="41" r="4.5"/><circle class="ct-sc-dial-sun-glow" cx="24" cy="7" r="8.5"/><circle class="ct-sc-dial-sun" cx="24" cy="7" r="5"/></g></svg>`;
+    wrap.title = `${formatClock(minutes)}: ${minutes >= 360 && minutes < 1080 ? 'the sun is up' : 'the sun has set'} (sunrise 06:00, noon at the top, sunset 18:00)`;
+    wrap.innerHTML = `<svg viewBox="-6 -6 60 60" width="52" height="52"><defs><clipPath id="${id}-sky"><rect x="-6" y="-6" width="60" height="30"/></clipPath><clipPath id="${id}-ground"><rect x="-6" y="24" width="60" height="30"/></clipPath></defs><circle class="ct-sc-dial-ring" cx="24" cy="24" r="17"/><path class="ct-sc-dial-tick" d="M24 4.2V1.8"/><g class="ct-sc-dial-stars" opacity="${darkness(minutes).toFixed(2)}">${stars}</g><g class="ct-sc-dial-set" clip-path="url(#${id}-ground)">${bodies}</g><g clip-path="url(#${id}-sky)">${bodies}</g><path class="ct-sc-dial-horizon" d="M-2 24H50"/></svg>`;
     return wrap;
 }
 
@@ -1229,7 +1284,10 @@ function characterDetails(character, changes, { full = false } = {}) {
     const listBlock = (field, items, changed) => {
         const item = el('div', `ct-sc-look-item${changed ? ' is-changed' : ''}`);
         styleField(item, field);
-        item.append(fieldLabel(field, changed, changedTag), chips(items, false));
+        // One item per line: powers, weaknesses, gear… are phrases, not one-word tags like the traits.
+        const lines = el('ul', 'ct-sc-look-list');
+        for (const entry of items) lines.append(el('li', '', entry));
+        item.append(fieldLabel(field, changed, changedTag), lines);
         item.dataset.field = field.path ?? field.key;
         return item;
     };
@@ -1491,8 +1549,18 @@ function renderPlot(body, plot) {
         }));
         const text = button('ct-sc-thread-text', '', `Edit ${str(thread.title).trim()}`, () => openPeek('thread', String(index)));
         text.append(el('span', 'ct-sc-quest-title', str(thread.title).trim()));
-        if (str(thread.note).trim()) text.append(el('span', 'ct-sc-row-sub', str(thread.note).trim()));
-        row.append(pill, text, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${str(thread.title).trim()}`, () => void saveData('plot', (next) => {
+        const noteText = str(thread.note).trim();
+        let fold = null;
+        if (noteText) {
+            const note = el('span', 'ct-sc-row-sub ct-sc-clamp', noteText);
+            text.append(note);
+            const threadKey = `thread:${keyOf(thread.title)}`;
+            if (expandedTexts.has(threadKey)) row.classList.add('is-expanded');
+            fold = clampToggle(row, note, threadKey);
+        }
+        row.append(pill, text);
+        if (fold) row.append(fold);
+        row.append(button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${str(thread.title).trim()}`, () => void saveData('plot', (next) => {
             if (!Array.isArray(next.threads)) return false;
             next.threads.splice(index, 1);
         })));
@@ -2136,19 +2204,34 @@ function lastSeenText(character) {
     return `Last seen ${when}${place ? ` · ${place}` : ''}`;
 }
 
-/** Who is where: the people in the scene grouped by spot (from the Characters tracker's positions). */
+/**
+ * Who is where: the people in the scene grouped by spot (from the Characters tracker's positions).
+ * It is mostly for the AI (it gets it before every reply either way), so it starts folded to one line.
+ */
 function renderWhoWhere(body, list) {
     const here = list.filter(isPresent);
     if (!here.some(character => str(character.position?.spot).trim())) return;
-    const head = el('div', 'ct-sc-section-head');
-    head.append(el('span', 'ct-sc-kicker', 'Who is where'), helpButton('Who is where', HELP.whoWhere));
-    body.append(head);
+    const st = settings();
     const spots = new Map();
     for (const character of here) {
         const spot = str(character.position?.spot).trim() || 'Somewhere here';
         if (!spots.has(keyOf(spot))) spots.set(keyOf(spot), { spot, people: [] });
         spots.get(keyOf(spot)).people.push(character);
     }
+    const collapsed = st.collapsed.whoWhere !== false;
+    const head = el('div', 'ct-sc-section-head ct-sc-where-head');
+    const toggle = button(`ct-sc-group-head ct-sc-where-toggle${collapsed ? ' is-collapsed' : ''}`, '', collapsed ? 'Show who is where' : 'Fold who is where', () => {
+        st.collapsed.whoWhere = !collapsed;
+        saveSettingsDebounced();
+        render();
+    });
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.innerHTML = '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+    const summary = `${spots.size} ${spots.size === 1 ? 'spot' : 'spots'} · ${here.length} ${here.length === 1 ? 'person' : 'people'}`;
+    toggle.append(el('span', '', 'Who is where'), el('span', 'ct-sc-group-count', summary));
+    head.append(toggle, helpButton('Who is where', HELP.whoWhere));
+    body.append(head);
+    if (collapsed) return;
     const box = el('div', 'ct-sc-spots');
     for (const { spot, people } of spots.values()) {
         const row = el('div', 'ct-sc-spot');
