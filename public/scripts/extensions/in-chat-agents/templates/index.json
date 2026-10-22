@@ -4224,5 +4224,70 @@
             "tracker"
         ],
         "prompt": "### Scene Plot Tracker\nYou keep the plot notes of this story for the author, in a side panel. You never write story text.\nRead the recent conversation, the author's planned beats and your previous notes, then answer with the NEW notes.\n\nThe author's planned beats:\n{{scenePlotBeats}}\n\nAnswer with exactly one block in this format and nothing else:\n[PLOT]\n{\"threads\":[{\"title\":\"\",\"status\":\"active\",\"note\":\"\"}],\"goals\":[{\"name\":\"\",\"want\":\"\",\"next\":\"\"}],\"secrets\":[{\"fact\":\"\",\"knows\":[\"\"],\"unaware\":[\"\"]}],\"beatsDone\":[\"\"]}\n[/PLOT]\n\nRules:\n- threads: the open arcs and questions of the story. status is \"brewing\" (set up, not started yet), \"active\", \"done\" or \"failed\". Keep every thread from your previous notes; change its status only when the story does. Add a thread only when the story clearly opens one. note: one short line on where it stands.\n- goals: one entry per named character who matters right now (never the author or the user's persona in the Author role): what they want, and the next thing they will try on their own. Update them when the story changes them.\n- secrets: facts that some characters know and others don't. knows and unaware are character names. Drop a secret once everyone knows it.\n- beatsDone: titles of the author's planned beats that the story has now reached, copied exactly. Empty list when none.\n- Lorebook entries ([World Info]) and character cards are canon.\n- Valid JSON only: double quotes, no comments, no trailing commas."
+    },
+    {
+        "icon": "",
+        "category": "custom",
+        "version": 1,
+        "author": "Homunculus",
+        "phase": "post",
+        "execution": "companion",
+        "companion": {
+            "trigger": "auto",
+            "displayMode": "hidden",
+            "format": "text",
+            "rawPrompt": true,
+            "contextMessages": 8,
+            "includeCharacterCard": true,
+            "includePersona": false,
+            "includeWorldInfo": true,
+            "includeAuthorsNote": false,
+            "includeSystemPrompt": false,
+            "includeHistory": false,
+            "historyDepth": 0,
+            "feedback": {
+                "enabled": false,
+                "depth": 1
+            },
+            "batch": false,
+            "maxTokens": 2000
+        },
+        "injection": {
+            "position": 0,
+            "depth": 4,
+            "role": 0,
+            "order": 100,
+            "scan": false
+        },
+        "postProcess": {
+            "enabled": false,
+            "type": "regex",
+            "regexFind": "",
+            "regexReplace": "",
+            "regexFlags": "g",
+            "appendText": "",
+            "extractPattern": "",
+            "extractVariable": ""
+        },
+        "enabled": false,
+        "conditions": {
+            "triggerKeywords": [],
+            "triggerProbability": 100,
+            "generationTypes": [
+                "normal",
+                "continue",
+                "swipe",
+                "regenerate"
+            ]
+        },
+        "id": "tpl-homunculus-scene-map",
+        "name": "Scene: Map",
+        "description": "Builds the map of the story for the Scene panel (Places tab): every place the story visits or mentions, what is inside what (room, building, town, forest, region, country, world), where things are, and how long it takes to get between them. Answers only with what changed, so it stays cheap as the map grows.",
+        "tags": [
+            "homunculus-scene",
+            "map",
+            "tracker"
+        ],
+        "prompt": "### Scene Map Tracker\nYou keep the map of this story for a side panel. You never write story text.\nRead the recent conversation and the map so far, then answer with ONLY what changed.\n\nThe map so far:\n{{sceneMapPlaces}}\n\nAnswer with exactly one block in this format and nothing else:\n[MAP]\n{\"current\":\"\",\"places\":[{\"id\":\"\",\"name\":\"\",\"kind\":\"\",\"parent\":\"\",\"status\":\"known\",\"description\":\"\",\"x\":50,\"y\":50,\"links\":[{\"to\":\"\",\"travel\":\"\"}]}],\"remove\":[]}\n[/MAP]\n\nWhat each part means:\n- current: the id of the most specific place where the scene is happening now (a room, a clearing, a stretch of road). Always fill it.\n- places: ONLY places that are new or changed since the map so far. Leave out places that did not change. Write all fields of a place you include. When nothing changed but where the scene is, answer {\"current\":\"<id>\",\"places\":[],\"remove\":[]}.\n- remove: ids of places that turned out not to exist (rare). Usually [].\n\nPlaces:\n- id: short, lowercase, words joined by dashes (\"lower-gallery\", \"whispering-woods\"). Never change the id of a place that is already on the map.\n- kind: one word: world, continent, country, region, wilderness, city, town, village, district, building, room, area, road, landmark, camp, ship, other.\n- parent: the id of the place it is inside. Build a chain that fits the story, for example room → building → district → city → country, or clearing → forest → region → kingdom. Open land works the same way: a camp or a ruin sits inside the forest, hills or region it is in. The top place of a chain has parent \"\". Add the parent places a new place needs (usually as \"known\") so the chain is complete, but do not invent levels the story gives no hint of.\n- Travelling: while the scene is on the way between two places, make the stretch of road, river or sea a place of kind \"road\" (named like \"Road to Saltreach\"), inside the region it crosses, linked to both ends; set it as current. Landmarks and stops found on the way become places inside that region.\n- status: \"visited\" (the scene has been there), \"known\" (the characters clearly know it exists and roughly where), \"rumored\" (only heard of, may be wrong). A place goes up from rumored to known to visited, never down.\n- description: one or two concrete sentences: what it looks like and what matters there for the story.\n- x and y: where the place sits inside its parent, from 0 to 100 (x: west 0 → east 100, y: north 0 → south 100). Follow every direction the story gives (\"north of the city\", \"down the hall to the left\"). Keep places of the same parent at least 15 apart. Use null for both when the story gives no idea of the direction. Never move a place that is already placed unless the story contradicts it.\n- links: routes to other places, with the travel time on foot unless the story says otherwise (\"2 min\", \"15 min\", \"half a day\", \"3 days by road\"). Link places that share a parent, and towns or regions to each other for longer roads.\n\nRules:\n- Only places named or clearly described in the story, the character cards or the lorebook. Lorebook entries are canon for geography.\n- Valid JSON only: double quotes, no comments, no trailing commas."
     }
 ]

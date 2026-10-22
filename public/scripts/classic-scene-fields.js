@@ -342,6 +342,8 @@ export function castFieldsPrompt(preset = activePreset('cast')) {
         else if (section.fields.length) example[section.id] = blank;
     }
     example.mood = '';
+    example.position = { spot: '', posture: '', distance: '' };
+    example.doing = '';
     example.notes = '';
     const lines = [
         'Answer with exactly one block in this format and nothing else:',
@@ -356,6 +358,10 @@ export function castFieldsPrompt(preset = activePreset('cast')) {
         lines.push(`- ${field.path} (${tags}): ${field.hint || field.label}`);
     }
     lines.push('- role: a few words (ally, rival, shopkeeper...). mood: a few words about how they feel right now. notes: one short line worth remembering.');
+    lines.push(isAuthorRole()
+        ? '- position (REQUIRED for characters in the scene): spot = exactly where in the scene they are ("by the altar", "at the main doors"); posture = standing, sitting, kneeling, lying, walking…; distance = "" (this story has no player character). For characters not in the scene: spot = where they went or were last seen ("left toward the market"), posture and distance "".'
+        : '- position (REQUIRED for characters in the scene): spot = exactly where in the scene they are ("by the altar", "at the main doors"); posture = standing, sitting, kneeling, lying, walking…; distance = how far from {{user}}, with a unit ("2 m from {{user}}"); for {{user}} write "". For characters not in the scene: spot = where they went or were last seen ("left toward the market"), posture and distance "".');
+    lines.push('- doing: what they are doing right now, a few words ("lighting the candles"). Keep position and doing consistent with the story: nobody moves, sits down or stops what they do unless the story shows it.');
     lines.push(LORE_RULE);
     lines.push(CONCRETE_RULE);
     if (preset.rules) lines.push(preset.rules);

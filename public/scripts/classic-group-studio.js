@@ -112,6 +112,14 @@ const SCENE_TRACKERS = [
         text: 'Threads, goals, secrets and your beats.',
         presets: false,
     },
+    {
+        kind: 'map',
+        templateId: 'tpl-homunculus-scene-map',
+        icon: 'fa-map',
+        title: 'Map',
+        text: 'Places visited and known, and the way between them.',
+        presets: false,
+    },
 ];
 
 const HELP = {

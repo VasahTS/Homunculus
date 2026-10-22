@@ -30,13 +30,19 @@ import { helpButton, closeHelp } from './classic-help.js';
 import { set as setPromptBlock } from './classic-prompt-blocks.js';
 import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
 import { activeCalendar, listCalendars, chooseCalendar, openCalendarEditor, parseDate, addDays, formatDate, CALENDARS_CHANGED_EVENT } from './classic-calendars.js';
+import {
+    parseClock, formatClock, legacyDay, timeWords, partOfDay, skyPosition, guessMinutes, absMinutes, formatSpan, storyStamp,
+    entryAt, storyStart, stays, changesBetween, unchangedSince, stanceHistory, lastSeenEntry, mentions,
+    PLACE_STATES, cleanId, foldMap, ancestors, childrenOf, isInside, travelFrom, mapLevel, drawMap,
+} from './classic-scene-story.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
     world: 'tpl-homunculus-scene-world',
     cast: 'tpl-homunculus-scene-characters',
     plot: 'tpl-homunculus-scene-plot',
+    map: 'tpl-homunculus-scene-map',
 });
-const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST', plot: 'PLOT' });
+const TAGS = Object.freeze({ world: 'WORLD', cast: 'CAST', plot: 'PLOT', map: 'MAP' });
 const BEATS_KEY = 'homunculus_beats';
 const THREAD_STATES = Object.freeze(['brewing', 'active', 'done', 'failed']);
 const THREAD_INFO = Object.freeze({
@@ -58,8 +64,8 @@ const PLOT_FORMS = Object.freeze({
     secret: { list: 'secrets', name: 'secret', titleKey: 'fact', blank: () => ({ fact: '', knows: [], unaware: [] }), fields: [['fact', 'Secret', 'multiline', 'The hidden fact'], ['knows', 'Knows', 'list', 'Names, separated by commas'], ['unaware', 'Doesn\'t know', 'list', 'Names, separated by commas']] },
 });
 const BEAT_FORM = Object.freeze({ name: 'beat', titleKey: 'title', fields: [['title', 'Beat', 'multiline', 'Something you want to happen'], ['status', 'When', 'beat']] });
-const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', faction: 'Faction', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
-const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
+const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', faction: 'Faction', place: 'Place', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
+const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes', 'position', 'doing']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
 /** Faction stance toward {{user}}: id, label, one-line description (worst to best). */
@@ -70,7 +76,7 @@ const STANCES = Object.freeze([
     ['friendly', 'Friendly', 'Well disposed toward you'],
     ['allied', 'Allied', 'On your side'],
 ]);
-const TAB_ICONS = Object.freeze({ cast: 'fa-user-group', quests: 'fa-scroll', plot: 'fa-code-branch', items: 'fa-bag-shopping', factions: 'fa-flag', world: 'fa-earth-americas' });
+const TAB_ICONS = Object.freeze({ cast: 'fa-user-group', quests: 'fa-scroll', plot: 'fa-code-branch', items: 'fa-bag-shopping', factions: 'fa-flag', places: 'fa-map', journal: 'fa-book', world: 'fa-earth-americas' });
 
 const HELP = {
     panel: `<p>What is happening in the story right now, kept up to date by two <b>Scene trackers</b>.</p>
@@ -103,6 +109,20 @@ const HELP = {
     clock: `<p>The date and time in the story, kept by the <b>Scene: World</b> tracker. It moves the clock by how long things would really take: a conversation about 10 minutes, walking across town up to an hour, a night's sleep to the next morning, and time skips exactly as written.</p>
 <p>Change the date or time here, or use the buttons to move time forward. The next update starts from what you set.</p>
 <p>The <b>calendar</b> sets the months, weekdays and how years are written. Gregorian is the real-world one; make your own for other worlds with <b>Edit calendars</b>.</p>`,
+    whoWhere: `<p>Where everyone in the scene is right now, grouped by spot, with their posture and what they are doing. The <b>Scene: Characters</b> tracker keeps it, and the AI gets it before each reply, so people don't teleport or stand up twice.</p>
+<p>Click a name to open their sheet and fix it.</p>`,
+    thisScene: '<p>The current scene: since the story arrived at this place. Messages, the story time that passed, and how much story time a reply moves on average.</p>',
+    stale: '<p>Active quests and open plot threads that have not moved for a while. Pick one up, or close it in Quests or Plot.</p>',
+    relations: '<p>How each faction\'s stance toward you changed over the story, and when. The note is where they stood at the last change.</p>',
+    travel: '<p>Every place the story went through, newest first, with the story time it arrived and how long it stayed.</p>',
+    map: `<p>The map the <b>Scene: Map</b> tracker builds from the story: places visited, known and only rumored, and how long it takes to get between them.</p>
+<ul>
+<li>It shows one level at a time: the places inside the same place as you. A place with a second ring has places inside: click it, then <b>Map of …</b> to go in. The path at the top goes back out.</li>
+<li>The dotted orange line is the way the story went.</li>
+<li>Places with no known direction are listed under the map instead of being guessed.</li>
+</ul>
+<p>The tracker only writes what changed, so it stays cheap as the map grows. Click <b>Edit</b> on a place to fix it; the next update starts from your edit.</p>`,
+    changes: '<p>What the last update of the trackers changed: time passed, moves, people arriving or leaving, items, quests, factions and new places.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
 <p>To add your own field (for example "Corruption"), add it to the tracker's prompt in the agent editor.</p>`,
     plot: `<p>The shape of the story, for you as the author.</p>
@@ -199,6 +219,40 @@ export function findResult(kind, { skip = 0, before = chat.length } = {}) {
     return null;
 }
 
+const parsedCache = new Map();
+function parseCached(kind, content) {
+    const key = `${kind}\u0000${content}`;
+    if (!parsedCache.has(key)) {
+        if (parsedCache.size > 4000) parsedCache.clear();
+        parsedCache.set(key, parseBlock(kind, content));
+    }
+    return parsedCache.get(key);
+}
+
+/**
+ * Every finished result of a tracker kind in the open chat, oldest first (one per message: the
+ * swipe that is showing). Parsed results are cached by their text, so walking a long chat is cheap.
+ * @returns {{ messageIndex: number, data: object }[]}
+ */
+export function historyOf(kind) {
+    const api = agentsApi();
+    if (!api?.getCompanionResults) return [];
+    const ids = new Set(sceneAgents(kind).map(agent => agent.id));
+    if (!ids.size) return [];
+    const out = [];
+    for (let index = 0; index < chat.length; index++) {
+        const results = api.getCompanionResults(chat[index]);
+        for (const [agentId, result] of Object.entries(results)) {
+            if (!ids.has(agentId) || result?.status !== 'done') continue;
+            const data = parseCached(kind, result.content);
+            if (!data) continue;
+            out.push({ messageIndex: index, data });
+            break;
+        }
+    }
+    return out;
+}
+
 function isPending(kind) {
     const api = agentsApi();
     const ids = new Set(sceneAgents(kind).map(agent => agent.id));
@@ -230,72 +284,6 @@ const keyOf = name => str(name).trim().toLowerCase();
 
 // ───────────────────────── Story clock ─────────────────────────
 
-/** Minutes after midnight from "HH:MM" (also "7:05", "19h30"), or null. */
-function parseClock(value) {
-    const match = str(value).trim().match(/^(\d{1,2})\s*[:h.]\s*(\d{2})/i);
-    if (!match) return null;
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    return hours > 23 || minutes > 59 ? null : hours * 60 + minutes;
-}
-const formatClock = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-
-/** The story day of older results ("day": 3, or "Day 3, morning" in the time text), or null. */
-function legacyDay(world) {
-    const n = Number.parseInt(str(world?.day), 10);
-    if (Number.isFinite(n) && n > 0) return n;
-    const match = str(world?.time).match(/\bday\s*(\d+)/i);
-    return match ? Number(match[1]) : null;
-}
-
-/** The time-of-day words, without an older "Day 3," prefix. */
-function timeWords(world) {
-    return str(world?.time).replace(/^\s*day\s*\d+\s*[,·:-]?\s*/i, '').trim();
-}
-
-function partOfDay(minutes) {
-    const h = minutes / 60;
-    if (h < 5) return 'small hours';
-    if (h < 7) return 'dawn';
-    if (h < 11) return 'morning';
-    if (h < 13) return 'midday';
-    if (h < 16) return 'afternoon';
-    if (h < 18) return 'late afternoon';
-    if (h < 20) return 'evening';
-    return 'night';
-}
-
-/** Where the sun or moon is: { body, t } with t from 0 (rising) to 1 (setting), or null when unknown. */
-function skyPosition(world) {
-    const minutes = parseClock(world?.clock);
-    if (minutes !== null) {
-        if (minutes >= 360 && minutes < 1080) return { body: 'sun', t: (minutes - 360) / 720 };
-        return { body: 'moon', t: ((minutes - 1080 + 1440) % 1440) / 720 };
-    }
-    const text = timeWords(world).toLowerCase();
-    // Order matters: "afternoon" contains "noon", "midnight" contains "night".
-    const words = [
-        [/midnight/, 'moon', 0.5],
-        [/late night|small hours|before dawn/, 'moon', 0.8],
-        [/dawn|sunrise|daybreak|first light|early morning/, 'sun', 0.07],
-        [/late afternoon|sunset|dusk|twilight/, 'sun', 0.85],
-        [/afternoon/, 'sun', 0.65],
-        [/noon|midday/, 'sun', 0.5],
-        [/morning/, 'sun', 0.25],
-        [/evening/, 'moon', 0.12],
-        [/night/, 'moon', 0.4],
-    ];
-    const hit = words.find(([pattern]) => pattern.test(text));
-    return hit ? { body: hit[1], t: hit[2] } : null;
-}
-
-/** A clock for results that only have words ("late afternoon"), so the buttons can move it. */
-function guessMinutes(world) {
-    const pos = skyPosition(world);
-    if (!pos) return 8 * 60;
-    return Math.round(pos.body === 'sun' ? 360 + pos.t * 720 : (1080 + pos.t * 720) % 1440);
-}
-
 /** One line for the AI: "Thursday, 22 October 2026, 17:40, late afternoon". */
 function whenText(world) {
     const cal = activeCalendar();
@@ -320,7 +308,7 @@ const factionList = world => (Array.isArray(world?.factions) ? world.factions : 
 /** Whether the panel has anything to show in the open chat. */
 export function isAvailable() {
     if (!getCurrentChatId?.()) return false;
-    return Boolean(enabledAgent('world') || enabledAgent('cast') || enabledAgent('plot') || findResult('world') || findResult('cast') || findResult('plot'));
+    return Boolean(enabledAgent('world') || enabledAgent('cast') || enabledAgent('plot') || enabledAgent('map') || findResult('world') || findResult('cast') || findResult('plot') || findResult('map'));
 }
 
 // ───────────────────────── Plot: the author's planned beats ─────────────────────────
@@ -389,6 +377,14 @@ function oneLine(value) {
     return str(value).replace(/\s+/g, ' ').trim();
 }
 
+/** "by the altar, kneeling, 2 m from you" (empty when the tracker gave no position). */
+function positionText(character, { you = '' } = {}) {
+    const pos = character?.position && typeof character.position === 'object' ? character.position : {};
+    let distance = str(pos.distance).trim();
+    if (you && name1) distance = distance.replace(new RegExp(`\\b${String(name1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), you);
+    return [str(pos.spot).trim(), str(pos.posture).trim(), distance].filter(Boolean).join(', ');
+}
+
 function castPrompt(data) {
     const preset = activePreset('cast');
     const here = [];
@@ -414,6 +410,9 @@ function castPrompt(data) {
             if (!parts.length) continue;
             lines.push(section.id === 'about' ? `  ${parts.join('; ')}` : `  ${section.label}: ${parts.join('; ')}`);
         }
+        const where = positionText(character);
+        if (where) lines.push(`  Position: ${where}`);
+        if (str(character.doing).trim()) lines.push(`  Doing: ${str(character.doing).trim()}`);
         if (str(character.notes).trim()) lines.push(`  Notes: ${str(character.notes).trim()}`);
         here.push(lines.join('\n'));
     }
@@ -468,6 +467,41 @@ function plotPrompt(data) {
     return lines.join('\n');
 }
 
+/** The map so far (the sum of the Map tracker's patches). */
+function currentMap({ before = chat.length } = {}) {
+    return foldMap(historyOf('map').filter(entry => entry.messageIndex < before));
+}
+
+/** The map for the Map tracker's own prompt ({{sceneMapPlaces}}): one line per place, no descriptions. */
+function mapMacro() {
+    const { places, current } = currentMap();
+    if (!places.size) return '(empty: no places yet)';
+    const lines = [...places.values()].map((place) => {
+        const links = place.links.map(link => `${link.to}${link.travel ? ` (${link.travel})` : ''}`).join(', ');
+        const where = place.x !== null && place.y !== null ? `x ${Math.round(place.x)}, y ${Math.round(place.y)}` : 'not placed';
+        return `- ${place.id} | ${place.name} | ${place.kind || 'place'} | inside: ${place.parent || '-'} | ${place.status} | ${where}${links ? ` | links: ${links}` : ''}`;
+    });
+    lines.push(`Current place: ${current || '(unknown)'}`);
+    return lines.join('\n');
+}
+
+/** For the story AI: where the scene is on the map and the ways out of it. */
+function mapPrompt(map) {
+    const { places, current } = map;
+    const here = places.get(current);
+    if (!here) return '';
+    const chain = ancestors(places, current).map(id => places.get(id).name);
+    const ways = [];
+    for (const link of here.links) if (places.has(link.to)) ways.push(`${places.get(link.to).name}${link.travel ? ` (${link.travel})` : ''}`);
+    for (const place of places.values()) {
+        const back = place.links.find(link => link.to === current);
+        if (back && !here.links.some(link => link.to === place.id)) ways.push(`${place.name}${back.travel ? ` (${back.travel})` : ''}`);
+    }
+    const lines = [`Place: ${here.name}${chain.length ? ` (in ${chain.join(', ')})` : ''}`];
+    if (ways.length) lines.push(`Ways from here: ${ways.join('; ')}`);
+    return lines.join('\n');
+}
+
 function feedbackOn(agent) {
     return Boolean(agent?.companion?.feedback?.enabled);
 }
@@ -490,6 +524,11 @@ export function scenePrompt({ before = chat.length } = {}) {
     const plotAgent = enabledAgent('plot');
     if (plotAgent && !feedbackOn(plotAgent)) {
         const text = plotPrompt(findResult('plot', { before })?.data ?? {});
+        if (text) parts.push(text);
+    }
+    const mapAgent = enabledAgent('map');
+    if (mapAgent && !feedbackOn(mapAgent)) {
+        const text = mapPrompt(currentMap({ before }));
         if (text) parts.push(text);
     }
     return parts.length ? `For continuity. Do not repeat it back.\n${parts.join('\n')}` : '';
@@ -714,6 +753,9 @@ const view = {
     search: '',
     /** null, or { type: 'character' | 'quest', key, draft, isNew } */
     peek: null,
+    /** Places tab: the map level shown (null = around the current place) and the selected place. */
+    mapFocus: null,
+    mapPick: '',
     narrowOpen: false,
     busy: false,
 };
@@ -852,6 +894,11 @@ function renderWhereWhen(world) {
             when.append(strong);
         }
         if (rest.length) when.append(el('span', lead ? 'ct-sc-when-rest' : 'ct-sc-when-plain', `${lead ? ' · ' : ''}${rest.join(' · ')}`));
+        if (facts?.start && facts.nowAbs !== null) {
+            const since = facts.nowAbs - facts.start.abs;
+            const day = stamp(facts.nowAbs).split(',')[0];
+            when.append(el('div', 'ct-sc-when-meta', since > 0 ? `${day} of the story · ${formatSpan(since)} since it began` : `${day} of the story`));
+        }
         row.append(when);
         const sky = skyDial(world);
         if (sky) row.append(sky);
@@ -860,7 +907,15 @@ function renderWhereWhen(world) {
     if (place) {
         const line = el('div', 'ct-sc-where-place');
         line.innerHTML = '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
-        line.append(el('span', 'ct-sc-sr', 'Location: '), el('span', 'ct-sc-where-text', place));
+        const text = el('span', 'ct-sc-where-text');
+        text.append(el('span', '', place));
+        const stay = facts?.stay;
+        if (stay && (keyOf(stay.name) === keyOf(place) || stay.placeId)) {
+            const span = stay.startAbs !== null && facts.nowAbs !== null ? facts.nowAbs - stay.startAbs : null;
+            const count = chat.length - stay.startIndex;
+            text.append(el('span', 'ct-sc-where-meta', `Here for ${span !== null ? `${formatSpan(span)} · ` : ''}${count} message${count === 1 ? '' : 's'}`));
+        }
+        line.append(el('span', 'ct-sc-sr', 'Location: '), text);
         box.append(line);
     }
     if (weather) {
@@ -1084,6 +1139,7 @@ function renderCast(body, cast, previous) {
         }));
     }
     toolbar.append(titleRow, search, filters);
+    renderWhoWhere(body, list);
     body.append(toolbar);
 
     const term = view.search.trim().toLowerCase();
@@ -1146,9 +1202,10 @@ function isCardOpen(character) {
 function changedFields(character, before) {
     const out = new Set();
     if (!before) return out;
-    for (const key of ['role', 'mood', 'notes', 'present']) {
+    for (const key of ['role', 'mood', 'notes', 'present', 'doing']) {
         if (str(character[key]).trim() !== str(before[key]).trim()) out.add(key);
     }
+    if (positionText(character) !== positionText(before)) out.add('position');
     for (const field of castFields()) {
         const now = getValue(character, field.section, field.key);
         const then = getValue(before, field.section, field.key);
@@ -1261,6 +1318,25 @@ function characterDetails(character, changes, { full = false } = {}) {
         if (changes.has('mood')) line.append(changedTag());
         line.title = 'Mood right now';
         box.append(line);
+    }
+
+    const where = positionText(character, { you: 'you' });
+    const doing = str(character.doing).trim();
+    if (where || doing) {
+        const pos = el('div', `ct-sc-pos${changes.has('position') || changes.has('doing') ? ' is-changed' : ''}`);
+        if (where) {
+            const row = el('div', 'ct-sc-pos-row is-where');
+            row.innerHTML = '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
+            row.append(el('span', 'ct-sc-sr', 'Where: '), el('span', '', where));
+            pos.append(row);
+        }
+        if (doing) {
+            const row = el('div', 'ct-sc-pos-row is-doing');
+            row.innerHTML = '<i class="fa-solid fa-hand" aria-hidden="true"></i>';
+            row.append(el('span', 'ct-sc-sr', 'Doing: '), el('span', '', doing));
+            pos.append(row);
+        }
+        box.append(pos);
     }
 
     if (full) {
@@ -1380,6 +1456,8 @@ function characterCard(character, before, changed) {
     if (sub) text.append(el('span', 'ct-sc-row-sub', sub));
     const outfit = str(character.appearance?.outfit).trim();
     if (!open && present && outfit) text.append(el('span', 'ct-sc-row-sub ct-sc-row-outfit', outfit));
+    const seen = present ? '' : lastSeenText(character);
+    if (seen) text.append(el('span', 'ct-sc-row-sub ct-sc-last-seen', seen));
     main.append(text);
     main.setAttribute('aria-label', `Open ${name}: ${present ? 'in scene' : 'not here'}${changed ? ', changed in the last update' : ''}. Alt plus arrow keys to move.`);
 
@@ -1670,7 +1748,7 @@ function setClock(step) {
     return saveData('world', (data) => {
         const cal = activeCalendar();
         let date = parseDate(data.date, cal) ?? { year: 1, month: 1, day: 1 };
-        let minutes = parseClock(data.clock) ?? guessMinutes(data);
+        let minutes = parseClock(data.clock) ?? guessMinutes(data) ?? 8 * 60;
         [date, minutes] = step(date, minutes);
         const days = Math.floor(minutes / 1440);
         minutes -= days * 1440;
@@ -1891,6 +1969,695 @@ function renderEmpty(body) {
     body.append(box);
 }
 
+// ───────────────────────── Story memory ─────────────────────────
+// Meta information worked out from the trackers' history (no extra AI calls): see classic-scene-story.js.
+
+const IGNORED_KEY = 'homunculus_scene_ignored';
+const STALE_AFTER = 15;
+const PLACE_INFO = Object.freeze({
+    visited: ['Visited', 'The story has been there'],
+    known: ['Known', 'Known to exist, not visited yet'],
+    rumored: ['Rumored', 'Only heard of; may be wrong'],
+});
+
+/** Everything the meta views need, worked out once per render. */
+function storyFacts() {
+    const cal = activeCalendar();
+    const world = historyOf('world');
+    const cast = historyOf('cast');
+    const plot = historyOf('plot');
+    const mapHistory = historyOf('map');
+    const map = foldMap(mapHistory);
+    const latestWorld = world[world.length - 1] ?? null;
+    const allStays = stays(world, mapHistory, cal);
+    return {
+        cal,
+        world,
+        cast,
+        plot,
+        mapHistory,
+        map,
+        start: storyStart(world, cal),
+        nowAbs: latestWorld ? absMinutes(latestWorld.data, cal) : null,
+        stays: allStays,
+        stay: allStays[allStays.length - 1] ?? null,
+    };
+}
+
+let facts = null;
+const absAt = messageIndex => (facts ? absMinutes(entryAt(facts.world, messageIndex)?.data, facts.cal) : null);
+const stamp = abs => (facts?.start ? storyStamp(abs, facts.start.abs) : '');
+
+function ignoredKeys() {
+    return new Set(Array.isArray(chat_metadata?.[IGNORED_KEY]) ? chat_metadata[IGNORED_KEY] : []);
+}
+
+function ignoreAlert(key) {
+    chat_metadata[IGNORED_KEY] = [...ignoredKeys(), key].slice(-200);
+    saveMetadataDebounced();
+    render();
+}
+
+/** A sentence from parts: strings, or { b: text } for a bold name. */
+function sentence(parts, className = '') {
+    const node = el('span', className);
+    for (const part of parts) node.append(typeof part === 'string' ? document.createTextNode(part) : el('b', '', part.b));
+    return node;
+}
+
+/** Things in the latest updates that don't add up, with a one-click fix. */
+function findAlerts() {
+    const out = [];
+    let lastAi = null;
+    for (let i = chat.length - 1; i >= 0; i--) {
+        if (chat[i] && !chat[i].is_user && !chat[i].is_system) {
+            lastAi = { index: i, text: str(chat[i].mes) };
+            break;
+        }
+    }
+    const castNow = facts.cast[facts.cast.length - 1];
+    const castBefore = facts.cast[facts.cast.length - 2];
+    if (castNow && lastAi && castNow.messageIndex >= lastAi.index) {
+        for (const character of characterList(castNow.data)) {
+            if (isPresent(character) || isPlayer(character) || !mentions(lastAi.text, character.name)) continue;
+            const name = str(character.name).trim();
+            out.push({
+                key: `absent:${keyOf(name)}:${lastAi.index}`,
+                parts: [{ b: name }, ' is marked "Not here", but appears in the last reply.'],
+                fix: ['Mark as here', () => saveData('cast', (data) => {
+                    const found = characterList(data).find(c => keyOf(c.name) === keyOf(name));
+                    if (!found) return false;
+                    found.present = true;
+                })],
+                dismiss: 'Ignore',
+            });
+        }
+    }
+    if (castNow && castBefore) {
+        const names = new Set(characterList(castNow.data).map(c => keyOf(c.name)));
+        for (const character of characterList(castBefore.data)) {
+            if (!isPresent(character) || names.has(keyOf(character.name))) continue;
+            const name = str(character.name).trim();
+            out.push({
+                key: `gone:${keyOf(name)}:${castNow.messageIndex}`,
+                parts: [{ b: name }, ' was in the scene and dropped off the character list.'],
+                fix: ['Put back', () => saveData('cast', (data) => {
+                    if (!Array.isArray(data.characters)) data.characters = [];
+                    data.characters.push(structuredClone(character));
+                })],
+                dismiss: 'It\'s fine',
+            });
+        }
+    }
+    const worldNow = facts.world[facts.world.length - 1];
+    const worldBefore = facts.world[facts.world.length - 2];
+    if (worldNow && worldBefore) {
+        const a = absMinutes(worldBefore.data, facts.cal);
+        const b = absMinutes(worldNow.data, facts.cal);
+        const keepOld = () => saveData('world', (data) => {
+            data.date = structuredClone(worldBefore.data.date);
+            data.clock = worldBefore.data.clock;
+            data.time = worldBefore.data.time;
+        });
+        if (a !== null && b !== null && b < a) {
+            out.push({ key: `back:${worldNow.messageIndex}`, parts: [`The clock went back ${formatSpan(a - b)} in the last update.`], fix: ['Keep the old time', keepOld], dismiss: 'It\'s a flashback' });
+        } else if (a !== null && b !== null && b - a > 2 * 1440) {
+            out.push({ key: `jump:${worldNow.messageIndex}`, parts: [`${formatSpan(b - a)} passed in one update.`], fix: ['Undo the jump', keepOld], dismiss: 'Right, a time skip' });
+        }
+        if (openRole() !== 'author') {
+            const titles = new Set((Array.isArray(worldNow.data.quests) ? worldNow.data.quests : []).map(q => keyOf(q?.title)));
+            for (const quest of Array.isArray(worldBefore.data.quests) ? worldBefore.data.quests : []) {
+                const title = str(quest?.title).trim();
+                if (!title || titles.has(keyOf(title)) || (str(quest.status).toLowerCase() || 'active') !== 'active') continue;
+                out.push({
+                    key: `quest:${keyOf(title)}:${worldNow.messageIndex}`,
+                    parts: ['The quest ', { b: title }, ' vanished from the list without being completed or failed.'],
+                    fix: ['Put it back', () => saveData('world', (data) => {
+                        if (!Array.isArray(data.quests)) data.quests = [];
+                        data.quests.push(structuredClone(quest));
+                    })],
+                    dismiss: 'It\'s fine',
+                });
+            }
+        }
+    }
+    const ignored = ignoredKeys();
+    return out.filter(alert => !ignored.has(alert.key));
+}
+
+/** A box under the header that folds open (Last update, alerts). */
+function foldBox(className, icon, title, open, toggleKey, fill) {
+    const box = el('section', `ct-sc-box ${className}`);
+    const head = button('ct-sc-box-head', `<i class="fa-solid ${icon}" aria-hidden="true"></i>`, '', () => {
+        settings()[toggleKey] = !open;
+        saveSettingsDebounced();
+        render();
+    });
+    head.setAttribute('aria-expanded', String(open));
+    head.append(title, el('i', `fa-solid fa-chevron-down ct-sc-box-chev${open ? '' : ' is-closed'}`));
+    box.append(head);
+    if (open) fill(box);
+    return box;
+}
+
+function renderChanges() {
+    const w = facts.world;
+    const c = facts.cast;
+    const items = changesBetween({
+        world: w[w.length - 1]?.data,
+        prevWorld: w[w.length - 2]?.data,
+        cast: c[c.length - 1]?.data,
+        prevCast: c[c.length - 2]?.data,
+        newPlaces: facts.map.newIds.map(id => facts.map.places.get(id)?.name).filter(Boolean),
+        cal: facts.cal,
+        isPresent,
+    });
+    if (!items.length) return null;
+    const st = settings();
+    const title = el('span', 'ct-sc-box-title');
+    title.append(el('b', '', 'Last update'), el('span', 'ct-sc-box-sub', ` · ${items.length} change${items.length === 1 ? '' : 's'}`));
+    return foldBox('ct-sc-changes', 'fa-bolt', title, st.changesOpen !== false, 'changesOpen', (box) => {
+        const row = el('div', 'ct-sc-change-list');
+        for (const item of items) row.append(el('span', `ct-sc-change is-${item.tone}`, item.text));
+        box.append(row);
+    });
+}
+
+function renderAlerts() {
+    const alerts = findAlerts();
+    if (!alerts.length) return null;
+    const st = settings();
+    const title = el('span', 'ct-sc-box-title', alerts.length === 1 ? '1 thing doesn\'t add up' : `${alerts.length} things don't add up`);
+    return foldBox('ct-sc-alerts', 'fa-triangle-exclamation', title, st.alertsOpen !== false, 'alertsOpen', (box) => {
+        const list = el('div', 'ct-sc-alert-list');
+        for (const alert of alerts) {
+            const item = el('div', 'ct-sc-alert');
+            item.append(sentence(alert.parts, 'ct-sc-alert-text'));
+            const actions = el('span', 'ct-sc-alert-actions');
+            actions.append(
+                button('ct-sc-filter is-on', alert.fix[0], '', async () => {
+                    if (await alert.fix[1]() !== false) ignoreAlert(alert.key);
+                }),
+                button('ct-sc-filter', alert.dismiss, 'Hide this warning', () => ignoreAlert(alert.key)),
+            );
+            item.append(actions);
+            list.append(item);
+        }
+        box.append(list);
+    });
+}
+
+/** "Last seen 3 h ago · Summoning hall" for someone who left the scene. */
+function lastSeenText(character) {
+    if (!facts) return '';
+    const entry = lastSeenEntry(facts.cast, character.name, isPresent);
+    if (!entry) return '';
+    const latest = facts.cast[facts.cast.length - 1];
+    const worldThen = entryAt(facts.world, entry.messageIndex)?.data;
+    const place = str(worldThen?.location).trim();
+    const then = absMinutes(worldThen, facts.cal);
+    let when;
+    if (latest && entry.messageIndex === latest.messageIndex) when = 'just now';
+    else if (then !== null && facts.nowAbs !== null && facts.nowAbs > then) when = `${formatSpan(facts.nowAbs - then)} ago`;
+    else when = `${Math.max(1, chat.length - 1 - entry.messageIndex)} messages ago`;
+    return `Last seen ${when}${place ? ` · ${place}` : ''}`;
+}
+
+/** Who is where: the people in the scene grouped by spot (from the Characters tracker's positions). */
+function renderWhoWhere(body, list) {
+    const here = list.filter(isPresent);
+    if (!here.some(character => str(character.position?.spot).trim())) return;
+    const head = el('div', 'ct-sc-section-head');
+    head.append(el('span', 'ct-sc-kicker', 'Who is where'), helpButton('Who is where', HELP.whoWhere));
+    body.append(head);
+    const spots = new Map();
+    for (const character of here) {
+        const spot = str(character.position?.spot).trim() || 'Somewhere here';
+        if (!spots.has(keyOf(spot))) spots.set(keyOf(spot), { spot, people: [] });
+        spots.get(keyOf(spot)).people.push(character);
+    }
+    const box = el('div', 'ct-sc-spots');
+    for (const { spot, people } of spots.values()) {
+        const row = el('div', 'ct-sc-spot');
+        const title = el('div', 'ct-sc-spot-title');
+        title.append(el('span', '', spot));
+        const distances = people.filter(person => !isPlayer(person)).map(person => str(person.position?.distance).trim()).filter(Boolean);
+        if (people.some(isPlayer)) title.append(el('span', 'ct-sc-spot-far', 'you'));
+        else if (distances.length === 1) title.append(el('span', 'ct-sc-spot-far', positionText({ position: { distance: distances[0] } }, { you: 'you' })));
+        row.append(title);
+        for (const person of people) {
+            const line = button('ct-sc-spot-person', '', '', () => openPeek('character', keyOf(person.name)));
+            line.title = `Open ${str(person.name).trim()}`;
+            line.append(avatarFor(person, 'ct-sc-spot-avatar'));
+            const text = el('span', 'ct-sc-spot-text');
+            text.append(el('b', '', isPlayer(person) ? 'You' : str(person.name).trim()));
+            const what = [str(person.position?.posture).trim(), str(person.doing).trim()].filter(Boolean).join(', ');
+            if (what) text.append(el('span', 'ct-sc-spot-what', ` · ${what}`));
+            line.append(text);
+            row.append(line);
+        }
+        box.append(row);
+    }
+    body.append(box);
+}
+
+/** Quests and threads with no change for a while. */
+function staleItems() {
+    const out = [];
+    const latestIndex = chat.length - 1;
+    const worldNow = facts.world[facts.world.length - 1];
+    if (worldNow && openRole() !== 'author') {
+        for (const quest of Array.isArray(worldNow.data.quests) ? worldNow.data.quests : []) {
+            const title = str(quest?.title).trim();
+            if (!title || (str(quest.status).toLowerCase() || 'active') !== 'active') continue;
+            const since = unchangedSince(facts.world, (data) => {
+                const found = (Array.isArray(data?.quests) ? data.quests : []).find(q => keyOf(q?.title) === keyOf(title));
+                return found ? `${str(found.status).toLowerCase() || 'active'}|${str(found.note).trim()}` : null;
+            });
+            if (since !== null && latestIndex - since >= STALE_AFTER) out.push({ kind: 'Quest', tab: 'quests', title, idle: latestIndex - since, time: facts.nowAbs !== null && absAt(since) !== null ? facts.nowAbs - absAt(since) : null });
+        }
+    }
+    const plotNow = facts.plot[facts.plot.length - 1];
+    for (const thread of Array.isArray(plotNow?.data?.threads) ? plotNow.data.threads : []) {
+        const title = str(thread?.title).trim();
+        const status = str(thread?.status).toLowerCase() || 'active';
+        if (!title || !['active', 'brewing'].includes(status)) continue;
+        const since = unchangedSince(facts.plot, (data) => {
+            const found = (Array.isArray(data?.threads) ? data.threads : []).find(t => keyOf(t?.title) === keyOf(title));
+            return found ? `${str(found.status).toLowerCase() || 'active'}|${str(found.note).trim()}` : null;
+        });
+        if (since !== null && latestIndex - since >= STALE_AFTER) out.push({ kind: 'Thread', tab: 'plot', title, status, idle: latestIndex - since, time: facts.nowAbs !== null && absAt(since) !== null ? facts.nowAbs - absAt(since) : null });
+    }
+    return out.sort((a, b) => b.idle - a.idle);
+}
+
+function renderJournal(body) {
+    const stay = facts.stay;
+    if (stay) {
+        const head = el('div', 'ct-sc-section-head');
+        head.append(el('span', 'ct-sc-kicker', 'This scene'), helpButton('This scene', HELP.thisScene));
+        body.append(head);
+        const card = el('div', 'ct-sc-scene-card');
+        const top = el('div', 'ct-sc-scene-top');
+        top.append(el('b', '', stay.name));
+        if (stay.startAbs !== null) top.append(el('span', 'ct-sc-muted', `since ${stamp(stay.startAbs)}`));
+        card.append(top);
+        const span = stay.startAbs !== null && facts.nowAbs !== null ? facts.nowAbs - stay.startAbs : null;
+        let replies = 0;
+        for (let i = stay.startIndex + 1; i < chat.length; i++) if (chat[i] && !chat[i].is_user && !chat[i].is_system) replies++;
+        const tiles = el('div', 'ct-sc-scene-tiles');
+        for (const [label, value] of [
+            ['Messages', String(chat.length - stay.startIndex)],
+            ['Story time', span !== null ? formatSpan(span) : '—'],
+            ['Per reply', span !== null && replies ? `~${formatSpan(span / replies)}` : '—'],
+        ]) {
+            const tile = el('div', 'ct-sc-scene-tile');
+            tile.append(el('span', 'ct-sc-scene-label', label), el('span', 'ct-sc-scene-value', value));
+            tiles.append(tile);
+        }
+        card.append(tiles);
+        body.append(card);
+    }
+
+    const stale = staleItems();
+    const sHead = el('div', 'ct-sc-section-head');
+    sHead.append(el('span', 'ct-sc-kicker', 'Waiting on you'));
+    if (stale.length) sHead.append(el('span', 'ct-sc-group-count', String(stale.length)));
+    sHead.append(helpButton('Waiting on you', HELP.stale));
+    body.append(sHead);
+    const sList = el('div', 'ct-sc-rows');
+    for (const item of stale) {
+        const row = button('ct-sc-stale', '', `Open ${item.kind === 'Quest' ? 'Quests' : 'Plot'}`, () => {
+            settings().tab = item.tab;
+            saveSettingsDebounced();
+            render();
+        });
+        const top = el('span', 'ct-sc-stale-top');
+        top.append(el('span', `ct-sc-pill ${item.kind === 'Quest' ? 'is-active' : ''}`, item.kind), el('span', 'ct-sc-stale-title', item.title));
+        row.append(top, el('span', 'ct-sc-row-sub is-wrap', `No progress in ${item.idle} messages${item.time ? ` (about ${formatSpan(item.time)} of story time)` : ''}`));
+        sList.append(row);
+    }
+    if (!stale.length) sList.append(el('p', 'ct-sc-empty-line', `Nothing has stalled. Quests and threads show up here after ${STALE_AFTER} messages without progress.`));
+    body.append(sList);
+
+    const relations = stanceHistory(facts.world, facts.cal);
+    if (relations.length && openRole() !== 'author') {
+        const rHead = el('div', 'ct-sc-section-head');
+        rHead.append(el('span', 'ct-sc-kicker', 'Relationships'), helpButton('Relationships', HELP.relations));
+        body.append(rHead);
+        const rList = el('div', 'ct-sc-rows');
+        for (const relation of relations) {
+            const row = el('div', 'ct-sc-relation');
+            row.append(el('span', 'ct-sc-relation-name', relation.name));
+            const path = el('span', 'ct-sc-relation-path');
+            const steps = relation.steps.slice(-4);
+            steps.forEach((step, index) => {
+                path.append(el('span', `ct-sc-pill ct-sc-stance is-st-${step.stance}`, step.stance));
+                if (index < steps.length - 1) path.append(el('span', 'ct-sc-muted', '→'));
+            });
+            row.append(path);
+            const last = relation.steps[relation.steps.length - 1];
+            const when = last.abs !== null ? stamp(last.abs) : `message #${last.messageIndex}`;
+            const note = relation.steps.length > 1 ? `Changed ${when}${last.why ? ` · ${last.why}` : ''}` : `Since ${when} · no change`;
+            row.append(el('span', 'ct-sc-row-sub is-wrap', note));
+            rList.append(row);
+        }
+        body.append(rList);
+    }
+    if (!facts.mapHistory.length) renderTravelLog(body);
+}
+
+function renderTravelLog(body) {
+    if (!facts.stays.length) return;
+    const head = el('div', 'ct-sc-section-head');
+    head.append(el('span', 'ct-sc-kicker', 'Travel log'), helpButton('Travel log', HELP.travel));
+    body.append(head);
+    const list = el('ol', 'ct-sc-trail');
+    const all = facts.stays;
+    for (let i = all.length - 1; i >= 0; i--) {
+        const item = all[i];
+        const next = all[i + 1];
+        const li = el('li', `ct-sc-trail-item${next ? '' : ' is-now'}`);
+        li.append(el('span', 'ct-sc-trail-name', item.name));
+        const bits = [];
+        if (item.startAbs !== null) bits.push(stamp(item.startAbs));
+        if (!next) bits.push('now');
+        else if (next.startAbs !== null && item.startAbs !== null) bits.push(formatSpan(next.startAbs - item.startAbs));
+        if (i === 0) bits.push('start');
+        li.append(el('span', 'ct-sc-row-sub', bits.join(' · ')));
+        list.append(li);
+    }
+    body.append(list);
+}
+
+// ───────────────────────── Places (Scene: Map) ─────────────────────────
+
+/** The map level shown: the user's pick, else the level around the current place. */
+function mapFocus(map) {
+    if (view.mapFocus !== null && (view.mapFocus === '' || map.places.has(view.mapFocus))) return view.mapFocus;
+    const parent = map.places.get(map.current)?.parent;
+    return parent && map.places.has(parent) ? parent : '';
+}
+
+function placeVisits(id) {
+    const { places } = facts.map;
+    const runs = facts.stays.filter(stayItem => stayItem.placeId && isInside(places, stayItem.placeId, id));
+    if (!runs.length) return '';
+    const last = runs[runs.length - 1];
+    const now = facts.stay && last === facts.stay;
+    const first = runs[0];
+    const parts = [];
+    if (now) parts.push(`Now · since ${stamp(last.startAbs) || `message #${last.startIndex}`}`);
+    else parts.push(`Last: ${stamp(last.startAbs) || `message #${last.startIndex}`}`);
+    if (runs.length > 1) parts.push(`${runs.length} visits, first ${stamp(first.startAbs) || `message #${first.startIndex}`}`);
+    return parts.join(' · ');
+}
+
+function renderPlaces(body) {
+    const map = facts.map;
+    const { places } = map;
+    if (!places.size) {
+        const box = el('div', 'ct-sc-empty');
+        box.innerHTML = '<i class="fa-solid fa-map" aria-hidden="true"></i>';
+        box.append(el('p', 'ct-sc-empty-title', enabledAgent('map') ? 'No places yet' : 'The map tracker is off here'));
+        box.append(el('p', 'ct-sc-empty-text', enabledAgent('map')
+            ? 'The Scene: Map tracker adds places after the next reply. You can also run it now on the last message.'
+            : 'Switch on "Scene: Map" for this chat (Group Studio → Scene, or the Agents drawer) to build the map.'));
+        if (enabledAgent('map')) box.append(button('menu_button ct-sc-empty-btn', '<i class="fa-solid fa-rotate"></i> Update now', '', () => void updateNow()));
+        body.append(box);
+        renderTravelLog(body);
+        return;
+    }
+    const focus = mapFocus(map);
+    const head = el('div', 'ct-sc-section-head');
+    head.append(el('span', 'ct-sc-kicker', 'Map'), helpButton('Map', HELP.map));
+    body.append(head);
+
+    // Breadcrumb: All places › … › the level shown.
+    const crumbs = el('nav', 'ct-sc-crumbs');
+    crumbs.setAttribute('aria-label', 'Map level');
+    const chain = focus ? [...ancestors(places, focus).reverse(), focus] : [];
+    const goTo = (id) => {
+        view.mapFocus = id;
+        render();
+    };
+    const rootCrumb = button(`ct-sc-crumb${focus ? '' : ' is-on'}`, '<i class="fa-solid fa-earth-americas" aria-hidden="true"></i> All', 'Show the top level', () => goTo(''));
+    crumbs.append(rootCrumb);
+    for (const id of chain) {
+        crumbs.append(el('span', 'ct-sc-crumb-sep', '›'));
+        crumbs.append(button(`ct-sc-crumb${id === focus ? ' is-on' : ''}`, '', `Show the map of ${places.get(id).name}`, () => goTo(id)));
+        crumbs.lastChild.textContent = places.get(id).name;
+    }
+    const home = map.current && places.get(map.current)?.parent && places.has(places.get(map.current).parent) ? places.get(map.current).parent : '';
+    if (map.current && home !== focus) {
+        crumbs.append(button('ct-sc-crumb is-here', '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Here', 'Back to where the scene is', () => {
+            view.mapFocus = null;
+            view.mapPick = map.current;
+            render();
+        }));
+    }
+    body.append(crumbs);
+
+    const trailIds = facts.stays.filter(item => item.placeId).map(item => item.placeId);
+    const level = mapLevel(map, focus, trailIds);
+    const selected = view.mapPick && places.has(view.mapPick) ? view.mapPick : map.current || level.places[0]?.id || '';
+    const frame = el('div', 'ct-sc-map');
+    if (level.places.some(place => place.placed)) {
+        frame.append(drawMap(level, {
+            selected,
+            title: `Map of ${focus ? places.get(focus).name : 'all places'}`,
+            onPick: (id) => {
+                view.mapPick = id;
+                render();
+            },
+        }));
+    } else {
+        frame.append(el('p', 'ct-sc-empty-line ct-sc-map-empty', level.places.length ? 'The places here have no position yet.' : `Nothing mapped inside ${places.get(focus)?.name ?? 'this place'} yet.`));
+    }
+    const legend = el('div', 'ct-sc-map-legend');
+    for (const [cls, label] of [['here', 'You are here'], ['visited', 'Visited'], ['known', 'Known'], ['rumored', 'Rumored'], ['inside', 'Has places inside']]) {
+        const item = el('span', `ct-sc-map-key is-${cls}`);
+        item.append(el('span', 'ct-sc-map-swatch'), document.createTextNode(label));
+        legend.append(item);
+    }
+    frame.append(legend);
+    body.append(frame);
+
+    const unplaced = level.places.filter(place => !place.placed);
+    if (unplaced.length) {
+        const row = el('div', 'ct-sc-map-extra');
+        row.append(el('span', 'ct-sc-muted', 'No direction yet: '));
+        unplaced.forEach((place, index) => {
+            const b = button('ct-sc-link', '', `Show ${place.name}`, () => {
+                view.mapPick = place.id;
+                render();
+            });
+            b.textContent = place.name;
+            row.append(b);
+            if (index < unplaced.length - 1) row.append(document.createTextNode(', '));
+        });
+        body.append(row);
+    }
+    if (level.exits.length) {
+        const row = el('div', 'ct-sc-map-extra');
+        row.append(el('span', 'ct-sc-muted', 'Ways out: '));
+        level.exits.forEach((exit, index) => {
+            const b = button('ct-sc-link', '', `Show ${places.get(exit.to)?.name ?? exit.to}`, () => {
+                view.mapPick = exit.to;
+                view.mapFocus = places.get(exit.to)?.parent && places.has(places.get(exit.to).parent) ? places.get(exit.to).parent : '';
+                render();
+            });
+            b.textContent = `${places.get(exit.to)?.name ?? exit.to}${exit.travel ? ` (${exit.travel})` : ''}`;
+            row.append(b);
+            if (index < level.exits.length - 1) row.append(document.createTextNode('; '));
+        });
+        body.append(row);
+    }
+
+    const place = places.get(selected);
+    if (place) body.append(placeCard(place, focus));
+
+    const st = settings();
+    const lHead = el('div', 'ct-sc-section-head');
+    lHead.append(el('span', 'ct-sc-kicker', 'All places'), el('span', 'ct-sc-grow', ''), button('ct-sc-filter ct-sc-head-add', '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add', 'Add a place', () => openPeek('place', '', true)));
+    body.append(lHead);
+    const all = [...places.values()];
+    const filters = el('div', 'ct-sc-filters');
+    const filter = ['all', ...PLACE_STATES].includes(st.placeFilter) ? st.placeFilter : 'all';
+    filters.append(chip('All', all.length, filter === 'all', () => {
+        st.placeFilter = 'all';
+        saveSettingsDebounced();
+        render();
+    }));
+    for (const state of PLACE_STATES) {
+        const count = all.filter(item => item.status === state).length;
+        if (!count) continue;
+        filters.append(chip(PLACE_INFO[state][0], count, filter === state, () => {
+            st.placeFilter = state;
+            saveSettingsDebounced();
+            render();
+        }));
+    }
+    body.append(filters);
+    const list = el('div', 'ct-sc-place-list');
+    // Indented by depth, children under their parent.
+    const walk = (parentId, depth) => {
+        for (const item of childrenOf(places, parentId).sort((a, b) => a.name.localeCompare(b.name))) {
+            if (filter === 'all' || item.status === filter) {
+                const row = button(`ct-sc-place-row is-${item.id === map.current ? 'here' : item.status}${item.id === selected ? ' is-on' : ''}`, '', '', () => {
+                    view.mapPick = item.id;
+                    view.mapFocus = item.parent && places.has(item.parent) ? item.parent : '';
+                    render();
+                });
+                row.style.setProperty('--ct-sc-depth', String(Math.min(depth, 6)));
+                row.append(el('span', 'ct-sc-map-swatch'));
+                const text = el('span', 'ct-sc-place-text');
+                text.append(el('span', 'ct-sc-place-name', item.name), el('span', 'ct-sc-row-sub', [item.id === map.current ? 'You are here' : PLACE_INFO[item.status][0], item.kind, travelFrom(places, map.current, item.id)].filter(Boolean).join(' · ')));
+                row.append(text);
+                list.append(row);
+            }
+            walk(item.id, depth + 1);
+        }
+    };
+    walk('', 0);
+    if (!list.childElementCount) list.append(el('p', 'ct-sc-empty-line', 'No places with this status.'));
+    body.append(list);
+    renderTravelLog(body);
+}
+
+function placeCard(place, focus) {
+    const { places, current } = facts.map;
+    const card = el('div', 'ct-sc-place-card');
+    const top = el('div', 'ct-sc-place-top');
+    top.append(el('span', 'ct-sc-place-title', place.name));
+    const state = place.id === current ? 'here' : place.status;
+    top.append(el('span', `ct-sc-pill ct-sc-place-pill is-${state}`, place.id === current ? 'You are here' : PLACE_INFO[place.status][0]));
+    card.append(top);
+    const chain = ancestors(places, place.id).map(id => places.get(id).name);
+    const sub = [place.kind ? humanize(place.kind) : '', chain.length ? `in ${chain.join(', ')}` : ''].filter(Boolean).join(' · ');
+    if (sub) card.append(el('span', 'ct-sc-row-sub is-wrap', sub));
+    if (place.description) card.append(el('p', 'ct-sc-place-desc', place.description));
+    const grid = el('div', 'ct-sc-place-facts');
+    const fact = (label, value) => {
+        if (!value) return;
+        grid.append(el('span', 'ct-sc-muted', label), el('span', '', value));
+    };
+    fact('From here', place.id === current ? '' : travelFrom(places, current, place.id) || (current ? 'Unknown' : ''));
+    fact('Visits', placeVisits(place.id) || (place.status === 'visited' ? '' : 'Not visited yet'));
+    if (current && isInside(places, current, place.id)) {
+        const cast = findResult('cast');
+        const here = characterList(cast?.data).filter(character => isPresent(character) && !isPlayer(character)).map(character => str(character.name).trim());
+        fact('Who\'s there', here.join(', ') || 'Nobody else');
+    }
+    if (grid.childElementCount) card.append(grid);
+    const actions = el('div', 'ct-sc-place-actions');
+    if (childrenOf(places, place.id).length && focus !== place.id) {
+        actions.append(button('ct-sc-filter is-on', `<i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i> Map of ${place.name.replace(/[<>&]/g, '')}`, `Show what is inside ${place.name}`, () => {
+            view.mapFocus = place.id;
+            view.mapPick = '';
+            render();
+        }));
+    }
+    const parentId = place.parent && places.has(place.parent) ? place.parent : '';
+    if (parentId !== focus) {
+        actions.append(button('ct-sc-filter', '<i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Show on its map', '', () => {
+            view.mapFocus = parentId;
+            render();
+        }));
+    }
+    actions.append(button('ct-sc-filter', '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit', `Edit ${place.name}`, () => openPeek('place', place.id)));
+    card.append(actions);
+    return card;
+}
+
+/** The form for a place: name, status, inside what, description. */
+function renderPlaceForm(peek, head, body) {
+    const draft = peek.draft;
+    const { places } = facts?.map ?? { places: new Map() };
+    const titles = el('div', 'ct-sc-peek-titles');
+    titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New place' : (str(draft.name).trim() || 'Place')));
+    head.append(titles);
+    const name = textField('Name', str(draft.name), { id: 'ct-sc-peek-place-name', placeholder: 'What the story calls it' });
+    name.control.addEventListener('input', () => {
+        draft.name = name.control.value;
+    });
+    body.append(name.wrap);
+    const statusWrap = el('div', 'ct-sc-field');
+    statusWrap.append(el('span', 'ct-sc-field-label', 'Status'));
+    const group = el('div', 'ct-sc-status-choices');
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'Status');
+    for (const state of PLACE_STATES) {
+        const isOn = (draft.status || 'known') === state;
+        const choice = button(`ct-sc-status-choice${isOn ? ' is-on' : ''}`, '', '', () => {
+            draft.status = state;
+            render();
+        });
+        choice.setAttribute('aria-pressed', String(isOn));
+        choice.append(el('span', `ct-sc-pill ct-sc-place-pill is-${state}`, PLACE_INFO[state][0]), el('span', 'ct-sc-menu-desc', PLACE_INFO[state][1]));
+        group.append(choice);
+    }
+    statusWrap.append(group);
+    body.append(statusWrap);
+    const parentWrap = el('label', 'ct-sc-field');
+    parentWrap.append(el('span', 'ct-sc-field-label', 'Inside'));
+    const select = el('select', 'text_pole');
+    select.id = 'ct-sc-peek-place-parent';
+    const top = el('option', '', '(top level)');
+    top.value = '';
+    select.append(top);
+    const self = cleanId(draft.id);
+    for (const item of [...places.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+        if (self && isInside(places, item.id, self)) continue;
+        const option = el('option', '', item.name);
+        option.value = item.id;
+        option.selected = item.id === draft.parent;
+        select.append(option);
+    }
+    select.addEventListener('change', () => {
+        draft.parent = select.value;
+    });
+    parentWrap.append(select);
+    body.append(parentWrap);
+    const desc = textField('Description', str(draft.description), { multiline: true, id: 'ct-sc-peek-place-desc', placeholder: 'What it looks like and what matters there' });
+    desc.control.addEventListener('input', () => {
+        draft.description = desc.control.value;
+    });
+    body.append(desc.wrap);
+}
+
+async function savePlace(peek) {
+    const draft = { ...peek.draft, name: str(peek.draft.name).trim(), description: str(peek.draft.description).trim(), edited: true };
+    if (!draft.name) {
+        toastr.warning('Give the place a name.');
+        return false;
+    }
+    if (peek.isNew) {
+        draft.id = cleanId(draft.name);
+        if (facts?.map.places.has(draft.id)) {
+            toastr.warning(`${draft.name} is already on the map.`);
+            return false;
+        }
+        draft.x = null;
+        draft.y = null;
+        draft.links = [];
+    }
+    return saveData('map', (data) => {
+        const list = (Array.isArray(data.places) ? data.places : []).filter(item => cleanId(item?.id || item?.name) !== draft.id);
+        list.push(draft);
+        data.places = list;
+    });
+}
+
+function deletePlace(peek) {
+    const id = cleanId(peek.key);
+    return saveData('map', (data) => {
+        data.places = (Array.isArray(data.places) ? data.places : []).filter(item => cleanId(item?.id || item?.name) !== id);
+        data.remove = [...new Set([...(Array.isArray(data.remove) ? data.remove : []), id])];
+        if (cleanId(data.current) === id) data.current = '';
+    });
+}
+
 // ───────────────────────── Peek drawer ─────────────────────────
 
 function openPeek(type, key, isNew = false) {
@@ -1911,6 +2678,10 @@ function openPeek(type, key, isNew = false) {
         const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
         if (!isNew && (!found || typeof found !== 'object')) return;
         draft = structuredClone(found ?? form.blank());
+    } else if (type === 'place') {
+        const found = isNew ? null : facts?.map.places.get(key);
+        if (!isNew && !found) return;
+        draft = structuredClone(found ?? { id: '', name: '', kind: '', parent: facts?.map.places.get(facts?.map.current)?.parent ?? '', status: 'known', description: '', x: null, y: null, links: [] });
     } else if (type === 'faction') {
         const list = findResult('world')?.data?.factions;
         const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
@@ -2010,6 +2781,10 @@ async function savePeek() {
         if (saved) closePeek();
         return;
     }
+    if (peek.type === 'place') {
+        if (await savePlace(peek)) closePeek();
+        return;
+    }
     if (peek.type === 'faction') {
         const item = { ...peek.draft, name: str(peek.draft.name).trim(), standing: str(peek.draft.standing).trim() };
         if (!item.name) {
@@ -2067,6 +2842,13 @@ async function deletePeek() {
             data[form.list] = (Array.isArray(data[form.list]) ? data[form.list] : []).filter((_, i) => i !== Number(peek.key));
         });
         if (removed) closePeek();
+        return;
+    }
+    if (peek.type === 'place') {
+        if (await deletePlace(peek)) {
+            if (view.mapPick === peek.key) view.mapPick = '';
+            closePeek();
+        }
         return;
     }
     if (peek.type === 'faction') {
@@ -2345,6 +3127,20 @@ function renderPeek() {
         };
         line('name', 'Name', 'Their name in the story');
         line('role', 'Role', 'ally, rival, shopkeeper…');
+        const posHead = el('div', 'ct-sc-section-head');
+        posHead.append(el('span', 'ct-sc-kicker', 'Where and doing'), helpButton('Who is where', HELP.whoWhere));
+        body.append(posHead);
+        if (!draft.position || typeof draft.position !== 'object' || Array.isArray(draft.position)) draft.position = {};
+        const posForm = el('div', 'ct-sc-form');
+        for (const [key, label, placeholder] of [['spot', 'Spot', 'by the altar, at the door…'], ['posture', 'Posture', 'standing, sitting, kneeling…'], ['distance', 'Distance', `2 m from ${name1 || 'you'}`]]) {
+            const { wrap, control } = textField(label, str(draft.position[key]), { placeholder, id: `ct-sc-peek-position-${key}` });
+            control.addEventListener('input', () => {
+                draft.position[key] = control.value;
+            });
+            posForm.append(wrap);
+        }
+        body.append(posForm);
+        line('doing', 'Doing', 'What they are doing right now');
         const preset = activePreset('cast');
         for (const section of preset.sections) {
             if (section.id !== 'about' || !section.fields.length) {
@@ -2405,6 +3201,8 @@ function renderPeek() {
         renderPlotForm(peek, head, body);
     } else if (peek.type === 'faction') {
         renderFactionForm(peek, head, body);
+    } else if (peek.type === 'place') {
+        renderPlaceForm(peek, head, body);
     } else {
         const titles = el('div', 'ct-sc-peek-titles');
         titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New quest' : (str(draft.title).trim() || 'Quest')));
@@ -2449,7 +3247,7 @@ function renderPeek() {
 // ───────────────────────── Panel ─────────────────────────
 
 function statusText(world, cast, plot = null) {
-    if (isPending('world') || isPending('cast') || isPending('plot')) return 'Updating…';
+    if (isPending('world') || isPending('cast') || isPending('plot') || isPending('map')) return 'Updating…';
     const latest = [world, cast, plot].filter(Boolean).sort((a, b) => b.messageIndex - a.messageIndex)[0];
     if (!latest) return 'Nothing tracked yet';
     return `As of message #${latest.messageIndex}`;
@@ -2497,9 +3295,14 @@ export function render() {
     const focusedId = document.activeElement?.id && root.contains(document.activeElement) ? document.activeElement.id : '';
     const caret = focusedId && 'selectionStart' in document.activeElement ? /** @type {HTMLInputElement} */ (document.activeElement).selectionStart : null;
 
+    facts = storyFacts();
     const parts = [renderHeader(statusText(world, cast, plot))];
     const worldRow = renderWhereWhen(world?.data);
     if (worldRow) parts.push(worldRow);
+    const changes = renderChanges();
+    if (changes) parts.push(changes);
+    const alerts = renderAlerts();
+    if (alerts) parts.push(alerts);
     const hasCast = Boolean(cast || enabledAgent('cast'));
     const hasWorld = Boolean(world || enabledAgent('world'));
     // Co-author and Author: Plot comes first (Player gets Plot too when its tracker is on).
@@ -2516,18 +3319,24 @@ export function render() {
         if (hasPlot && !authorRole) tabs.push(plotTab);
         if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
         if (worldModuleOn('factions', worldPreset)) tabs.push({ id: 'factions', label: 'Factions', count: factionList(world?.data).filter(({ faction }) => str(faction.name).trim()).length });
+    }
+    if (enabledAgent('map') || facts.mapHistory.length) tabs.push({ id: 'places', label: 'Places', count: facts.map.places.size });
+    if (hasWorld || hasCast) tabs.push({ id: 'journal', label: 'Journal', count: staleItems().length });
+    if (hasWorld) {
         tabs.push({ id: 'world', label: 'World', count: 0 });
     }
     const st = settings();
     if (hasPlot && !hasWorld && !authorRole) tabs.push(plotTab);
     const body = el('div', 'ct-sc-body');
     const activeTab = tabs.some(tab => tab.id === st.tab) ? st.tab : tabs[0]?.id;
-    if (!world && !cast && !plot && activeTab !== 'plot') {
+    if (!world && !cast && !plot && !['plot', 'places'].includes(activeTab)) {
         renderEmpty(body);
     } else {
         parts.push(renderTabs(tabs, activeTab));
-        const needs = activeTab === 'cast' ? cast : activeTab === 'plot' ? true : world;
+        const needs = activeTab === 'cast' ? cast : ['plot', 'places', 'journal'].includes(activeTab) ? true : world;
         if (activeTab === 'plot') renderPlot(body, plot?.data ?? null);
+        else if (activeTab === 'places') renderPlaces(body);
+        else if (activeTab === 'journal') renderJournal(body);
         else if (!needs) renderEmpty(body);
         else if (activeTab === 'cast') renderCast(body, cast.data, findResult('cast', { skip: 1 })?.data ?? null);
         else if (activeTab === 'quests') renderQuests(body, world.data);
@@ -2564,7 +3373,7 @@ function openSetup() {
 /** Runs the Scene trackers that are on here on the last message. */
 export async function updateNow() {
     const api = agentsApi();
-    const agents = [enabledAgent('world'), enabledAgent('cast'), enabledAgent('plot')].filter(Boolean);
+    const agents = [enabledAgent('world'), enabledAgent('cast'), enabledAgent('plot'), enabledAgent('map')].filter(Boolean);
     if (!api?.runCompanionAgentOnMessage || !agents.length || view.busy) return;
     const index = api.getLatestValidCompanionMessageIndex?.() ?? chat.length - 1;
     if (index < 0) {
@@ -2595,6 +3404,8 @@ function init() {
     eventSource.on(event_types.CHAT_CHANGED, () => {
         view.peek = null;
         view.search = '';
+        view.mapFocus = null;
+        view.mapPick = '';
     });
     eventSource.on(event_types.GENERATION_STARTED, applyPromptForGeneration);
     document.addEventListener(FIELDS_CHANGED_EVENT, refresh);
@@ -2617,16 +3428,21 @@ function init() {
  */
 function registerPlotMacro() {
     const context = globalThis.SillyTavern?.getContext?.();
-    const description = 'The author\'s planned beats of the open chat (Scene panel → Plot).';
-    try {
-        context?.registerMacro?.('scenePlotBeats', () => beatsMacro(), description);
-    } catch {
-        // legacy macro engine missing
-    }
-    try {
-        context?.macros?.register?.('scenePlotBeats', { handler: () => beatsMacro(), description, returns: description, exampleUsage: '{{scenePlotBeats}}' });
-    } catch {
-        // new macro engine missing
+    const macros = {
+        scenePlotBeats: ['The author\'s planned beats of the open chat (Scene panel → Plot).', () => beatsMacro()],
+        sceneMapPlaces: ['The map of the open chat so far, one line per place (for the Scene: Map tracker).', () => mapMacro()],
+    };
+    for (const [name, [description, handler]] of Object.entries(macros)) {
+        try {
+            context?.registerMacro?.(name, handler, description);
+        } catch {
+            // legacy macro engine missing
+        }
+        try {
+            context?.macros?.register?.(name, { handler, description, returns: description, exampleUsage: `{{${name}}}` });
+        } catch {
+            // new macro engine missing
+        }
     }
 }
 
