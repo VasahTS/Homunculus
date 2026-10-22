@@ -18,6 +18,7 @@ import { extension_settings } from './extensions.js';
 import { groups, selected_group, editGroup } from './group-chats.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { helpButton } from './classic-help.js';
+import { calendarPrompt } from './classic-calendars.js';
 
 export const FIELDS_CHANGED_EVENT = 'homunculus:scene-fields-changed';
 const GROUP_KEY = 'homunculus_scene_fields';
@@ -361,13 +362,33 @@ export function castFieldsPrompt(preset = activePreset('cast')) {
     return lines.join('\n');
 }
 
+const TIME_RULE = [
+    'date, clock, time: the story\'s calendar date and time of day, in the calendar below.',
+    '  date = {"year": number, "month": month NUMBER from the list, "day": day of the month}. clock = 24-hour "HH:MM". The numbers in the format line are placeholders. time = a few words for the part of the day that matches the clock (dawn, morning, midday, afternoon, evening, night, small hours).',
+    '  If the story, a character card or the lorebook gives a date, year or era, use it exactly; the story can be set in any past or future year. If nothing gives one, choose a year that fits the setting (a story set today uses the current year) and keep it from then on.',
+    '  How much time passes: work out how long the events since your previous state would really take and move the clock forward by that much, never backwards:',
+    '  - a few lines of talk or a quick action: 1-5 minutes',
+    '  - a normal conversation (a reply full of dialogue): about 10 minutes',
+    '  - a long talk, a meal, searching a room, a short fight: 15-60 minutes',
+    '  - walking: a few minutes inside a building or to the next street, 15-60 minutes across a town, hours to the next village; riding or travelling between towns: hours, or days for long journeys',
+    '  - resting or waiting: as long as the story says; sleeping through the night: the next morning (usually 06:00-08:00)',
+    '  - time skips ("later that evening", "three days later", "after a week on the road"): jump exactly that far',
+    '  - when the story or a character says the time, use it; when unsure, take the smaller jump',
+    '  When the clock passes midnight, move the date forward one day (into the next month or year when the month ends, using the month lengths below).',
+].join('\n');
+
+const FACTIONS_RULE = 'factions: the whole list of named groups {{user}} has dealt with or heard of. stance = how they treat {{user}} right now, exactly one of "hostile", "wary", "neutral", "friendly", "allied". standing = one or two sentences on where they stand and why. Change stance only when the story shows it.';
+// Author role: no {{user}} in the story, so a faction has no stance toward anyone; it is copied unchanged.
+const AUTHOR_FACTIONS_RULE = 'factions: the whole list of named groups in the story. standing = one or two sentences on what they want and how they stand with the main characters. stance: copy it from your previous state unchanged ("" if there is none).';
+
+/** Module → [JSON fragment of the format line, rule]. */
 const MODULE_RULES = {
-    time: ['time', '"Day 1, morning"', 'time: move it forward only as far as the story shows (a talk takes minutes, travel takes hours, sleeping moves to the next day).'],
-    location: ['location', '""', 'location: short and specific. Keep the old one if nothing changed.'],
-    weather: ['weather', '""', 'weather: short and specific (temperature, sky, wind). Keep the old one if nothing changed.'],
-    quests: ['quests', '[{"title": "", "status": "active", "note": ""}]', 'quests: the whole list. Add one only when a task or goal is clearly given or taken on. Set status to "completed" or "failed" when the story resolves it.'],
-    inventory: ['inventory', '[""]', 'inventory: notable items {{user}} carries, with amount or state when it matters ("waterskin, half full"). Add only items clearly taken, bought or given; remove items lost, used up or given away.'],
-    factions: ['factions', '[{"name": "", "standing": ""}]', 'factions: named groups {{user}} has dealt with, and how they stand with {{user}}.'],
+    time: ['"date": {"year": 0, "month": 1, "day": 1}, "clock": "08:00", "time": "morning"', TIME_RULE],
+    location: ['"location": ""', 'location: short and specific. Keep the old one if nothing changed.'],
+    weather: ['"weather": ""', 'weather: short and specific (temperature, sky, wind). Keep the old one if nothing changed.'],
+    quests: ['"quests": [{"title": "", "status": "active", "note": ""}]', 'quests: the whole list. Add one only when a task or goal is clearly given or taken on. Set status to "completed" or "failed" when the story resolves it.'],
+    inventory: ['"inventory": [""]', 'inventory: notable items {{user}} carries, with amount or state when it matters ("waterskin, half full"). Add only items clearly taken, bought or given; remove items lost, used up or given away.'],
+    factions: ['"factions": [{"name": "", "stance": "neutral", "standing": ""}]', FACTIONS_RULE],
 };
 
 // Author role: no {{user}} in the story, so quests have no owner and goals live in Scene: Plot.
@@ -381,9 +402,10 @@ export function worldFieldsPrompt(preset = activePreset('world')) {
     const rules = [];
     for (const [key] of WORLD_MODULES) {
         if (!preset.modules[key]) continue;
-        const [name, sample, rule] = MODULE_RULES[key];
-        parts.push(`"${name}": ${sample}`);
-        rules.push(`- ${key === 'quests' && isAuthorRole() ? AUTHOR_QUESTS_RULE : rule}`);
+        const [sample, rule] = MODULE_RULES[key];
+        parts.push(sample);
+        const author = isAuthorRole();
+        rules.push(`- ${key === 'quests' && author ? AUTHOR_QUESTS_RULE : key === 'factions' && author ? AUTHOR_FACTIONS_RULE : rule}`);
     }
     for (const field of preset.fields) {
         parts.push(`"${field.key}": ${field.type === 'list' ? '[""]' : '""'}`);
@@ -399,6 +421,7 @@ export function worldFieldsPrompt(preset = activePreset('world')) {
         ...rules,
         CONCRETE_RULE,
     ];
+    if (preset.modules.time) lines.push('', calendarPrompt());
     if (preset.rules) lines.push(preset.rules);
     return lines.join('\n');
 }

@@ -29,6 +29,7 @@ import { user_avatar, getUserAvatar } from './personas.js';
 import { helpButton, closeHelp } from './classic-help.js';
 import { set as setPromptBlock } from './classic-prompt-blocks.js';
 import { activePreset, castFields, getValue, setValue, listValue, isFilled, FIELDS_CHANGED_EVENT } from './classic-scene-fields.js';
+import { activeCalendar, listCalendars, chooseCalendar, openCalendarEditor, parseDate, addDays, formatDate, CALENDARS_CHANGED_EVENT } from './classic-calendars.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
     world: 'tpl-homunculus-scene-world',
@@ -57,10 +58,19 @@ const PLOT_FORMS = Object.freeze({
     secret: { list: 'secrets', name: 'secret', titleKey: 'fact', blank: () => ({ fact: '', knows: [], unaware: [] }), fields: [['fact', 'Secret', 'multiline', 'The hidden fact'], ['knows', 'Knows', 'list', 'Names, separated by commas'], ['unaware', 'Doesn\'t know', 'list', 'Names, separated by commas']] },
 });
 const BEAT_FORM = Object.freeze({ name: 'beat', titleKey: 'title', fields: [['title', 'Beat', 'multiline', 'Something you want to happen'], ['status', 'When', 'beat']] });
-const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
+const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', faction: 'Faction', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
 const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
+/** Faction stance toward {{user}}: id, label, one-line description (worst to best). */
+const STANCES = Object.freeze([
+    ['hostile', 'Hostile', 'Works against you'],
+    ['wary', 'Wary', 'Distrusts you, watches you'],
+    ['neutral', 'Neutral', 'Has taken no side'],
+    ['friendly', 'Friendly', 'Well disposed toward you'],
+    ['allied', 'Allied', 'On your side'],
+]);
+const TAB_ICONS = Object.freeze({ cast: 'fa-user-group', quests: 'fa-scroll', plot: 'fa-code-branch', items: 'fa-bag-shopping', factions: 'fa-flag', world: 'fa-earth-americas' });
 
 const HELP = {
     panel: `<p>What is happening in the story right now, kept up to date by two <b>Scene trackers</b>.</p>
@@ -84,6 +94,15 @@ const HELP = {
     other: '<p>Things the tracker wrote that the current field preset does not list (for example from another preset). They stay saved; they just are not part of the preset.</p>',
     quests: '<p>Tasks and goals from the story. The tracker adds one when a task is clearly given or taken on, and marks it completed or failed when the story resolves it.</p>',
     items: '<p>Notable things the player carries. The tracker adds items that are clearly taken, bought or given, and removes the ones lost or used up.</p>',
+    factions: `<p>Named groups in the story (guilds, armies, families, gangs…) kept by the <b>Scene: World</b> tracker.</p>
+<p>The colored tag and bar show the <b>stance</b>: how the group treats you right now, from <b>Hostile</b> to <b>Allied</b>. The text under it says where they stand and why.</p>
+<p>Click a faction to edit it. The next update starts from your edit. A dot marks what changed in the last update.</p>`,
+    factionsAuthor: `<p>Named groups in the story (guilds, armies, families, gangs…) kept by the <b>Scene: World</b> tracker: what they want and how they stand with the main characters.</p>
+<p>Click a faction to edit it. The next update starts from your edit.</p>`,
+    stance: '<p>How this group treats you right now. The tracker changes it when the story shows a change; you can set it yourself here. Click the chosen one again to clear it.</p>',
+    clock: `<p>The date and time in the story, kept by the <b>Scene: World</b> tracker. It moves the clock by how long things would really take: a conversation about 10 minutes, walking across town up to an hour, a night's sleep to the next morning, and time skips exactly as written.</p>
+<p>Change the date or time here, or use the buttons to move time forward. The next update starts from what you set.</p>
+<p>The <b>calendar</b> sets the months, weekdays and how years are written. Gregorian is the real-world one; make your own for other worlds with <b>Edit calendars</b>.</p>`,
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
 <p>To add your own field (for example "Corruption"), add it to the tracker's prompt in the agent editor.</p>`,
     plot: `<p>The shape of the story, for you as the author.</p>
@@ -108,6 +127,7 @@ function settings() {
     if (typeof st.tab !== 'string') st.tab = 'cast';
     if (typeof st.filter !== 'string') st.filter = 'all';
     if (typeof st.questFilter !== 'string') st.questFilter = 'active';
+    if (typeof st.factionFilter !== 'string') st.factionFilter = 'all';
     if (!st.collapsed || typeof st.collapsed !== 'object') st.collapsed = {};
     // Character cards opened or closed by hand (by name). Without an entry: open when in scene.
     if (!st.cards || typeof st.cards !== 'object') st.cards = {};
@@ -201,12 +221,101 @@ function knownCastKeys(preset = activePreset('cast')) {
 }
 /** World keys the active preset uses (modules that are on and its own fields). */
 function knownWorldKeys(preset = activePreset('world')) {
-    return new Set([...WORLD_MODULE_KEYS, ...preset.fields.map(field => field.key)]);
+    return new Set([...WORLD_MODULE_KEYS, 'date', 'clock', 'day', ...preset.fields.map(field => field.key)]);
 }
 const worldModuleOn = (key, preset = activePreset('world')) => preset.modules[key] !== false;
 const isPresent = character => character.present !== false && character.present !== 'false';
 const isPlayer = character => str(character.role).toLowerCase() === 'player' || (name1 && str(character.name).trim().toLowerCase() === String(name1).toLowerCase());
 const keyOf = name => str(name).trim().toLowerCase();
+
+// ───────────────────────── Story clock ─────────────────────────
+
+/** Minutes after midnight from "HH:MM" (also "7:05", "19h30"), or null. */
+function parseClock(value) {
+    const match = str(value).trim().match(/^(\d{1,2})\s*[:h.]\s*(\d{2})/i);
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    return hours > 23 || minutes > 59 ? null : hours * 60 + minutes;
+}
+const formatClock = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+/** The story day of older results ("day": 3, or "Day 3, morning" in the time text), or null. */
+function legacyDay(world) {
+    const n = Number.parseInt(str(world?.day), 10);
+    if (Number.isFinite(n) && n > 0) return n;
+    const match = str(world?.time).match(/\bday\s*(\d+)/i);
+    return match ? Number(match[1]) : null;
+}
+
+/** The time-of-day words, without an older "Day 3," prefix. */
+function timeWords(world) {
+    return str(world?.time).replace(/^\s*day\s*\d+\s*[,·:-]?\s*/i, '').trim();
+}
+
+function partOfDay(minutes) {
+    const h = minutes / 60;
+    if (h < 5) return 'small hours';
+    if (h < 7) return 'dawn';
+    if (h < 11) return 'morning';
+    if (h < 13) return 'midday';
+    if (h < 16) return 'afternoon';
+    if (h < 18) return 'late afternoon';
+    if (h < 20) return 'evening';
+    return 'night';
+}
+
+/** Where the sun or moon is: { body, t } with t from 0 (rising) to 1 (setting), or null when unknown. */
+function skyPosition(world) {
+    const minutes = parseClock(world?.clock);
+    if (minutes !== null) {
+        if (minutes >= 360 && minutes < 1080) return { body: 'sun', t: (minutes - 360) / 720 };
+        return { body: 'moon', t: ((minutes - 1080 + 1440) % 1440) / 720 };
+    }
+    const text = timeWords(world).toLowerCase();
+    // Order matters: "afternoon" contains "noon", "midnight" contains "night".
+    const words = [
+        [/midnight/, 'moon', 0.5],
+        [/late night|small hours|before dawn/, 'moon', 0.8],
+        [/dawn|sunrise|daybreak|first light|early morning/, 'sun', 0.07],
+        [/late afternoon|sunset|dusk|twilight/, 'sun', 0.85],
+        [/afternoon/, 'sun', 0.65],
+        [/noon|midday/, 'sun', 0.5],
+        [/morning/, 'sun', 0.25],
+        [/evening/, 'moon', 0.12],
+        [/night/, 'moon', 0.4],
+    ];
+    const hit = words.find(([pattern]) => pattern.test(text));
+    return hit ? { body: hit[1], t: hit[2] } : null;
+}
+
+/** A clock for results that only have words ("late afternoon"), so the buttons can move it. */
+function guessMinutes(world) {
+    const pos = skyPosition(world);
+    if (!pos) return 8 * 60;
+    return Math.round(pos.body === 'sun' ? 360 + pos.t * 720 : (1080 + pos.t * 720) % 1440);
+}
+
+/** One line for the AI: "Thursday, 22 October 2026, 17:40, late afternoon". */
+function whenText(world) {
+    const cal = activeCalendar();
+    const date = parseDate(world?.date, cal);
+    const minutes = parseClock(world?.clock);
+    const parts = [];
+    if (date) parts.push(formatDate(cal, date));
+    else if (legacyDay(world) !== null) parts.push(`Day ${legacyDay(world)}`);
+    if (minutes !== null) parts.push(formatClock(minutes));
+    if (timeWords(world)) parts.push(timeWords(world));
+    return parts.join(', ');
+}
+
+const stanceOf = faction => {
+    const value = str(faction?.stance).trim().toLowerCase();
+    return STANCES.some(([id]) => id === value) ? value : '';
+};
+const factionList = world => (Array.isArray(world?.factions) ? world.factions : [])
+    .map((faction, index) => ({ faction, index }))
+    .filter(({ faction }) => faction && typeof faction === 'object');
 
 /** Whether the panel has anything to show in the open chat. */
 export function isAvailable() {
@@ -320,14 +429,21 @@ function worldPrompt(data) {
     const author = openRole() === 'author';
     const on = key => worldModuleOn(key, preset) && !(author && key === 'quests');
     const lines = [];
-    const head = [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => on(key) && str(data[key]).trim()).map(([key, label]) => `${label}: ${str(data[key]).trim()}`);
+    const head = [];
+    if (on('time') && whenText(data)) head.push(`Time: ${whenText(data)}`);
+    head.push(...[['location', 'Location'], ['weather', 'Weather']].filter(([key]) => on(key) && str(data[key]).trim()).map(([key, label]) => `${label}: ${str(data[key]).trim()}`));
     if (head.length) lines.push(head.join(' · '));
     const quests = on('quests') ? (Array.isArray(data.quests) ? data.quests : []).filter(q => q && str(q.title).trim() && str(q.status || 'active').toLowerCase() === 'active') : [];
     if (quests.length) lines.push(`Active quests: ${quests.map(q => (str(q.note).trim() ? `${str(q.title).trim()} (${str(q.note).trim()})` : str(q.title).trim())).join('; ')}`);
     const items = on('inventory') ? oneLine(Array.isArray(data.inventory) ? data.inventory.filter(Boolean) : []) : '';
     if (items) lines.push(`Carrying: ${items}`);
     const factions = on('factions') ? (Array.isArray(data.factions) ? data.factions : []).filter(f => f && str(f.name).trim()) : [];
-    if (factions.length) lines.push(`Factions: ${factions.map(f => (str(f.standing).trim() ? `${str(f.name).trim()} (${str(f.standing).trim()})` : str(f.name).trim())).join('; ')}`);
+    if (factions.length) {
+        lines.push(`Factions: ${factions.map((f) => {
+            const about = [author ? '' : stanceOf(f), str(f.standing).trim()].filter(Boolean).join(': ');
+            return about ? `${str(f.name).trim()} (${about})` : str(f.name).trim();
+        }).join('; ')}`);
+    }
     for (const field of preset.fields) {
         const text = field.type === 'list' ? listValue(data[field.key]).join(', ') : oneLine(data[field.key]);
         if (text) lines.push(`${field.label}: ${text}`);
@@ -670,22 +786,78 @@ function renderHeader(status) {
     return head;
 }
 
-function renderWorldStrip(world) {
-    const row = el('div', 'ct-sc-world');
+/** Sun or moon on a small arc, placed by the time of day (null when the time is unknown). */
+function skyArc(world) {
+    const pos = skyPosition(world);
+    if (!pos) return null;
+    const angle = Math.PI * (1 - pos.t);
+    const x = 40 + 26 * Math.cos(angle);
+    const y = 30 - 26 * Math.sin(angle);
+    const tone = pos.body === 'moon' ? 'moon' : pos.t < 0.15 ? 'dawn' : pos.t > 0.78 ? 'dusk' : 'day';
+    const wrap = el('span', `ct-sc-sky is-${tone}`);
+    wrap.setAttribute('aria-hidden', 'true');
+    const cut = tone === 'moon' ? `<circle class="ct-sc-sky-cut" cx="${(x + 1.8).toFixed(1)}" cy="${(y - 1.3).toFixed(1)}" r="3.4"/>` : '';
+    wrap.innerHTML = `<svg viewBox="0 0 80 34" width="80" height="34"><path class="ct-sc-sky-line" d="M6 30H74"/><path class="ct-sc-sky-arc" d="M14 30A26 26 0 0 1 66 30"/><circle class="ct-sc-sky-glow" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7"/><circle class="ct-sc-sky-orb" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>${cut}</svg>`;
+    return wrap;
+}
+
+function weatherIcon(text) {
+    const t = str(text).toLowerCase();
+    if (/storm|thunder|lightning/.test(t)) return 'fa-cloud-bolt';
+    if (/snow|blizzard|sleet|frost/.test(t)) return 'fa-snowflake';
+    if (/rain|drizzle|shower|downpour/.test(t)) return 'fa-cloud-rain';
+    if (/fog|mist|haze|smoke/.test(t)) return 'fa-smog';
+    if (/wind|gust|breez/.test(t)) return 'fa-wind';
+    if (/overcast|cloud|gr[ae]y sky/.test(t)) return 'fa-cloud';
+    if (/clear|sunny|sunset|sunrise|\bsun\b|hot/.test(t)) return 'fa-sun';
+    return 'fa-cloud-sun';
+}
+
+const capitalize = text => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '');
+
+/** Where and when, under the header: date and time with the sky arc, the place, the weather. Never cut. */
+function renderWhereWhen(world) {
     const preset = activePreset('world');
-    const items = [
-        ['fa-clock', 'Time', world?.time, 'time'],
-        ['fa-location-dot', 'Location', world?.location, 'location'],
-        ['fa-cloud-sun', 'Weather', world?.weather, 'weather'],
-    ].filter(([, , value, key]) => worldModuleOn(key, preset) && str(value).trim());
-    for (const [icon, label, value] of items) {
-        const item = el('div', 'ct-sc-world-item');
-        item.title = label;
-        item.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
-        item.append(el('span', 'ct-sc-sr', `${label}: `), el('span', 'ct-sc-world-text', str(value).trim()));
-        row.append(item);
+    const timeOn = worldModuleOn('time', preset);
+    const place = worldModuleOn('location', preset) ? str(world?.location).trim() : '';
+    const weather = worldModuleOn('weather', preset) ? str(world?.weather).trim() : '';
+    const cal = activeCalendar();
+    const date = timeOn ? parseDate(world?.date, cal) : null;
+    const day = timeOn && !date ? legacyDay(world) : null;
+    const minutes = timeOn ? parseClock(world?.clock) : null;
+    const words = timeOn ? timeWords(world) : '';
+    if (!place && !weather && !date && day === null && minutes === null && !words) return null;
+    const box = el('section', 'ct-sc-where');
+    box.setAttribute('aria-label', 'Where and when');
+    if (date || day !== null || minutes !== null || words) {
+        const row = el('div', 'ct-sc-when-row');
+        const when = el('div', 'ct-sc-when');
+        const lead = date ? formatDate(cal, date, { short: true }) : day !== null ? `Day ${day}` : '';
+        const rest = [minutes !== null ? formatClock(minutes) : '', capitalize(words)].filter(Boolean);
+        if (lead) {
+            const strong = el('b', 'ct-sc-when-date', lead);
+            if (date) strong.title = formatDate(cal, date);
+            when.append(strong);
+        }
+        if (rest.length) when.append(el('span', lead ? 'ct-sc-when-rest' : 'ct-sc-when-plain', `${lead ? ' · ' : ''}${rest.join(' · ')}`));
+        row.append(when);
+        const sky = skyArc(world);
+        if (sky) row.append(sky);
+        box.append(row);
     }
-    return items.length ? row : null;
+    if (place) {
+        const line = el('div', 'ct-sc-where-place');
+        line.innerHTML = '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
+        line.append(el('span', 'ct-sc-sr', 'Location: '), el('span', 'ct-sc-where-text', place));
+        box.append(line);
+    }
+    if (weather) {
+        const line = el('div', 'ct-sc-where-weather');
+        line.innerHTML = `<i class="fa-solid ${weatherIcon(weather)}" aria-hidden="true"></i>`;
+        line.append(el('span', 'ct-sc-sr', 'Weather: '), el('span', 'ct-sc-where-text', weather));
+        box.append(line);
+    }
+    return box;
 }
 
 function renderTabs(tabs, active) {
@@ -700,8 +872,11 @@ function renderTabs(tabs, active) {
         });
         b.setAttribute('role', 'tab');
         b.setAttribute('aria-selected', String(tab.id === active));
-        b.append(el('span', '', tab.label));
-        if (tab.count) b.append(el('span', 'ct-sc-tab-count', String(tab.count)));
+        const icon = el('span', 'ct-sc-tab-icon');
+        icon.innerHTML = `<i class="fa-solid ${TAB_ICONS[tab.id] ?? 'fa-circle'}" aria-hidden="true"></i>`;
+        if (tab.count) icon.append(el('span', 'ct-sc-tab-count', String(tab.count)));
+        b.append(icon, el('span', 'ct-sc-tab-label', tab.label));
+        if (tab.count) b.title = `${tab.label}: ${tab.count}`;
         nav.append(b);
     }
     return nav;
@@ -1432,13 +1607,14 @@ function renderItems(body, world) {
 }
 
 function renderWorld(body, world) {
+    const preset = activePreset('world');
+    if (worldModuleOn('time', preset)) renderClock(body, world);
     const head = el('div', 'ct-sc-section-head');
     head.append(el('span', 'ct-sc-kicker', 'World'), helpButton('World', HELP.world));
     body.append(head);
-    const preset = activePreset('world');
     const form = el('div', 'ct-sc-form');
-    for (const [key, label] of [['time', 'Time'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => worldModuleOn(key, preset))) {
-        const { wrap, control } = textField(label, str(world?.[key]), { id: `ct-sc-world-${key}` });
+    for (const [key, label] of [['time', 'Time of day'], ['location', 'Location'], ['weather', 'Weather']].filter(([key]) => worldModuleOn(key, preset))) {
+        const { wrap, control } = textField(label, key === 'time' ? timeWords(world) : str(world?.[key]), { multiline: true, id: `ct-sc-world-${key}` });
         control.addEventListener('change', () => void saveData('world', (data) => {
             data[key] = control.value.trim();
         }));
@@ -1469,44 +1645,186 @@ function renderWorld(body, world) {
         body.append(pForm);
     }
 
-    if (worldModuleOn('factions', preset)) renderFactions(body, world);
     renderWorldExtras(body, world, preset);
 }
 
-function renderFactions(body, world) {
-    const factions = (Array.isArray(world?.factions) ? world.factions : []).filter(f => f && typeof f === 'object');
-    const fHead = el('div', 'ct-sc-section-head');
-    fHead.append(el('span', 'ct-sc-kicker', 'Factions'));
-    body.append(fHead);
-    const fList = el('div', 'ct-sc-rows');
-    factions.forEach((faction, index) => {
-        const row = el('div', 'ct-sc-faction');
-        const name = el('input', 'text_pole');
-        name.value = str(faction.name);
-        name.setAttribute('aria-label', 'Faction name');
-        const standing = el('input', 'text_pole');
-        standing.value = str(faction.standing);
-        standing.placeholder = 'Standing';
-        standing.setAttribute('aria-label', `How ${str(faction.name) || 'this faction'} stands with you`);
-        const commit = () => void saveData('world', (data) => {
-            const list = Array.isArray(data.factions) ? data.factions : [];
-            const target = list.filter(f => f && typeof f === 'object')[index];
-            if (!target) return false;
-            target.name = name.value.trim();
-            target.standing = standing.value.trim();
-        });
-        name.addEventListener('change', commit);
-        standing.addEventListener('change', commit);
-        row.append(name, standing, button('ct-sc-x', '<i class="fa-solid fa-xmark"></i>', `Remove ${str(faction.name)}`, () => void saveData('world', (data) => {
-            const target = (Array.isArray(data.factions) ? data.factions : []).filter(f => f && typeof f === 'object')[index];
-            data.factions = (data.factions ?? []).filter(f => f !== target);
-        })));
-        fList.append(row);
+/**
+ * Moves the story clock and saves it. The step gets the current date and minutes and returns new ones;
+ * minutes past midnight roll the date over. Older results without a date start from the calendar's
+ * first day of year 1 (the user fixes the year in the date box).
+ * @param {(date: {year:number, month:number, day:number}, minutes: number) => [{year:number, month:number, day:number}, number]} step
+ */
+function setClock(step) {
+    return saveData('world', (data) => {
+        const cal = activeCalendar();
+        let date = parseDate(data.date, cal) ?? { year: 1, month: 1, day: 1 };
+        let minutes = parseClock(data.clock) ?? guessMinutes(data);
+        [date, minutes] = step(date, minutes);
+        const days = Math.floor(minutes / 1440);
+        minutes -= days * 1440;
+        if (days) date = addDays(cal, date, days);
+        data.date = date;
+        data.clock = formatClock(minutes);
+        data.time = partOfDay(minutes);
+        delete data.day;
     });
-    if (!factions.length) fList.append(el('p', 'ct-sc-empty-line', 'No factions yet.'));
-    body.append(fList, button('ct-sc-add', '<i class="fa-solid fa-plus"></i> Add a faction', '', () => void saveData('world', (data) => {
-        data.factions = [...(Array.isArray(data.factions) ? data.factions : []), { name: 'New faction', standing: '' }];
-    })));
+}
+
+function renderClock(body, world) {
+    const cal = activeCalendar();
+    const date = parseDate(world?.date, cal);
+    const minutes = parseClock(world?.clock);
+    const head = el('div', 'ct-sc-section-head');
+    head.append(el('span', 'ct-sc-kicker', 'Story clock'), helpButton('Story clock', HELP.clock));
+    body.append(head);
+    const box = el('div', 'ct-sc-clock');
+
+    const dateRow = el('div', 'ct-sc-clock-date');
+    const field = (label, id, attrs) => {
+        const wrap = el('label', 'ct-sc-clock-field');
+        wrap.append(el('span', 'ct-sc-field-label', label));
+        const control = el(attrs.tag ?? 'input', 'text_pole');
+        if (!attrs.tag) control.type = attrs.type ?? 'number';
+        control.id = id;
+        for (const [key, value] of Object.entries(attrs)) if (!['tag', 'type'].includes(key)) control.setAttribute(key, value);
+        wrap.append(control);
+        dateRow.append(wrap);
+        return control;
+    };
+    const dayInput = field('Day', 'ct-sc-clock-day', { min: '1', max: '400', step: '1' });
+    dayInput.value = date ? String(date.day) : '';
+    const monthSelect = field('Month', 'ct-sc-clock-month', { tag: 'select' });
+    cal.months.forEach((month, index) => {
+        const option = el('option', '', month.name);
+        option.value = String(index + 1);
+        option.selected = date ? date.month === index + 1 : index === 0;
+        monthSelect.append(option);
+    });
+    const yearInput = field(cal.era ? `Year (${cal.era})` : 'Year', 'ct-sc-clock-year', { step: '1' });
+    yearInput.value = date ? String(date.year) : '';
+    yearInput.placeholder = '—';
+    const timeInput = field('Time', 'ct-sc-clock-time', { type: 'time' });
+    timeInput.value = minutes !== null ? formatClock(minutes) : '';
+    const saveDate = () => {
+        const year = Number.parseInt(yearInput.value, 10);
+        if (!Number.isFinite(year)) {
+            toastr.info('Fill in the year to save the date.');
+            return;
+        }
+        void setClock((_, mins) => [parseDate({ year, month: Number(monthSelect.value), day: Number.parseInt(dayInput.value, 10) || 1 }, cal), mins]);
+    };
+    dayInput.addEventListener('change', saveDate);
+    monthSelect.addEventListener('change', saveDate);
+    yearInput.addEventListener('change', saveDate);
+    timeInput.addEventListener('change', () => {
+        const next = parseClock(timeInput.value);
+        if (next !== null) void setClock(current => [current, next]);
+    });
+    box.append(dateRow);
+    if (date) box.append(el('div', 'ct-sc-clock-full', `${formatDate(cal, date)}${minutes !== null ? ` · ${formatClock(minutes)}` : ''}`));
+
+    const steps = el('div', 'ct-sc-filters ct-sc-clock-steps');
+    for (const [label, title, step] of [
+        ['+10 min', 'Move the clock 10 minutes forward', (d, m) => [d, m + 10]],
+        ['+1 hour', 'Move the clock 1 hour forward', (d, m) => [d, m + 60]],
+        ['Next morning', 'Skip to 07:00 the next day', (d, m) => [d, (m < 7 * 60 ? 0 : 1440) + 7 * 60]],
+        ['+1 day', 'Move the date 1 day forward, same time', (d, m) => [d, m + 1440]],
+    ]) {
+        steps.append(button('ct-sc-filter', label, title, () => void setClock(step)));
+    }
+    box.append(steps);
+
+    const calRow = el('div', 'ct-sc-clock-cal');
+    const calLabel = el('label', 'ct-sc-clock-field is-wide');
+    calLabel.append(el('span', 'ct-sc-field-label', 'Calendar'));
+    const calSelect = el('select', 'text_pole');
+    calSelect.id = 'ct-sc-clock-calendar';
+    for (const item of listCalendars()) {
+        const option = el('option', '', item.name);
+        option.value = item.id;
+        option.selected = item.id === cal.id;
+        calSelect.append(option);
+    }
+    calSelect.addEventListener('change', () => void chooseCalendar(calSelect.value));
+    calLabel.append(calSelect);
+    calRow.append(calLabel, button('menu_button ct-sc-btn', '<i class="fa-solid fa-pen"></i> Edit calendars', 'Make or change calendars (months, weekdays, era)', () => void openCalendarEditor()));
+    box.append(calRow);
+    body.append(box);
+}
+
+function renderFactions(body, world, previous) {
+    const st = settings();
+    const author = openRole() === 'author';
+    const items = factionList(world).filter(({ faction }) => str(faction.name).trim());
+    const before = previous ? new Map(factionList(previous).map(({ faction }) => [keyOf(faction.name), faction])) : null;
+    const changed = (faction) => {
+        if (!before) return false;
+        const old = before.get(keyOf(faction.name));
+        return !old || stanceOf(old) !== stanceOf(faction) || str(old.standing).trim() !== str(faction.standing).trim();
+    };
+
+    const head = el('div', 'ct-sc-toolbar');
+    const titleRow = el('div', 'ct-sc-section-head');
+    titleRow.append(el('span', 'ct-sc-kicker', 'Factions'), helpButton('Factions', author ? HELP.factionsAuthor : HELP.factions), el('span', 'ct-sc-grow', ''));
+    titleRow.append(button('ct-sc-filter ct-sc-head-add', '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add', 'Add a faction', () => openPeek('faction', '', true)));
+    head.append(titleRow);
+    const counts = new Map();
+    for (const { faction } of items) counts.set(stanceOf(faction), (counts.get(stanceOf(faction)) ?? 0) + 1);
+    const filter = author ? 'all' : (st.factionFilter === 'all' || counts.has(st.factionFilter === 'none' ? '' : st.factionFilter) ? st.factionFilter : 'all');
+    if (!author && counts.size > 1) {
+        const filters = el('div', 'ct-sc-filters');
+        const pick = (id) => {
+            st.factionFilter = id;
+            saveSettingsDebounced();
+            render();
+        };
+        filters.append(chip('All', items.length, filter === 'all', () => pick('all')));
+        for (const [id, label] of [...STANCES, ['', 'No stance']]) {
+            if (!counts.has(id)) continue;
+            const value = id || 'none';
+            const b = chip(label, counts.get(id), filter === value, () => pick(value));
+            b.classList.add('ct-sc-stance-chip', `is-st-${value}`);
+            filters.append(b);
+        }
+        head.append(filters);
+    }
+    body.append(head);
+
+    const list = el('div', 'ct-sc-rows');
+    const visible = items.filter(({ faction }) => filter === 'all' || (stanceOf(faction) || 'none') === filter);
+    for (const { faction, index } of visible) {
+        const stance = author ? '' : stanceOf(faction);
+        const info = STANCES.find(([id]) => id === stance);
+        const isChanged = changed(faction);
+        const card = button(`ct-sc-faction-card is-st-${stance || 'none'}${isChanged ? ' is-changed' : ''}`, '', '', () => openPeek('faction', String(index)));
+        card.title = `Open ${str(faction.name).trim()}`;
+        const top = el('span', 'ct-sc-faction-top');
+        const icon = el('span', 'ct-sc-faction-icon');
+        icon.innerHTML = '<i class="fa-solid fa-flag" aria-hidden="true"></i>';
+        const main = el('span', 'ct-sc-faction-main');
+        const name = el('span', 'ct-sc-faction-name');
+        name.append(el('span', '', str(faction.name).trim()));
+        if (isChanged) {
+            const dot = el('span', 'ct-sc-dot');
+            dot.title = 'Changed in the last update';
+            name.append(dot);
+        }
+        main.append(name);
+        if (info) {
+            const meter = el('span', 'ct-sc-meter');
+            meter.setAttribute('aria-hidden', 'true');
+            const level = STANCES.indexOf(info);
+            for (let i = 0; i < STANCES.length; i++) meter.append(el('span', i <= level ? 'is-on' : ''));
+            main.append(meter);
+        }
+        top.append(icon, main);
+        if (!author) top.append(el('span', `ct-sc-pill ct-sc-stance${info ? '' : ' is-none'}`, info ? info[1] : 'No stance'));
+        card.append(top);
+        if (str(faction.standing).trim()) card.append(el('span', 'ct-sc-faction-standing', str(faction.standing).trim()));
+        list.append(card);
+    }
+    if (!visible.length) list.append(el('p', 'ct-sc-empty-line', items.length ? 'No factions with this stance.' : 'No factions yet. The tracker adds groups the story names, or add one yourself.'));
+    body.append(list);
 }
 
 function renderWorldExtras(body, world, preset) {
@@ -1581,6 +1899,11 @@ function openPeek(type, key, isNew = false) {
         const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
         if (!isNew && (!found || typeof found !== 'object')) return;
         draft = structuredClone(found ?? form.blank());
+    } else if (type === 'faction') {
+        const list = findResult('world')?.data?.factions;
+        const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
+        if (!isNew && (!found || typeof found !== 'object')) return;
+        draft = structuredClone(found ?? { name: '', stance: '', standing: '' });
     } else if (type === 'beat') {
         const found = isNew ? null : getBeats()[Number(key)];
         if (!isNew && !found) return;
@@ -1675,6 +1998,26 @@ async function savePeek() {
         if (saved) closePeek();
         return;
     }
+    if (peek.type === 'faction') {
+        const item = { ...peek.draft, name: str(peek.draft.name).trim(), standing: str(peek.draft.standing).trim() };
+        if (!item.name) {
+            toastr.warning('Give the faction a name.');
+            return;
+        }
+        const saved = await saveData('world', (data) => {
+            const list = Array.isArray(data.factions) ? data.factions : (data.factions = []);
+            const clash = list.findIndex(other => other && keyOf(other.name) === keyOf(item.name));
+            if (clash !== -1 && (peek.isNew || clash !== Number(peek.key))) {
+                toastr.warning(`${item.name} is already in the list.`);
+                return false;
+            }
+            if (peek.isNew) list.push(item);
+            else if (list[Number(peek.key)] !== undefined) list[Number(peek.key)] = item;
+            else return false;
+        });
+        if (saved) closePeek();
+        return;
+    }
     if (peek.type === 'beat') {
         const item = peek.draft;
         if (!str(item.title).trim()) {
@@ -1710,6 +2053,13 @@ async function deletePeek() {
         const form = PLOT_FORMS[peek.type];
         const removed = await saveData('plot', (data) => {
             data[form.list] = (Array.isArray(data[form.list]) ? data[form.list] : []).filter((_, i) => i !== Number(peek.key));
+        });
+        if (removed) closePeek();
+        return;
+    }
+    if (peek.type === 'faction') {
+        const removed = await saveData('world', (data) => {
+            data.factions = (Array.isArray(data.factions) ? data.factions : []).filter((_, i) => i !== Number(peek.key));
         });
         if (removed) closePeek();
         return;
@@ -1890,6 +2240,56 @@ function renderPlotForm(peek, head, body) {
     }
 }
 
+/** The form for a faction: name, stance (not in the Author role), where they stand. */
+function renderFactionForm(peek, head, body) {
+    const draft = peek.draft;
+    const author = openRole() === 'author';
+    const stance = author ? '' : stanceOf(draft);
+    const icon = el('span', `ct-sc-faction-icon is-big is-st-${stance || 'none'}`);
+    icon.innerHTML = '<i class="fa-solid fa-flag" aria-hidden="true"></i>';
+    const titles = el('div', 'ct-sc-peek-titles');
+    titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New faction' : (str(draft.name).trim() || 'Faction')));
+    head.append(icon, titles);
+
+    const name = textField('Name', str(draft.name), { id: 'ct-sc-peek-faction-name', placeholder: 'The group\'s name in the story' });
+    name.control.addEventListener('input', () => {
+        draft.name = name.control.value;
+    });
+    body.append(name.wrap);
+
+    if (!author) {
+        const wrap = el('div', 'ct-sc-field');
+        const labelRow = el('div', 'ct-sc-section-head');
+        const labelId = 'ct-sc-peek-stance-label';
+        const label = el('span', 'ct-sc-field-label', 'Stance toward you');
+        label.id = labelId;
+        labelRow.append(label, helpButton('Stance', HELP.stance));
+        const group = el('div', 'ct-sc-stance-choices');
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-labelledby', labelId);
+        for (const [id, text, desc] of STANCES) {
+            const isOn = id === stance;
+            const choice = button(`ct-sc-stance-choice is-st-${id}${isOn ? ' is-on' : ''}`, '', desc, () => {
+                draft.stance = isOn ? '' : id;
+                render();
+            });
+            choice.setAttribute('aria-pressed', String(isOn));
+            choice.append(el('span', 'ct-sc-stance-bar'), el('span', '', text));
+            group.append(choice);
+        }
+        const scale = el('div', 'ct-sc-stance-scale');
+        scale.append(el('span', '', 'against you'), el('span', '', 'on your side'));
+        wrap.append(labelRow, group, scale);
+        body.append(wrap);
+    }
+
+    const standing = textField('Where they stand', str(draft.standing), { multiline: true, id: 'ct-sc-peek-faction-standing', placeholder: author ? 'What they want and how they stand with the main characters' : 'How they see you and why' });
+    standing.control.addEventListener('input', () => {
+        draft.standing = standing.control.value;
+    });
+    body.append(standing.wrap);
+}
+
 function renderPeek() {
     const peek = view.peek;
     if (peek.type === 'character' && peek.mode === 'view') return renderSheet(peek);
@@ -1991,6 +2391,8 @@ function renderPeek() {
         }
     } else if (PLOT_FORMS[peek.type] || peek.type === 'beat') {
         renderPlotForm(peek, head, body);
+    } else if (peek.type === 'faction') {
+        renderFactionForm(peek, head, body);
     } else {
         const titles = el('div', 'ct-sc-peek-titles');
         titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New quest' : (str(draft.title).trim() || 'Quest')));
@@ -2084,7 +2486,7 @@ export function render() {
     const caret = focusedId && 'selectionStart' in document.activeElement ? /** @type {HTMLInputElement} */ (document.activeElement).selectionStart : null;
 
     const parts = [renderHeader(statusText(world, cast, plot))];
-    const worldRow = renderWorldStrip(world?.data);
+    const worldRow = renderWhereWhen(world?.data);
     if (worldRow) parts.push(worldRow);
     const hasCast = Boolean(cast || enabledAgent('cast'));
     const hasWorld = Boolean(world || enabledAgent('world'));
@@ -2101,6 +2503,7 @@ export function render() {
         if (openRole() !== 'author' && worldModuleOn('quests', worldPreset)) tabs.push({ id: 'quests', label: 'Quests', count: (Array.isArray(world?.data?.quests) ? world.data.quests : []).filter(q => (str(q?.status).toLowerCase() || 'active') === 'active').length });
         if (hasPlot && !authorRole) tabs.push(plotTab);
         if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
+        if (worldModuleOn('factions', worldPreset)) tabs.push({ id: 'factions', label: 'Factions', count: factionList(world?.data).filter(({ faction }) => str(faction.name).trim()).length });
         tabs.push({ id: 'world', label: 'World', count: 0 });
     }
     const st = settings();
@@ -2117,6 +2520,7 @@ export function render() {
         else if (activeTab === 'cast') renderCast(body, cast.data, findResult('cast', { skip: 1 })?.data ?? null);
         else if (activeTab === 'quests') renderQuests(body, world.data);
         else if (activeTab === 'items') renderItems(body, world.data);
+        else if (activeTab === 'factions') renderFactions(body, world.data, findResult('world', { skip: 1 })?.data ?? null);
         else renderWorld(body, world.data);
     }
     parts.push(body);
@@ -2182,6 +2586,7 @@ function init() {
     });
     eventSource.on(event_types.GENERATION_STARTED, applyPromptForGeneration);
     document.addEventListener(FIELDS_CHANGED_EVENT, refresh);
+    document.addEventListener(CALENDARS_CHANGED_EVENT, refresh);
     eventSource.on('in_chat_agent_companion_results_updated', () => {
         syncBeatsDone();
         refresh();
