@@ -33,8 +33,9 @@ import { activeCalendar, listCalendars, chooseCalendar, openCalendarEditor, pars
 import {
     parseClock, formatClock, legacyDay, timeWords, partOfDay, skyPosition, guessMinutes, absMinutes, formatSpan, storyStamp,
     entryAt, storyStart, stays, changesBetween, unchangedSince, stanceHistory, lastSeenEntry, mentions,
-    PLACE_STATES, cleanId, foldMap, ancestors, childrenOf, isInside, travelFrom, mapLevel, drawMap,
+    ancestors, travelFrom, mapLevel, drawMap,
 } from './classic-scene-story.js';
+import { mapState, ingest as ingestMap, storyPrompt as mapStoryPrompt, open as openWorldMap, registerMacro as registerMapMacro, WORLD_CHANGED_EVENT } from './classic-world-map.js';
 
 export const SCENE_TEMPLATES = Object.freeze({
     world: 'tpl-homunculus-scene-world',
@@ -64,7 +65,7 @@ const PLOT_FORMS = Object.freeze({
     secret: { list: 'secrets', name: 'secret', titleKey: 'fact', blank: () => ({ fact: '', knows: [], unaware: [] }), fields: [['fact', 'Secret', 'multiline', 'The hidden fact'], ['knows', 'Knows', 'list', 'Names, separated by commas'], ['unaware', 'Doesn\'t know', 'list', 'Names, separated by commas']] },
 });
 const BEAT_FORM = Object.freeze({ name: 'beat', titleKey: 'title', fields: [['title', 'Beat', 'multiline', 'Something you want to happen'], ['status', 'When', 'beat']] });
-const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', faction: 'Faction', place: 'Place', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
+const PEEK_LABELS = Object.freeze({ character: 'Character', quest: 'Quest', faction: 'Faction', thread: 'Thread', goal: 'Goal', secret: 'Secret', beat: 'Planned beat' });
 const CORE_CAST_KEYS = Object.freeze(['name', 'present', 'role', 'mood', 'notes', 'position', 'doing']);
 const WORLD_MODULE_KEYS = Object.freeze(['time', 'location', 'weather', 'quests', 'inventory', 'factions']);
 const QUEST_STATES = Object.freeze(['active', 'completed', 'failed']);
@@ -115,13 +116,6 @@ const HELP = {
     stale: '<p>Active quests and open plot threads that have not moved for a while. Pick one up, or close it in Quests or Plot.</p>',
     relations: '<p>How each faction\'s stance toward you changed over the story, and when. The note is where they stood at the last change.</p>',
     travel: '<p>Every place the story went through, newest first, with the story time it arrived and how long it stayed.</p>',
-    map: `<p>The map the <b>Scene: Map</b> tracker builds from the story: places visited, known and only rumored, and how long it takes to get between them.</p>
-<ul>
-<li>It shows one level at a time: the places inside the same place as you. A place with a second ring has places inside: click it, then <b>Map of …</b> to go in. The path at the top goes back out.</li>
-<li>The dotted orange line is the way the story went.</li>
-<li>Places with no known direction are listed under the map instead of being guessed.</li>
-</ul>
-<p>The tracker only writes what changed, so it stays cheap as the map grows. Click <b>Edit</b> on a place to fix it; the next update starts from your edit.</p>`,
     changes: '<p>What the last update of the trackers changed: time passed, moves, people arriving or leaving, items, quests, factions and new places.</p>',
     world: `<p>The rest of the world state. Any field the World tracker's prompt asks for shows here.</p>
 <p>To add your own field (for example "Corruption"), add it to the tracker's prompt in the agent editor.</p>`,
@@ -467,41 +461,6 @@ function plotPrompt(data) {
     return lines.join('\n');
 }
 
-/** The map so far (the sum of the Map tracker's patches). */
-function currentMap({ before = chat.length } = {}) {
-    return foldMap(historyOf('map').filter(entry => entry.messageIndex < before));
-}
-
-/** The map for the Map tracker's own prompt ({{sceneMapPlaces}}): one line per place, no descriptions. */
-function mapMacro() {
-    const { places, current } = currentMap();
-    if (!places.size) return '(empty: no places yet)';
-    const lines = [...places.values()].map((place) => {
-        const links = place.links.map(link => `${link.to}${link.travel ? ` (${link.travel})` : ''}`).join(', ');
-        const where = place.x !== null && place.y !== null ? `x ${Math.round(place.x)}, y ${Math.round(place.y)}` : 'not placed';
-        return `- ${place.id} | ${place.name} | ${place.kind || 'place'} | inside: ${place.parent || '-'} | ${place.status} | ${where}${links ? ` | links: ${links}` : ''}`;
-    });
-    lines.push(`Current place: ${current || '(unknown)'}`);
-    return lines.join('\n');
-}
-
-/** For the story AI: where the scene is on the map and the ways out of it. */
-function mapPrompt(map) {
-    const { places, current } = map;
-    const here = places.get(current);
-    if (!here) return '';
-    const chain = ancestors(places, current).map(id => places.get(id).name);
-    const ways = [];
-    for (const link of here.links) if (places.has(link.to)) ways.push(`${places.get(link.to).name}${link.travel ? ` (${link.travel})` : ''}`);
-    for (const place of places.values()) {
-        const back = place.links.find(link => link.to === current);
-        if (back && !here.links.some(link => link.to === place.id)) ways.push(`${place.name}${back.travel ? ` (${back.travel})` : ''}`);
-    }
-    const lines = [`Place: ${here.name}${chain.length ? ` (in ${chain.join(', ')})` : ''}`];
-    if (ways.length) lines.push(`Ways from here: ${ways.join('; ')}`);
-    return lines.join('\n');
-}
-
 function feedbackOn(agent) {
     return Boolean(agent?.companion?.feedback?.enabled);
 }
@@ -528,7 +487,7 @@ export function scenePrompt({ before = chat.length } = {}) {
     }
     const mapAgent = enabledAgent('map');
     if (mapAgent && !feedbackOn(mapAgent)) {
-        const text = mapPrompt(currentMap({ before }));
+        const text = mapStoryPrompt();
         if (text) parts.push(text);
     }
     return parts.length ? `For continuity. Do not repeat it back.\n${parts.join('\n')}` : '';
@@ -754,8 +713,7 @@ const view = {
     /** null, or { type: 'character' | 'quest', key, draft, isNew } */
     peek: null,
     /** Places tab: the map level shown (null = around the current place) and the selected place. */
-    mapFocus: null,
-    mapPick: '',
+
     narrowOpen: false,
     busy: false,
 };
@@ -1974,11 +1932,6 @@ function renderEmpty(body) {
 
 const IGNORED_KEY = 'homunculus_scene_ignored';
 const STALE_AFTER = 15;
-const PLACE_INFO = Object.freeze({
-    visited: ['Visited', 'The story has been there'],
-    known: ['Known', 'Known to exist, not visited yet'],
-    rumored: ['Rumored', 'Only heard of; may be wrong'],
-});
 
 /** Everything the meta views need, worked out once per render. */
 function storyFacts() {
@@ -1987,9 +1940,9 @@ function storyFacts() {
     const cast = historyOf('cast');
     const plot = historyOf('plot');
     const mapHistory = historyOf('map');
-    const map = foldMap(mapHistory);
+    const map = mapState();
     const latestWorld = world[world.length - 1] ?? null;
-    const allStays = stays(world, mapHistory, cal);
+    const allStays = stays(world, mapHistory, cal, map.timeline);
     return {
         cal,
         world,
@@ -2128,7 +2081,7 @@ function renderChanges() {
         prevWorld: w[w.length - 2]?.data,
         cast: c[c.length - 1]?.data,
         prevCast: c[c.length - 2]?.data,
-        newPlaces: facts.map.newIds.map(id => facts.map.places.get(id)?.name).filter(Boolean),
+        newPlaces: facts.map.newNames,
         cal: facts.cal,
         isPresent,
     });
@@ -2324,7 +2277,7 @@ function renderJournal(body) {
         }
         body.append(rList);
     }
-    if (!facts.mapHistory.length) renderTravelLog(body);
+    if (!facts.map.world) renderTravelLog(body);
 }
 
 function renderTravelLog(body) {
@@ -2350,312 +2303,77 @@ function renderTravelLog(body) {
     body.append(list);
 }
 
-// ───────────────────────── Places (Scene: Map) ─────────────────────────
-
-/** The map level shown: the user's pick, else the level around the current place. */
-function mapFocus(map) {
-    if (view.mapFocus !== null && (view.mapFocus === '' || map.places.has(view.mapFocus))) return view.mapFocus;
-    const parent = map.places.get(map.current)?.parent;
-    return parent && map.places.has(parent) ? parent : '';
-}
-
-function placeVisits(id) {
-    const { places } = facts.map;
-    const runs = facts.stays.filter(stayItem => stayItem.placeId && isInside(places, stayItem.placeId, id));
-    if (!runs.length) return '';
-    const last = runs[runs.length - 1];
-    const now = facts.stay && last === facts.stay;
-    const first = runs[0];
-    const parts = [];
-    if (now) parts.push(`Now · since ${stamp(last.startAbs) || `message #${last.startIndex}`}`);
-    else parts.push(`Last: ${stamp(last.startAbs) || `message #${last.startIndex}`}`);
-    if (runs.length > 1) parts.push(`${runs.length} visits, first ${stamp(first.startAbs) || `message #${first.startIndex}`}`);
-    return parts.join(' · ');
-}
+// ───────────────────────── Places (the World Map, small) ─────────────────────────
 
 function renderPlaces(body) {
     const map = facts.map;
-    const { places } = map;
-    if (!places.size) {
+    const { places, current, world } = map;
+    if (!world) {
         const box = el('div', 'ct-sc-empty');
         box.innerHTML = '<i class="fa-solid fa-map" aria-hidden="true"></i>';
-        box.append(el('p', 'ct-sc-empty-title', enabledAgent('map') ? 'No places yet' : 'The map tracker is off here'));
+        box.append(el('p', 'ct-sc-empty-title', 'No map for this chat yet'));
         box.append(el('p', 'ct-sc-empty-text', enabledAgent('map')
-            ? 'The Scene: Map tracker adds places after the next reply. You can also run it now on the last message.'
-            : 'Switch on "Scene: Map" for this chat (Group Studio → Scene, or the Agents drawer) to build the map.'));
-        if (enabledAgent('map')) box.append(button('menu_button ct-sc-empty-btn', '<i class="fa-solid fa-rotate"></i> Update now', '', () => void updateNow()));
+            ? 'The Scene: Map tracker starts one after the next reply. You can also build one from your lorebooks.'
+            : 'Build a world from your lorebooks or a description, pick one from your library, or switch on the "Scene: Map" tracker so the map follows the story.'));
+        box.append(button('menu_button ct-sc-empty-btn', '<i class="fa-solid fa-map"></i> Open the World Map', '', () => openWorldMap()));
         body.append(box);
         renderTravelLog(body);
         return;
     }
-    const focus = mapFocus(map);
-    const head = el('div', 'ct-sc-section-head');
-    head.append(el('span', 'ct-sc-kicker', 'Map'), helpButton('Map', HELP.map));
-    body.append(head);
-
-    // Breadcrumb: All places › … › the level shown.
-    const crumbs = el('nav', 'ct-sc-crumbs');
-    crumbs.setAttribute('aria-label', 'Map level');
-    const chain = focus ? [...ancestors(places, focus).reverse(), focus] : [];
-    const goTo = (id) => {
-        view.mapFocus = id;
-        render();
-    };
-    const rootCrumb = button(`ct-sc-crumb${focus ? '' : ' is-on'}`, '<i class="fa-solid fa-earth-americas" aria-hidden="true"></i> All', 'Show the top level', () => goTo(''));
-    crumbs.append(rootCrumb);
-    for (const id of chain) {
-        crumbs.append(el('span', 'ct-sc-crumb-sep', '›'));
-        crumbs.append(button(`ct-sc-crumb${id === focus ? ' is-on' : ''}`, '', `Show the map of ${places.get(id).name}`, () => goTo(id)));
-        crumbs.lastChild.textContent = places.get(id).name;
+    const here = places.get(current);
+    if (here) {
+        const card = el('div', 'ct-sc-place-card');
+        card.append(el('span', 'ct-sc-kicker', 'You are here'));
+        card.append(el('span', 'ct-sc-place-title', here.name));
+        const chain = ancestors(places, current).map(id => places.get(id).name);
+        if (chain.length) card.append(el('span', 'ct-sc-row-sub is-wrap', `in ${chain.join(' › ')}`));
+        if (here.description) card.append(el('p', 'ct-sc-place-desc', here.description));
+        body.append(card);
     }
-    const home = map.current && places.get(map.current)?.parent && places.has(places.get(map.current).parent) ? places.get(map.current).parent : '';
-    if (map.current && home !== focus) {
-        crumbs.append(button('ct-sc-crumb is-here', '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Here', 'Back to where the scene is', () => {
-            view.mapFocus = null;
-            view.mapPick = map.current;
-            render();
-        }));
-    }
-    body.append(crumbs);
-
-    const trailIds = facts.stays.filter(item => item.placeId).map(item => item.placeId);
-    const level = mapLevel(map, focus, trailIds);
-    const selected = view.mapPick && places.has(view.mapPick) ? view.mapPick : map.current || level.places[0]?.id || '';
-    const frame = el('div', 'ct-sc-map');
+    const opener = button('ct-sc-map-open', '', `Open the World Map of ${world.name}`, () => openWorldMap(current));
+    const holder = here?.parent && places.has(here.parent) ? here.parent : '';
+    const level = mapLevel({ places, current }, holder, map.timeline.map(item => item.placeId));
     if (level.places.some(place => place.placed)) {
-        frame.append(drawMap(level, {
-            selected,
-            title: `Map of ${focus ? places.get(focus).name : 'all places'}`,
-            onPick: (id) => {
-                view.mapPick = id;
-                render();
-            },
-        }));
-    } else {
-        frame.append(el('p', 'ct-sc-empty-line ct-sc-map-empty', level.places.length ? 'The places here have no position yet.' : `Nothing mapped inside ${places.get(focus)?.name ?? 'this place'} yet.`));
+        const mini = drawMap(level, { width: 260, height: 186, selected: '', title: 'Map preview', onPick: () => openWorldMap(current), state: {}, viewKey: 'mini', controls: false });
+        mini.classList.add('ct-sc-map-mini');
+        opener.append(mini);
     }
-    const legend = el('div', 'ct-sc-map-legend');
-    for (const [cls, label] of [['here', 'You are here'], ['visited', 'Visited'], ['known', 'Known'], ['rumored', 'Rumored'], ['inside', 'Has places inside']]) {
-        const item = el('span', `ct-sc-map-key is-${cls}`);
-        item.append(el('span', 'ct-sc-map-swatch'), document.createTextNode(label));
-        legend.append(item);
+    const label = el('span', 'ct-sc-map-open-text');
+    label.append(el('b', '', 'Open the World Map'), el('span', 'ct-sc-row-sub is-wrap', `${world.name} · ${places.size} place${places.size === 1 ? '' : 's'} · ${map.mode === 'auto' ? 'Auto' : map.mode === 'ask' ? 'Ask' : 'Locked'}`));
+    opener.append(label);
+    body.append(opener);
+    if (map.pending.length) {
+        const box = el('div', 'ct-sc-box ct-sc-alerts ct-sc-pending');
+        const row = el('div', 'ct-sc-box-head');
+        row.append(el('span', 'ct-sc-box-title', `${map.pending.length} new place${map.pending.length === 1 ? '' : 's'} waiting for your OK`));
+        row.append(button('ct-sc-filter is-on', 'Review', 'Open the World Map to add or skip them', () => openWorldMap(current)));
+        box.append(row);
+        body.append(box);
     }
-    frame.append(legend);
-    body.append(frame);
-
-    const unplaced = level.places.filter(place => !place.placed);
-    if (unplaced.length) {
-        const row = el('div', 'ct-sc-map-extra');
-        row.append(el('span', 'ct-sc-muted', 'No direction yet: '));
-        unplaced.forEach((place, index) => {
-            const b = button('ct-sc-link', '', `Show ${place.name}`, () => {
-                view.mapPick = place.id;
-                render();
-            });
-            b.textContent = place.name;
-            row.append(b);
-            if (index < unplaced.length - 1) row.append(document.createTextNode(', '));
-        });
-        body.append(row);
-    }
-    if (level.exits.length) {
-        const row = el('div', 'ct-sc-map-extra');
-        row.append(el('span', 'ct-sc-muted', 'Ways out: '));
-        level.exits.forEach((exit, index) => {
-            const b = button('ct-sc-link', '', `Show ${places.get(exit.to)?.name ?? exit.to}`, () => {
-                view.mapPick = exit.to;
-                view.mapFocus = places.get(exit.to)?.parent && places.has(places.get(exit.to).parent) ? places.get(exit.to).parent : '';
-                render();
-            });
-            b.textContent = `${places.get(exit.to)?.name ?? exit.to}${exit.travel ? ` (${exit.travel})` : ''}`;
-            row.append(b);
-            if (index < level.exits.length - 1) row.append(document.createTextNode('; '));
-        });
-        body.append(row);
-    }
-
-    const place = places.get(selected);
-    if (place) body.append(placeCard(place, focus));
-
-    const st = settings();
-    const lHead = el('div', 'ct-sc-section-head');
-    lHead.append(el('span', 'ct-sc-kicker', 'All places'), el('span', 'ct-sc-grow', ''), button('ct-sc-filter ct-sc-head-add', '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add', 'Add a place', () => openPeek('place', '', true)));
-    body.append(lHead);
-    const all = [...places.values()];
-    const filters = el('div', 'ct-sc-filters');
-    const filter = ['all', ...PLACE_STATES].includes(st.placeFilter) ? st.placeFilter : 'all';
-    filters.append(chip('All', all.length, filter === 'all', () => {
-        st.placeFilter = 'all';
-        saveSettingsDebounced();
-        render();
-    }));
-    for (const state of PLACE_STATES) {
-        const count = all.filter(item => item.status === state).length;
-        if (!count) continue;
-        filters.append(chip(PLACE_INFO[state][0], count, filter === state, () => {
-            st.placeFilter = state;
-            saveSettingsDebounced();
-            render();
-        }));
-    }
-    body.append(filters);
-    const list = el('div', 'ct-sc-place-list');
-    // Indented by depth, children under their parent.
-    const walk = (parentId, depth) => {
-        for (const item of childrenOf(places, parentId).sort((a, b) => a.name.localeCompare(b.name))) {
-            if (filter === 'all' || item.status === filter) {
-                const row = button(`ct-sc-place-row is-${item.id === map.current ? 'here' : item.status}${item.id === selected ? ' is-on' : ''}`, '', '', () => {
-                    view.mapPick = item.id;
-                    view.mapFocus = item.parent && places.has(item.parent) ? item.parent : '';
-                    render();
-                });
-                row.style.setProperty('--ct-sc-depth', String(Math.min(depth, 6)));
+    if (here) {
+        const ways = [];
+        for (const link of here.links) if (places.has(link.to)) ways.push([places.get(link.to), link.travel]);
+        for (const place of places.values()) {
+            const back = place.links.find(link => link.to === current && !link.oneWay);
+            if (back && !ways.some(([item]) => item.id === place.id)) ways.push([place, back.travel]);
+        }
+        if (ways.length) {
+            const head = el('div', 'ct-sc-section-head');
+            head.append(el('span', 'ct-sc-kicker', 'Ways from here'));
+            body.append(head);
+            const list = el('div', 'ct-sc-place-list');
+            for (const [place, travel] of ways) {
+                const row = button(`ct-sc-place-row is-${place.status}`, '', `Show ${place.name} on the World Map`, () => openWorldMap(place.id));
                 row.append(el('span', 'ct-sc-map-swatch'));
                 const text = el('span', 'ct-sc-place-text');
-                text.append(el('span', 'ct-sc-place-name', item.name), el('span', 'ct-sc-row-sub', [item.id === map.current ? 'You are here' : PLACE_INFO[item.status][0], item.kind, travelFrom(places, map.current, item.id)].filter(Boolean).join(' · ')));
+                text.append(el('span', 'ct-sc-place-name', place.name), el('span', 'ct-sc-row-sub', [travel || travelFrom(places, current, place.id), place.status === 'visited' ? '' : place.status].filter(Boolean).join(' · ')));
                 row.append(text);
                 list.append(row);
             }
-            walk(item.id, depth + 1);
+            body.append(list);
         }
-    };
-    walk('', 0);
-    if (!list.childElementCount) list.append(el('p', 'ct-sc-empty-line', 'No places with this status.'));
-    body.append(list);
+    }
     renderTravelLog(body);
-}
-
-function placeCard(place, focus) {
-    const { places, current } = facts.map;
-    const card = el('div', 'ct-sc-place-card');
-    const top = el('div', 'ct-sc-place-top');
-    top.append(el('span', 'ct-sc-place-title', place.name));
-    const state = place.id === current ? 'here' : place.status;
-    top.append(el('span', `ct-sc-pill ct-sc-place-pill is-${state}`, place.id === current ? 'You are here' : PLACE_INFO[place.status][0]));
-    card.append(top);
-    const chain = ancestors(places, place.id).map(id => places.get(id).name);
-    const sub = [place.kind ? humanize(place.kind) : '', chain.length ? `in ${chain.join(', ')}` : ''].filter(Boolean).join(' · ');
-    if (sub) card.append(el('span', 'ct-sc-row-sub is-wrap', sub));
-    if (place.description) card.append(el('p', 'ct-sc-place-desc', place.description));
-    const grid = el('div', 'ct-sc-place-facts');
-    const fact = (label, value) => {
-        if (!value) return;
-        grid.append(el('span', 'ct-sc-muted', label), el('span', '', value));
-    };
-    fact('From here', place.id === current ? '' : travelFrom(places, current, place.id) || (current ? 'Unknown' : ''));
-    fact('Visits', placeVisits(place.id) || (place.status === 'visited' ? '' : 'Not visited yet'));
-    if (current && isInside(places, current, place.id)) {
-        const cast = findResult('cast');
-        const here = characterList(cast?.data).filter(character => isPresent(character) && !isPlayer(character)).map(character => str(character.name).trim());
-        fact('Who\'s there', here.join(', ') || 'Nobody else');
-    }
-    if (grid.childElementCount) card.append(grid);
-    const actions = el('div', 'ct-sc-place-actions');
-    if (childrenOf(places, place.id).length && focus !== place.id) {
-        actions.append(button('ct-sc-filter is-on', `<i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i> Map of ${place.name.replace(/[<>&]/g, '')}`, `Show what is inside ${place.name}`, () => {
-            view.mapFocus = place.id;
-            view.mapPick = '';
-            render();
-        }));
-    }
-    const parentId = place.parent && places.has(place.parent) ? place.parent : '';
-    if (parentId !== focus) {
-        actions.append(button('ct-sc-filter', '<i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Show on its map', '', () => {
-            view.mapFocus = parentId;
-            render();
-        }));
-    }
-    actions.append(button('ct-sc-filter', '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit', `Edit ${place.name}`, () => openPeek('place', place.id)));
-    card.append(actions);
-    return card;
-}
-
-/** The form for a place: name, status, inside what, description. */
-function renderPlaceForm(peek, head, body) {
-    const draft = peek.draft;
-    const { places } = facts?.map ?? { places: new Map() };
-    const titles = el('div', 'ct-sc-peek-titles');
-    titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New place' : (str(draft.name).trim() || 'Place')));
-    head.append(titles);
-    const name = textField('Name', str(draft.name), { id: 'ct-sc-peek-place-name', placeholder: 'What the story calls it' });
-    name.control.addEventListener('input', () => {
-        draft.name = name.control.value;
-    });
-    body.append(name.wrap);
-    const statusWrap = el('div', 'ct-sc-field');
-    statusWrap.append(el('span', 'ct-sc-field-label', 'Status'));
-    const group = el('div', 'ct-sc-status-choices');
-    group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', 'Status');
-    for (const state of PLACE_STATES) {
-        const isOn = (draft.status || 'known') === state;
-        const choice = button(`ct-sc-status-choice${isOn ? ' is-on' : ''}`, '', '', () => {
-            draft.status = state;
-            render();
-        });
-        choice.setAttribute('aria-pressed', String(isOn));
-        choice.append(el('span', `ct-sc-pill ct-sc-place-pill is-${state}`, PLACE_INFO[state][0]), el('span', 'ct-sc-menu-desc', PLACE_INFO[state][1]));
-        group.append(choice);
-    }
-    statusWrap.append(group);
-    body.append(statusWrap);
-    const parentWrap = el('label', 'ct-sc-field');
-    parentWrap.append(el('span', 'ct-sc-field-label', 'Inside'));
-    const select = el('select', 'text_pole');
-    select.id = 'ct-sc-peek-place-parent';
-    const top = el('option', '', '(top level)');
-    top.value = '';
-    select.append(top);
-    const self = cleanId(draft.id);
-    for (const item of [...places.values()].sort((a, b) => a.name.localeCompare(b.name))) {
-        if (self && isInside(places, item.id, self)) continue;
-        const option = el('option', '', item.name);
-        option.value = item.id;
-        option.selected = item.id === draft.parent;
-        select.append(option);
-    }
-    select.addEventListener('change', () => {
-        draft.parent = select.value;
-    });
-    parentWrap.append(select);
-    body.append(parentWrap);
-    const desc = textField('Description', str(draft.description), { multiline: true, id: 'ct-sc-peek-place-desc', placeholder: 'What it looks like and what matters there' });
-    desc.control.addEventListener('input', () => {
-        draft.description = desc.control.value;
-    });
-    body.append(desc.wrap);
-}
-
-async function savePlace(peek) {
-    const draft = { ...peek.draft, name: str(peek.draft.name).trim(), description: str(peek.draft.description).trim(), edited: true };
-    if (!draft.name) {
-        toastr.warning('Give the place a name.');
-        return false;
-    }
-    if (peek.isNew) {
-        draft.id = cleanId(draft.name);
-        if (facts?.map.places.has(draft.id)) {
-            toastr.warning(`${draft.name} is already on the map.`);
-            return false;
-        }
-        draft.x = null;
-        draft.y = null;
-        draft.links = [];
-    }
-    return saveData('map', (data) => {
-        const list = (Array.isArray(data.places) ? data.places : []).filter(item => cleanId(item?.id || item?.name) !== draft.id);
-        list.push(draft);
-        data.places = list;
-    });
-}
-
-function deletePlace(peek) {
-    const id = cleanId(peek.key);
-    return saveData('map', (data) => {
-        data.places = (Array.isArray(data.places) ? data.places : []).filter(item => cleanId(item?.id || item?.name) !== id);
-        data.remove = [...new Set([...(Array.isArray(data.remove) ? data.remove : []), id])];
-        if (cleanId(data.current) === id) data.current = '';
-    });
 }
 
 // ───────────────────────── Peek drawer ─────────────────────────
@@ -2678,10 +2396,6 @@ function openPeek(type, key, isNew = false) {
         const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
         if (!isNew && (!found || typeof found !== 'object')) return;
         draft = structuredClone(found ?? form.blank());
-    } else if (type === 'place') {
-        const found = isNew ? null : facts?.map.places.get(key);
-        if (!isNew && !found) return;
-        draft = structuredClone(found ?? { id: '', name: '', kind: '', parent: facts?.map.places.get(facts?.map.current)?.parent ?? '', status: 'known', description: '', x: null, y: null, links: [] });
     } else if (type === 'faction') {
         const list = findResult('world')?.data?.factions;
         const found = isNew ? null : (Array.isArray(list) ? list[Number(key)] : null);
@@ -2781,10 +2495,6 @@ async function savePeek() {
         if (saved) closePeek();
         return;
     }
-    if (peek.type === 'place') {
-        if (await savePlace(peek)) closePeek();
-        return;
-    }
     if (peek.type === 'faction') {
         const item = { ...peek.draft, name: str(peek.draft.name).trim(), standing: str(peek.draft.standing).trim() };
         if (!item.name) {
@@ -2842,13 +2552,6 @@ async function deletePeek() {
             data[form.list] = (Array.isArray(data[form.list]) ? data[form.list] : []).filter((_, i) => i !== Number(peek.key));
         });
         if (removed) closePeek();
-        return;
-    }
-    if (peek.type === 'place') {
-        if (await deletePlace(peek)) {
-            if (view.mapPick === peek.key) view.mapPick = '';
-            closePeek();
-        }
         return;
     }
     if (peek.type === 'faction') {
@@ -3201,8 +2904,6 @@ function renderPeek() {
         renderPlotForm(peek, head, body);
     } else if (peek.type === 'faction') {
         renderFactionForm(peek, head, body);
-    } else if (peek.type === 'place') {
-        renderPlaceForm(peek, head, body);
     } else {
         const titles = el('div', 'ct-sc-peek-titles');
         titles.append(el('div', 'ct-sc-peek-name', peek.isNew ? 'New quest' : (str(draft.title).trim() || 'Quest')));
@@ -3320,7 +3021,7 @@ export function render() {
         if (worldModuleOn('inventory', worldPreset)) tabs.push({ id: 'items', label: 'Items', count: (Array.isArray(world?.data?.inventory) ? world.data.inventory : []).filter(Boolean).length });
         if (worldModuleOn('factions', worldPreset)) tabs.push({ id: 'factions', label: 'Factions', count: factionList(world?.data).filter(({ faction }) => str(faction.name).trim()).length });
     }
-    if (enabledAgent('map') || facts.mapHistory.length) tabs.push({ id: 'places', label: 'Places', count: facts.map.places.size });
+    if (enabledAgent('map') || facts.map.world) tabs.push({ id: 'places', label: 'Places', count: facts.map.pending.length || 0 });
     if (hasWorld || hasCast) tabs.push({ id: 'journal', label: 'Journal', count: staleItems().length });
     if (hasWorld) {
         tabs.push({ id: 'world', label: 'World', count: 0 });
@@ -3404,18 +3105,23 @@ function init() {
     eventSource.on(event_types.CHAT_CHANGED, () => {
         view.peek = null;
         view.search = '';
-        view.mapFocus = null;
-        view.mapPick = '';
     });
     eventSource.on(event_types.GENERATION_STARTED, applyPromptForGeneration);
     document.addEventListener(FIELDS_CHANGED_EVENT, refresh);
     document.addEventListener(CALENDARS_CHANGED_EVENT, refresh);
     eventSource.on('in_chat_agent_companion_results_updated', () => {
         syncBeatsDone();
+        ingestMap();
         refresh();
     });
+    eventSource.on(event_types.CHAT_CHANGED, () => ingestMap());
     document.addEventListener('homunculus:group-campaign-changed', refresh);
     eventSource.on(event_types.APP_READY, registerPlotMacro);
+    eventSource.on(event_types.APP_READY, registerMapMacro);
+    document.addEventListener(WORLD_CHANGED_EVENT, () => {
+        applyPrompt();
+        queueRender();
+    });
     document.addEventListener('homunculus:group-profile-changed', refresh);
     narrowQuery.addEventListener?.('change', () => queueRender());
     eventSource.on(event_types.APP_READY, () => setTimeout(() => void turnOnLorebooksOnce(), 2000));
@@ -3430,7 +3136,6 @@ function registerPlotMacro() {
     const context = globalThis.SillyTavern?.getContext?.();
     const macros = {
         scenePlotBeats: ['The author\'s planned beats of the open chat (Scene panel → Plot).', () => beatsMacro()],
-        sceneMapPlaces: ['The map of the open chat so far, one line per place (for the Scene: Map tracker).', () => mapMacro()],
     };
     for (const [name, [description, handler]] of Object.entries(macros)) {
         try {
@@ -3474,6 +3179,7 @@ globalThis.HomunculusScene = {
     isAvailable,
     updateNow,
     findResult,
+    historyOf,
     scenePrompt,
     enabledAgent,
     sceneAgents,

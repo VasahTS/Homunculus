@@ -163,13 +163,17 @@ export function storyStart(worldHistory, cal) {
  * else from the World tracker's location text.
  * @returns {{ name: string, placeId: string, startIndex: number, startAbs: number|null }[]}
  */
-export function stays(worldHistory, mapHistory, cal) {
+export function stays(worldHistory, mapHistory, cal, timeline = null) {
     const out = [];
     const push = (name, placeId, index) => {
         const last = out[out.length - 1];
         if (last && (placeId ? last.placeId === placeId : keyOf(last.name) === keyOf(name))) return;
         out.push({ name, placeId, startIndex: index, startAbs: absMinutes(entryAt(worldHistory, index)?.data, cal) });
     };
+    if (timeline?.length) {
+        for (const item of timeline) push(item.name, item.placeId, item.messageIndex);
+        if (out.length) return out;
+    }
     if (mapHistory.length) {
         const folded = new Map();
         for (const entry of mapHistory) {
@@ -299,7 +303,7 @@ const STATUS_RANK = { rumored: 0, known: 1, visited: 2 };
 
 export const cleanId = value => str(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-function normalizePlace(raw, old = null) {
+export function normalizePlace(raw, old = null) {
     const id = cleanId(raw?.id || raw?.name || old?.id);
     if (!id) return null;
     const pick = (key, fallback) => (raw && raw[key] !== undefined && raw[key] !== null && str(raw[key]).trim() !== '' ? raw[key] : fallback);
@@ -312,7 +316,7 @@ function normalizePlace(raw, old = null) {
     const links = new Map((old?.links ?? []).map(link => [link.to, link]));
     for (const link of Array.isArray(raw?.links) ? raw.links : []) {
         const to = cleanId(link?.to);
-        if (to && to !== id) links.set(to, { to, travel: str(link?.travel).trim() || links.get(to)?.travel || '' });
+        if (to && to !== id) links.set(to, { to, travel: str(link?.travel).trim() || links.get(to)?.travel || '', ...(link?.oneWay || links.get(to)?.oneWay ? { oneWay: true } : {}) });
     }
     return {
         id,
@@ -323,9 +327,13 @@ function normalizePlace(raw, old = null) {
         // Edits made by hand in the panel carry `edited: true` and may set any status.
         status: old && !raw?.edited && STATUS_RANK[old.status] > STATUS_RANK[status] ? old.status : status,
         description: str(pick('description', old?.description ?? '')).trim(),
+        secret: str(raw && 'secret' in raw ? raw.secret : (old?.secret ?? '')).trim(),
+        view: ['map', 'list', 'floors'].includes(str(raw?.view || old?.view)) ? str(raw?.view || old?.view) : '',
+        order: Number.isFinite(Number(raw?.order ?? old?.order)) && (raw?.order ?? old?.order) !== null && (raw?.order ?? old?.order) !== '' ? Number(raw?.order ?? old?.order) : null,
         x: raw && 'x' in raw ? number(raw.x) : (old?.x ?? null),
         y: raw && 'y' in raw ? number(raw.y) : (old?.y ?? null),
         links: [...links.values()],
+        ...(raw?.edited || old?.edited ? { edited: true } : {}),
     };
 }
 
@@ -459,10 +467,8 @@ export function mapLevel(map, focus, trailIds) {
 // ───────────────────────── Map drawing ─────────────────────────
 
 const SVG = 'http://www.w3.org/2000/svg';
-const W = 300;
-const H = 220;
-const px = x => 18 + (x / 100) * (W - 36);
-const py = y => 18 + (y / 100) * (H - 40);
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 8;
 
 function svg(tag, attrs = {}, parent = null) {
     const node = document.createElementNS(SVG, tag);
@@ -472,43 +478,115 @@ function svg(tag, attrs = {}, parent = null) {
 }
 
 /**
- * Draws one map level. Clicking a place calls onPick(id); places with something inside get a second ring.
- * @param {ReturnType<typeof mapLevel>} level
- * @param {{ selected: string, onPick: (id: string) => void, title: string }} options
+ * Pushes apart places that sit on top of each other (only for drawing; saved positions don't change).
+ * @param {Map<string, {x:number, y:number}>} pos in map pixels
  */
-export function drawMap(level, { selected, onPick, title }) {
-    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ct-sc-map-svg', role: 'img', 'aria-label': title });
-    const byId = new Map(level.places.filter(place => place.placed).map(place => [place.id, place]));
-    const edges = svg('g', { class: 'ct-sc-map-edges' }, root);
+function spread(pos, gap = 30) {
+    const items = [...pos.values()];
+    for (let round = 0; round < 40; round++) {
+        let moved = false;
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                const a = items[i];
+                const b = items[j];
+                let dx = b.x - a.x;
+                let dy = b.y - a.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist >= gap) continue;
+                if (dist < 0.01) {
+                    const angle = (j * 2.399) % (2 * Math.PI);
+                    dx = Math.cos(angle);
+                    dy = Math.sin(angle);
+                    dist = 1;
+                }
+                const push = (gap - dist) / 2;
+                a.x -= (dx / dist) * push;
+                a.y -= (dy / dist) * push;
+                b.x += (dx / dist) * push;
+                b.y += (dy / dist) * push;
+                moved = true;
+            }
+        }
+        if (!moved) break;
+    }
+}
+
+/**
+ * One map level you can move around in: wheel or +/− to zoom (toward the pointer), drag the
+ * background to pan, drag a place to move it (onMove saves it), click a place to pick it.
+ * Zoom changes distances, not the size of dots and labels, so crowded places pull apart.
+ * @param {ReturnType<typeof mapLevel>} level
+ * @param {{ selected: string, onPick: (id: string) => void, onMove: (id: string, x: number, y: number) => void, title: string, state: { key?: string, k?: number, tx?: number, ty?: number }, viewKey: string }} options
+ *   state: kept by the caller between renders (zoom and pan of this level)
+ */
+export function drawMap(level, { selected, onPick, onMove = null, title, state = {}, viewKey = '', width = 300, height = 220, controls: showControls = true }) {
+    const W = width;
+    const H = height;
+    const px = x => 18 + (x / 100) * (W - 36);
+    const py = y => 18 + (y / 100) * (H - 40);
+    const fromPx = v => Math.min(100, Math.max(0, ((v - 18) / (W - 36)) * 100));
+    const fromPy = v => Math.min(100, Math.max(0, ((v - 18) / (H - 40)) * 100));
+    const wrap = document.createElement('div');
+    wrap.className = 'ct-sc-map-view';
+    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: 'ct-sc-map-svg', role: 'img', 'aria-label': title });
+    wrap.append(root);
+    const placed = level.places.filter(place => place.placed);
+    const byId = new Map(placed.map(place => [place.id, place]));
+    const pos = new Map(placed.map(place => [place.id, { x: px(place.x), y: py(place.y) }]));
+    spread(pos, Math.max(30, Math.min(W, H) / 9));
+
+    const fit = () => {
+        const points = [...pos.values()];
+        if (!points.length) {
+            Object.assign(state, { k: 1, tx: 0, ty: 0 });
+            return;
+        }
+        const xs = points.map(p => p.x);
+        const ys = points.map(p => p.y);
+        const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+        const k = points.length === 1 ? 1 : Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min((W - Math.min(150, W * 0.3)) / Math.max(1, maxX - minX), (H - 70) / Math.max(1, maxY - minY))));
+        Object.assign(state, { k, tx: W / 2 - k * ((minX + maxX) / 2), ty: H / 2 - k * ((minY + maxY) / 2) - 4 });
+    };
+    if (state.key !== viewKey || !Number.isFinite(state.k)) {
+        state.key = viewKey;
+        fit();
+    }
+    const sx = x => state.tx + state.k * x;
+    const sy = y => state.ty + state.k * y;
+
+    const edgeLayer = svg('g', { class: 'ct-sc-map-edges' }, root);
+    const edges = [];
     for (const edge of level.edges) {
         const a = byId.get(edge.a);
         const b = byId.get(edge.b);
         if (!a || !b) continue;
         const unsure = a.status === 'rumored' || b.status === 'rumored';
-        svg('line', { x1: px(a.x), y1: py(a.y), x2: px(b.x), y2: py(b.y), class: `ct-sc-map-edge${unsure ? ' is-unsure' : !a.seen || !b.seen ? ' is-known' : ''}` }, edges);
+        const line = svg('line', { class: `ct-sc-map-edge${unsure ? ' is-unsure' : !a.seen || !b.seen ? ' is-known' : ''}` }, edgeLayer);
+        let label = null;
         if (edge.travel) {
-            const label = svg('text', { x: (px(a.x) + px(b.x)) / 2 + 3, y: (py(a.y) + py(b.y)) / 2 - 4, class: 'ct-sc-map-travel', 'text-anchor': 'middle' }, edges);
+            label = svg('text', { class: 'ct-sc-map-travel', 'text-anchor': 'middle' }, edgeLayer);
             label.textContent = edge.travel.length > 16 ? `${edge.travel.slice(0, 15)}…` : edge.travel;
         }
+        edges.push({ a: edge.a, b: edge.b, line, label });
     }
-    const trail = level.trail.map(id => byId.get(id)).filter(Boolean);
-    if (trail.length > 1) svg('polyline', { points: trail.map(place => `${px(place.x)},${py(place.y)}`).join(' '), class: 'ct-sc-map-trail' }, root);
+    const trailIds = level.trail.filter(id => pos.has(id));
+    const trail = trailIds.length > 1 ? svg('polyline', { class: 'ct-sc-map-trail' }, root) : null;
+
+    const nodes = [];
     for (const place of byId.values()) {
-        const x = px(place.x);
-        const y = py(place.y);
-        const group = svg('g', { class: `ct-sc-map-place is-${place.here ? 'here' : place.seen ? 'visited' : place.status}${place.id === selected ? ' is-selected' : ''}`, tabindex: '0', role: 'button', 'aria-label': place.name }, root);
+        const group = svg('g', { class: `ct-sc-map-place is-${place.here ? 'here' : place.seen ? 'visited' : place.status}${place.id === selected ? ' is-selected' : ''}`, tabindex: '0', role: 'button', 'aria-label': `${place.name}. Drag to move it` }, root);
+        group.dataset.id = place.id;
         const tip = svg('title', {}, group);
         tip.textContent = place.name;
-        if (place.here) svg('circle', { cx: x, cy: y, r: 13, class: 'ct-sc-map-here' }, group);
-        if (place.id === selected) svg('circle', { cx: x, cy: y, r: 10.5, class: 'ct-sc-map-ring' }, group);
-        if (place.hasInside) svg('circle', { cx: x, cy: y, r: 9.2, class: 'ct-sc-map-inside' }, group);
-        svg('circle', { cx: x, cy: y, r: 6.5, class: 'ct-sc-map-dot' }, group);
-        const below = place.y < 86;
-        const anchor = place.x < 14 ? 'start' : place.x > 86 ? 'end' : 'middle';
-        const label = svg('text', { x, y: below ? y + 19 : y - 12, 'text-anchor': anchor, class: 'ct-sc-map-label' }, group);
+        const circles = [];
+        if (place.here) circles.push(svg('circle', { r: 13, class: 'ct-sc-map-here' }, group));
+        if (place.id === selected) circles.push(svg('circle', { r: 10.5, class: 'ct-sc-map-ring' }, group));
+        if (place.hasInside) circles.push(svg('circle', { r: 9.2, class: 'ct-sc-map-inside' }, group));
+        circles.push(svg('circle', { r: 6.5, class: 'ct-sc-map-dot' }, group));
+        const label = svg('text', { class: 'ct-sc-map-label' }, group);
         const name = `${place.name}${place.status === 'rumored' ? '?' : ''}`;
-        label.textContent = name.length > 20 ? `${name.slice(0, 19)}…` : name;
-        group.addEventListener('click', () => onPick(place.id));
+        label.textContent = name.length > 22 ? `${name.slice(0, 21)}…` : name;
+        nodes.push({ id: place.id, group, circles, label });
         group.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
@@ -516,5 +594,119 @@ export function drawMap(level, { selected, onPick, title }) {
             }
         });
     }
-    return root;
+
+    const layout = () => {
+        for (const edge of edges) {
+            const a = pos.get(edge.a);
+            const b = pos.get(edge.b);
+            edge.line.setAttribute('x1', sx(a.x));
+            edge.line.setAttribute('y1', sy(a.y));
+            edge.line.setAttribute('x2', sx(b.x));
+            edge.line.setAttribute('y2', sy(b.y));
+            if (edge.label) {
+                edge.label.setAttribute('x', (sx(a.x) + sx(b.x)) / 2 + 3);
+                edge.label.setAttribute('y', (sy(a.y) + sy(b.y)) / 2 - 4);
+            }
+        }
+        if (trail) trail.setAttribute('points', trailIds.map(id => `${sx(pos.get(id).x)},${sy(pos.get(id).y)}`).join(' '));
+        for (const node of nodes) {
+            const x = sx(pos.get(node.id).x);
+            const y = sy(pos.get(node.id).y);
+            for (const circle of node.circles) {
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+            }
+            node.label.setAttribute('x', x);
+            node.label.setAttribute('y', y > H - 26 ? y - 12 : y + 19);
+            node.label.setAttribute('text-anchor', x < 30 ? 'start' : x > W - 30 ? 'end' : 'middle');
+        }
+    };
+    layout();
+
+    // Pointer → map pixels.
+    const toView = (event) => {
+        const box = root.getBoundingClientRect();
+        return { x: ((event.clientX - box.left) / box.width) * W, y: ((event.clientY - box.top) / box.height) * H };
+    };
+    const zoomAt = (factor, at = { x: W / 2, y: H / 2 }) => {
+        const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, state.k * factor));
+        state.tx = at.x - (at.x - state.tx) * (k / state.k);
+        state.ty = at.y - (at.y - state.ty) * (k / state.k);
+        state.k = k;
+        layout();
+    };
+    root.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        zoomAt(Math.exp(-event.deltaY * 0.0015), toView(event));
+    }, { passive: false });
+
+    let drag = null;
+    root.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        const group = /** @type {Element} */ (event.target).closest?.('.ct-sc-map-place');
+        const start = toView(event);
+        const id = group?.getAttribute('data-id') ?? '';
+        drag = group && onMove
+            ? { kind: 'place', id, start, moved: false, origin: { ...pos.get(id) } }
+            : { kind: 'pan', id, start, moved: false, origin: { tx: state.tx, ty: state.ty } };
+        root.setPointerCapture(event.pointerId);
+        wrap.classList.add(drag.kind === 'pan' ? 'is-panning' : 'is-moving');
+    });
+    root.addEventListener('pointermove', (event) => {
+        if (!drag) return;
+        const now = toView(event);
+        const dx = now.x - drag.start.x;
+        const dy = now.y - drag.start.y;
+        if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+        drag.moved = true;
+        if (drag.kind === 'pan') {
+            state.tx = drag.origin.tx + dx;
+            state.ty = drag.origin.ty + dy;
+        } else {
+            pos.set(drag.id, { x: drag.origin.x + dx / state.k, y: drag.origin.y + dy / state.k });
+        }
+        layout();
+    });
+    const end = (event) => {
+        if (!drag) return;
+        const done = drag;
+        drag = null;
+        wrap.classList.remove('is-panning', 'is-moving');
+        if (root.hasPointerCapture?.(event.pointerId)) root.releasePointerCapture(event.pointerId);
+        if (done.kind !== 'place') {
+            if (!done.moved && done.id) onPick(done.id);
+            return;
+        }
+        if (!done.moved) {
+            onPick(done.id);
+            return;
+        }
+        const p = pos.get(done.id);
+        onMove(done.id, Math.round(fromPx(p.x) * 10) / 10, Math.round(fromPy(p.y) * 10) / 10);
+    };
+    root.addEventListener('pointerup', end);
+    root.addEventListener('pointercancel', end);
+
+    if (!showControls) return wrap;
+    const controls = document.createElement('div');
+    controls.className = 'ct-sc-map-controls';
+    for (const [icon, label, action] of [
+        ['fa-plus', 'Zoom in', () => zoomAt(1.4)],
+        ['fa-minus', 'Zoom out', () => zoomAt(1 / 1.4)],
+        ['fa-expand', 'Fit: show every place', () => {
+            fit();
+            layout();
+        }],
+    ]) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ct-sc-map-btn';
+        b.title = label;
+        b.setAttribute('aria-label', label);
+        b.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
+        b.addEventListener('click', action);
+        controls.append(b);
+    }
+    wrap.append(controls);
+    return wrap;
 }
