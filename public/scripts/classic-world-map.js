@@ -16,7 +16,8 @@ import { groups, selected_group } from './group-chats.js';
 import { Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { helpButton } from './classic-help.js';
 import { loadWorldInfo, world_names, selected_world_info, METADATA_KEY } from './world-info.js';
-import { askAi, connectionProfiles } from './classic-group-campaign.js';
+import { connectionProfiles } from './classic-group-campaign.js';
+import { extractReasoningFromData, removeReasoningFromString } from './reasoning.js';
 import { cleanId, normalizePlace, ancestors, childrenOf, isInside, travelFrom, mapLevel, drawMap, PLACE_STATES } from './classic-scene-story.js';
 
 export const WORLD_CHANGED_EVENT = 'homunculus:world-changed';
@@ -1405,6 +1406,49 @@ async function lorebookText(names, budget) {
     return parts.join('\n\n');
 }
 
+/**
+ * Asks the AI for the map and returns its raw answer. Unlike generateRaw, this skips the chat's
+ * clean-up (regex scripts, name trimming), which can blank out an answer that is only a [MAP] block,
+ * and it says why an answer came back empty.
+ */
+async function askForMap(profileId, system, user, maxTokens) {
+    const context = globalThis.SillyTavern?.getContext?.();
+    const messages = [{ role: 'system', content: system }, { role: 'user', content: user }];
+    let text = '';
+    let thinking = '';
+    let finish = '';
+    const useProfile = profileId && connectionProfiles().some(profile => profile.id === profileId) && context?.ConnectionManagerRequestService;
+    if (useProfile) {
+        const result = await context.ConnectionManagerRequestService.sendRequest(profileId, messages, maxTokens, { stream: false, extractData: true, includePreset: true, includeInstruct: true });
+        text = typeof result === 'string' ? result : str(result?.content);
+        thinking = typeof result === 'string' ? '' : str(result?.reasoning);
+    } else {
+        if (typeof context?.generateRawData !== 'function') throw new Error('The app is not ready to ask the AI yet.');
+        const data = await context.generateRawData({ prompt: messages, instructOverride: true, responseLength: maxTokens });
+        text = str(context.extractMessageFromData?.(data));
+        try {
+            thinking = str(extractReasoningFromData(data));
+        } catch {
+            thinking = '';
+        }
+        // The app only reads thinking for the source it is set to; look in the usual places too.
+        const message = data?.choices?.[0]?.message;
+        thinking ||= str(message?.reasoning_content ?? message?.reasoning)
+            || (Array.isArray(data?.content) ? data.content.filter(part => part?.type === 'thinking').map(part => str(part.thinking)).join('\n') : '')
+            || (Array.isArray(data?.candidates?.[0]?.content?.parts) ? data.candidates[0].content.parts.filter(part => part?.thought).map(part => str(part.text)).join('\n') : '');
+        finish = str(data?.choices?.[0]?.finish_reason ?? data?.stop_reason ?? data?.candidates?.[0]?.finishReason);
+    }
+    text = removeReasoningFromString(text);
+    // Some models write the whole answer inside their thinking.
+    if (!text.trim() && /\[MAP\]|"places"\s*:/i.test(thinking)) text = thinking;
+    if (text.trim()) return text;
+    console.warn('[World Map] The AI sent an empty answer.', { finish, thinking: thinking.slice(0, 4000) });
+    if (thinking) throw new Error('The AI spent its whole answer thinking and wrote no map. Pick a model without thinking (or lower its thinking) in Model, or try a smaller size.');
+    if (/length|max_tokens/i.test(finish)) throw new Error('The AI ran out of room before writing the map. Try a smaller size or fewer lorebooks.');
+    if (/content_filter|safety|refus/i.test(finish)) throw new Error('The AI\'s filter blocked the answer. Try another model in Model.');
+    throw new Error('The AI sent back an empty answer. Try again, or pick another model in Model.');
+}
+
 async function runGenerator(state) {
     const gen = page.gen;
     const books = [...gen.books];
@@ -1443,7 +1487,7 @@ async function runGenerator(state) {
             .replaceAll('{{canon}}', gen.canon === 'strict' ? 'only places named or clearly described in the sources; invent nothing.' : 'start from the sources and add fitting places where they are silent.')
             .replaceAll('{{size}}', String(size))
             .replaceAll('{{existing}}', existing);
-        const answer = await askAi(gen.profile, system, 'Build the map now.', 6000);
+        const answer = await askForMap(gen.profile, system, 'Build the map now.', 8000);
         const draft = parseDraft(answer, state, gen.target);
         if (!draft.places.length) throw new Error('The AI answered without places. Try again, or change the prompt.');
         gen.draft = draft;
@@ -1451,7 +1495,9 @@ async function runGenerator(state) {
         gen.step = 'draft';
     } catch (error) {
         gen.step = 'setup';
-        gen.error = String(error?.message ?? error);
+        const cause = error?.cause?.message ?? error?.cause?.error?.message ?? '';
+        gen.error = [String(error?.message ?? error), cause].filter(Boolean).join(': ');
+        console.warn('[World Map] Generate failed.', error);
     }
     render();
 }
