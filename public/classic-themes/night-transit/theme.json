@@ -1,0 +1,164 @@
+{
+  "format": "classic-theme@1",
+  "id": "night-transit",
+  "name": "Night Transit",
+  "description": "Dark / Light",
+  "author": "Daniel",
+  "version": "1.0.0",
+  "layout": "lanterna",
+  "home": "default",
+  "preview": {
+    "background": "#15191D",
+    "text": "#E7EDEF",
+    "displayFont": "'Geist', 'Noto Sans', sans-serif",
+    "colors": [
+      "#F2B544",
+      "#86D5DC",
+      "#ECEEEB",
+      "#174E88"
+    ],
+    "orb": false
+  },
+  "variables": {
+    "--SmartThemeBodyColor": "#E7EDEF",
+    "--SmartThemeEmColor": "#B6C2C9",
+    "--SmartThemeQuoteColor": "#86D5DC",
+    "--SmartThemeUnderlineColor": "#86D5DC",
+    "--SmartThemeBlurTintColor": "#20272C",
+    "--SmartThemeChatTintColor": "#15191D",
+    "--SmartThemeBotMesBlurTintColor": "#15191D",
+    "--SmartThemeUserMesBlurTintColor": "#20272C",
+    "--SmartThemeShadowColor": "rgba(0, 0, 0, 0.2)",
+    "--SmartThemeBorderColor": "#39464E",
+    "--SmartThemeCheckboxBgColorR": "242",
+    "--SmartThemeCheckboxBgColorG": "181",
+    "--SmartThemeCheckboxBgColorB": "68",
+    "--mainFontFamily": "'Geist', 'Noto Sans', sans-serif",
+    "--ct-display-font": "'Geist', 'Noto Sans', sans-serif",
+    "--ct-glow-2": "#86D5DC",
+    "--ct-accent-ink": "#101316",
+    "--nt-canvas": "#15191D",
+    "--nt-rail": "#101316",
+    "--nt-panel": "#20272C",
+    "--nt-card": "#293239",
+    "--nt-input": "#15191D",
+    "--nt-line": "#39464E",
+    "--nt-muted": "#B6C2C9",
+    "--nt-scheme": "dark",
+    "--cf-solid": "#20272C",
+    "--cf-muted": "#B6C2C9",
+    "--cf-line": "#39464E",
+    "--cf-surface": "#293239",
+    "--cf-surface-2": "#313D45",
+    "--cf-radius": "4px"
+  },
+  "defaultMode": "dark",
+  "modes": {
+    "dark": {
+      "variables": {},
+      "accents": [
+        "#F2B544",
+        "#86D5DC",
+        "#A7D7BC",
+        "#D8C6A4"
+      ]
+    },
+    "light": {
+      "variables": {
+        "--SmartThemeBodyColor": "#20282C",
+        "--SmartThemeEmColor": "#52616A",
+        "--SmartThemeQuoteColor": "#174E88",
+        "--SmartThemeUnderlineColor": "#174E88",
+        "--SmartThemeBlurTintColor": "#DDE2DF",
+        "--SmartThemeChatTintColor": "#ECEEEB",
+        "--SmartThemeBotMesBlurTintColor": "#ECEEEB",
+        "--SmartThemeUserMesBlurTintColor": "#F7F8F5",
+        "--SmartThemeShadowColor": "rgba(32, 40, 44, 0.12)",
+        "--SmartThemeBorderColor": "#A9B4B8",
+        "--SmartThemeCheckboxBgColorR": "23",
+        "--SmartThemeCheckboxBgColorG": "78",
+        "--SmartThemeCheckboxBgColorB": "136",
+        "--ct-glow-2": "#174E88",
+        "--ct-accent-ink": "#FFFFFF",
+        "--nt-canvas": "#ECEEEB",
+        "--nt-rail": "#DDE2DF",
+        "--nt-panel": "#DDE2DF",
+        "--nt-card": "#F7F8F5",
+        "--nt-input": "#F7F8F5",
+        "--nt-line": "#A9B4B8",
+        "--nt-muted": "#52616A",
+        "--nt-scheme": "light",
+        "--cf-solid": "#DDE2DF",
+        "--cf-muted": "#52616A",
+        "--cf-line": "#A9B4B8",
+        "--cf-surface": "#F7F8F5",
+        "--cf-surface-2": "#CAD2CE"
+      },
+      "accents": [
+        "#174E88",
+        "#25616B",
+        "#346247",
+        "#70501A"
+      ]
+    }
+  },
+  "fonts": [
+    {
+      "family": "Geist",
+      "src": "fonts/geist-sans-latin-400-normal.woff2",
+      "weight": "400",
+      "style": "normal"
+    },
+    {
+      "family": "Geist",
+      "src": "fonts/geist-sans-latin-500-normal.woff2",
+      "weight": "500",
+      "style": "normal"
+    },
+    {
+      "family": "Geist",
+      "src": "fonts/geist-sans-latin-600-normal.woff2",
+      "weight": "600",
+      "style": "normal"
+    },
+    {
+      "family": "Newsreader",
+      "src": "fonts/newsreader-latin-400-normal.woff2",
+      "weight": "400",
+      "style": "normal"
+    },
+    {
+      "family": "Newsreader",
+      "src": "fonts/newsreader-latin-400-italic.woff2",
+      "weight": "400",
+      "style": "italic"
+    }
+  ],
+  "stylesheet": "theme.css",
+  "accents": [
+    "#F2B544",
+    "#86D5DC",
+    "#A7D7BC",
+    "#D8C6A4"
+  ],
+  "storyFonts": [
+    {
+      "label": "Book",
+      "value": "'Newsreader', Georgia, serif"
+    },
+    {
+      "label": "Modern",
+      "value": "'Geist', 'Noto Sans', sans-serif"
+    }
+  ],
+  "effects": {
+    "lantern": false,
+    "halo": false,
+    "shine": false,
+    "motes": false,
+    "aura": false,
+    "blur": false,
+    "glow": false,
+    "eye": false
+  }
+}

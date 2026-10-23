@@ -73,6 +73,25 @@ function isSafeColor(value) {
     return typeof value === 'string' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(value.trim());
 }
 
+function normalizeVariables(raw) {
+    return Object.fromEntries(Object.entries(raw ?? {}).filter(([key, value]) =>
+        /^--[A-Za-z0-9_-]+$/.test(key) && isSafeCssValue(String(value)),
+    ).map(([key, value]) => [key, String(value)]));
+}
+
+function modeAccents(profile, mode) {
+    return profile.modes[mode]?.accents.length ? profile.modes[mode].accents : profile.accents;
+}
+
+function accentInk(accent, fallback) {
+    if (!/^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(accent)) return fallback;
+    const hex = accent.length === 4 ? accent.slice(1).split('').map(ch => ch + ch).join('') : accent.slice(1);
+    const channels = hex.match(/../g).map(pair => parseInt(pair, 16) / 255)
+        .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    return luminance > 0.179 ? '#000000' : '#FFFFFF';
+}
+
 function slugify(value) {
     return String(value ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
@@ -112,12 +131,17 @@ export function normalizeProfile(raw, origin = {}) {
         throw new Error('The "name" field is empty.');
     }
 
-    const variables = {};
-    for (const [key, value] of Object.entries(raw.variables ?? {})) {
-        if (/^--[A-Za-z0-9_-]+$/.test(key) && isSafeCssValue(String(value))) {
-            variables[key] = String(value);
-        }
+    const variables = normalizeVariables(raw.variables);
+    const modes = {};
+    for (const mode of ['dark', 'light']) {
+        const value = raw.modes?.[mode];
+        if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+        modes[mode] = {
+            variables: normalizeVariables(value.variables),
+            accents: (Array.isArray(value.accents) ? value.accents : []).filter(isSafeColor).slice(0, 8),
+        };
     }
+    const defaultMode = Object.hasOwn(modes, raw.defaultMode) ? raw.defaultMode : Object.keys(modes)[0] ?? null;
 
     const effects = {};
     for (const effectId of EFFECT_IDS) {
@@ -169,6 +193,8 @@ export function normalizeProfile(raw, origin = {}) {
             orb: Boolean(preview.orb),
         },
         variables,
+        modes,
+        defaultMode,
         fonts,
         stylesheet: resolveUrl(raw.stylesheet),
         css: typeof raw.css === 'string' ? raw.css.slice(0, 200_000) : '',
@@ -201,23 +227,28 @@ function saveSettings() {
     context?.saveSettingsDebounced?.();
 }
 
-function defaultPrefs(profile) {
+function defaultPrefs(profile, mode = profile.defaultMode) {
     return {
         effects: { ...profile.effects },
         intensity: 2,
-        accent: profile.accents[0] ?? DEFAULT_ACCENTS[0],
+        mode,
+        accentCustom: false,
+        accent: modeAccents(profile, mode)[0] ?? DEFAULT_ACCENTS[0],
         storyFont: profile.storyFonts.length ? 0 : -1,
     };
 }
 
 function prefsFor(profile) {
     const stored = getSettings()?.perProfile?.[profile.id];
-    const base = defaultPrefs(profile);
+    const mode = Object.hasOwn(profile.modes, stored?.mode) ? stored.mode : profile.defaultMode;
+    const base = defaultPrefs(profile, mode);
     if (!stored) return base;
     return {
         effects: { ...base.effects, ...(stored.effects ?? {}) },
         intensity: [1, 2, 3].includes(stored.intensity) ? stored.intensity : base.intensity,
-        accent: isSafeColor(stored.accent) ? stored.accent : base.accent,
+        mode,
+        accentCustom: stored.accentCustom === true,
+        accent: (!mode || stored.accentCustom === true) && isSafeColor(stored.accent) ? stored.accent : base.accent,
         storyFont: Number.isInteger(stored.storyFont) && stored.storyFont < profile.storyFonts.length ? stored.storyFont : base.storyFont,
     };
 }
@@ -240,14 +271,17 @@ function activeLayout(profile) {
 
 function resolve(profile, prefs, reduceMotion, layout = 'classic') {
     const effects = EFFECT_IDS.filter(effectId => prefs.effects[effectId]);
-    const variables = { ...profile.variables, '--ct-accent': prefs.accent };
+    const variables = { ...profile.variables, ...profile.modes[prefs.mode]?.variables, '--ct-accent': prefs.accent };
+    if (prefs.mode && variables['--ct-accent-ink']) {
+        variables['--ct-accent-ink'] = accentInk(prefs.accent, variables['--ct-accent-ink']);
+    }
     if (prefs.storyFont >= 0 && profile.storyFonts[prefs.storyFont]) {
         variables['--ct-story-font'] = profile.storyFonts[prefs.storyFont].value;
     }
     const fontsCss = profile.fonts.map(font => `@font-face{font-family:"${font.family}";src:url("${font.src}") format("woff2");font-weight:${font.weight};font-style:${font.style};font-display:swap;}`).join('\n');
     return {
         id: profile.id,
-        classes: [`ct-layout-${layout}`, `ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...effects.map(effectId => `ct-fx-${effectId}`), ...(profile.home !== 'default' ? [`ct-homestyle-${profile.home}`] : []), ...(reduceMotion ? ['ct-rm'] : [])],
+        classes: [`ct-layout-${layout}`, `ct-theme-${profile.id}`, `ct-k${prefs.intensity}`, ...(prefs.mode ? [`ct-appearance-${prefs.mode}`] : []), ...effects.map(effectId => `ct-fx-${effectId}`), ...(profile.home !== 'default' ? [`ct-homestyle-${profile.home}`] : []), ...(reduceMotion ? ['ct-rm'] : [])],
         variables,
         fontsCss,
         stylesheet: profile.stylesheet,
@@ -321,7 +355,7 @@ function applyResolved(resolved) {
     if (!body || !resolved) return;
 
     for (const cls of [...body.classList]) {
-        if (/^ct-(layout-|theme-|fx-|homestyle-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
+        if (/^ct-(layout-|theme-|appearance-|fx-|homestyle-|k\d|rm$)/.test(cls)) body.classList.remove(cls);
     }
     body.classList.add(...resolved.classes);
 
@@ -466,7 +500,9 @@ function renderPanel() {
     const prefs = prefsFor(profile);
     const onCount = EFFECT_IDS.filter(effectId => prefs.effects[effectId]).length;
     const allOn = onCount === EFFECT_IDS.length;
-    const accents = profile.accents.length ? profile.accents : DEFAULT_ACCENTS;
+    const palette = modeAccents(profile, prefs.mode);
+    const accents = palette.length ? [...palette] : [...DEFAULT_ACCENTS];
+    if (prefs.accentCustom && !accents.some(color => color.toLowerCase() === prefs.accent.toLowerCase())) accents.push(prefs.accent);
     const scroller = root.closest('.drawer-content');
     const scrollTop = scroller?.scrollTop ?? 0;
 
@@ -532,6 +568,13 @@ function renderPanel() {
             <section class="ct-section ct-box" aria-labelledby="ct_h_tweaks">
                 <h4 class="ct-h" id="ct_h_tweaks">Profile tweaks</h4>
                 <p class="ct-sub">Only for “${escapeHtml(profile.name)}”.</p>
+                ${Object.keys(profile.modes).length > 1 ? `
+                <div class="ct-field">
+                    <span class="ct-label" id="ct_l_mode">Appearance</span>
+                    <div class="ct-seg" role="group" aria-labelledby="ct_l_mode">
+                        ${Object.keys(profile.modes).map(mode => `<button type="button" class="ct-seg-btn${prefs.mode === mode ? ' is-on' : ''}" aria-pressed="${prefs.mode === mode}" data-action="mode" data-value="${mode}">${mode === 'dark' ? 'Dark' : 'Light'}</button>`).join('')}
+                    </div>
+                </div>` : ''}
                 <div class="ct-field">
                     <span class="ct-label" id="ct_l_acc">${profile.accents.length ? 'Accent color' : 'Effect color'}</span>
                     <div class="ct-swatches" role="radiogroup" aria-labelledby="ct_l_acc">
@@ -544,7 +587,7 @@ function renderPanel() {
                     <div class="ct-seg" role="group" aria-labelledby="ct_l_font">
                         ${profile.storyFonts.map((font, i) => `<button type="button" class="ct-seg-btn${prefs.storyFont === i ? ' is-on' : ''}" aria-pressed="${prefs.storyFont === i}" style="font-family:${escapeHtml(font.value)}" data-action="font" data-value="${i}">${escapeHtml(font.label)}</button>`).join('')}
                     </div>
-                </div>` : `<p class="ct-sub">This profile uses the colors and fonts of the theme picked in <b>User Settings › UI Theme</b>.</p>`}
+                </div>` : '<p class="ct-sub">This profile uses the colors and fonts of the theme picked in <b>User Settings › UI Theme</b>.</p>'}
                 <button type="button" class="menu_button ct-btn ct-reset" data-action="reset"><i class="fa-solid fa-rotate-left"></i><span>Reset profile defaults</span></button>
             </section>
         </div>`;
@@ -570,6 +613,8 @@ async function exportActive() {
         home: profile.home,
         preview: profile.preview,
         variables: profile.variables,
+        modes: profile.modes,
+        defaultMode: prefsFor(profile).mode,
         fonts: profile.fonts.map(font => ({ ...font, src: font.src.startsWith('/') ? new URL(font.src, location.origin).href : font.src })),
         accents: profile.accents,
         storyFonts: profile.storyFonts,
@@ -598,6 +643,8 @@ async function importFile(file) {
         const profile = normalizeProfile(raw);
         if (profiles.get(profile.id)?.builtIn) {
             raw.id = `${profile.id}-imported`;
+            // Exported theme selectors must follow the imported copy's new profile ID.
+            if (typeof raw.css === 'string') raw.css = raw.css.replace(new RegExp(`body\\.ct-theme-${profile.id}(?![a-z0-9_-])`, 'g'), `body.ct-theme-${raw.id}`);
         }
         const clean = normalizeProfile(raw);
         const stored = { ...raw, id: clean.id };
@@ -637,7 +684,10 @@ function bindPanel() {
         } else if (action === 'intensity') {
             updatePrefs(profile, { intensity: Number(target.dataset.value) });
         } else if (action === 'accent') {
-            updatePrefs(profile, { accent: target.dataset.value });
+            updatePrefs(profile, { accent: target.dataset.value, accentCustom: true });
+        } else if (action === 'mode') {
+            if (!Object.hasOwn(profile.modes, target.dataset.value)) return;
+            updatePrefs(profile, { mode: target.dataset.value });
         } else if (action === 'font') {
             updatePrefs(profile, { storyFont: Number(target.dataset.value) });
         } else if (action === 'reset') {
@@ -661,6 +711,7 @@ function bindPanel() {
         }
         applyActive();
         renderPanel();
+        if (action === 'mode') root.querySelector(`[data-action="mode"][data-value="${target.dataset.value}"]`)?.focus();
     });
 
     root.addEventListener('change', (event) => {

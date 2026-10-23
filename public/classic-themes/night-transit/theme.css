@@ -1,0 +1,122 @@
+body.ct-theme-night-transit {
+    background-color: var(--nt-canvas);
+    color-scheme: var(--nt-scheme);
+}
+
+body.ct-theme-night-transit :is(#bg1, #bg_custom) {
+    background-color: var(--nt-canvas);
+    background-image: none;
+}
+
+body.ct-theme-night-transit ::selection {
+    background: var(--ct-accent);
+    color: var(--ct-accent-ink);
+}
+
+body.ct-theme-night-transit * {
+    scrollbar-color: var(--nt-muted) var(--nt-canvas);
+}
+
+body.ct-theme-night-transit :is(.mes_text, #send_textarea) {
+    font-family: var(--ct-story-font, var(--mainFontFamily));
+}
+
+body.ct-theme-night-transit :is(.mes .name_text, .ch_name, .drawer-content h3) {
+    font-family: var(--ct-display-font);
+    font-weight: 600;
+}
+
+body.ct-theme-night-transit :is(#chat, #ct-home) {
+    background-color: var(--nt-canvas);
+}
+
+body.ct-theme-night-transit #chat .mes {
+    background-color: var(--SmartThemeBotMesBlurTintColor);
+    border-radius: 4px;
+}
+
+body.ct-theme-night-transit #chat .mes[is_user="true"] {
+    background-color: var(--SmartThemeUserMesBlurTintColor);
+    border-color: var(--nt-line);
+}
+
+body.ct-theme-night-transit :is(#send_form, #top-bar, .drawer-content, dialog.popup) {
+    background-color: var(--nt-panel);
+    border-color: var(--nt-line);
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+body.ct-theme-night-transit :is(.menu_button, .text_pole, textarea, select) {
+    background-color: var(--nt-input);
+    color: var(--SmartThemeBodyColor);
+    border-color: var(--nt-line);
+    border-radius: 4px;
+    text-shadow: none;
+}
+
+body.ct-theme-night-transit :is(input, textarea)::placeholder {
+    color: var(--nt-muted);
+    opacity: 1;
+}
+
+body.ct-theme-night-transit :is(.character_select, .group_select, .ct-sc-card, .ct-gm-bar) {
+    background-color: var(--nt-card);
+    border-color: var(--nt-line);
+    border-radius: 4px;
+}
+
+body.ct-theme-night-transit :is(#send_but, .ct-home-btn:not(.is-ghost)),
+body.ct-theme-night-transit #ct_personalize .ct-seg-btn.is-on,
+body.ct-theme-night-transit #ct_personalize .ct-badge {
+    background-color: var(--ct-accent);
+    color: var(--ct-accent-ink);
+    border-radius: 4px;
+    text-shadow: none;
+}
+
+body.ct-theme-night-transit :is(.drawer-icon.openIcon, .ct-home-link) {
+    color: var(--ct-accent);
+}
+
+body.ct-theme-night-transit :is(button, input, textarea, select, .menu_button):focus-visible {
+    outline: 2px solid var(--ct-accent);
+    outline-offset: 2px;
+}
+
+body.ct-theme-night-transit.ct-appearance-light :is(.ct-sc-look-label, .ct-sc-stat-label, .ct-sc-goal-label, .ct-sc-pill, .ct-sc-alerts .ct-sc-box-head, .ct-sc-alerts .ct-sc-box-head > i:first-child) {
+    color: var(--SmartThemeBodyColor);
+}
+
+body.ct-theme-night-transit .ct-sc-tab.is-on .ct-sc-tab-count {
+    color: var(--ct-accent-ink);
+}
+
+body.ct-theme-night-transit.ct-appearance-light :is(.ct-sc-pill.is-here, .ct-sc-pill.is-completed, .ct-sc-pill.is-done) {
+    color: #346247;
+}
+
+body.ct-theme-night-transit.ct-appearance-light .ct-sc-pill.is-failed {
+    color: #9E3229;
+}
+
+@media (min-width: 1000px) {
+    body.ct-theme-night-transit.ct-layout-lanterna #top-settings-holder {
+        background-color: var(--nt-rail);
+        box-shadow: none;
+    }
+
+    body.ct-theme-night-transit.ct-layout-lanterna #ct-rail-indicator {
+        background-color: var(--ct-accent);
+        border-radius: 4px;
+    }
+
+    body.ct-theme-night-transit.ct-layout-lanterna #top-settings-holder :is(.drawer-icon, .ct-rail-label) {
+        color: var(--nt-muted);
+        text-shadow: none;
+    }
+
+    body.ct-theme-night-transit.ct-layout-lanterna #top-settings-holder > .drawer.ct-rail-active :is(.drawer-icon, .ct-rail-label) {
+        color: var(--ct-accent-ink);
+    }
+}
